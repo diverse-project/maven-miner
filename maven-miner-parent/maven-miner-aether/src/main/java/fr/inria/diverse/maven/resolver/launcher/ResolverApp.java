@@ -76,7 +76,7 @@ public class ResolverApp{
 		options.addOption("f", "file", true, "Path to artiacts coordinates list file. Note, artifacts are per line");
 		options.addOption("p", "pretty-printer", true, "Path to the output file stream. Optional");
 		options.addOption("db", "database", true, "Path to store the neo4j database. Mandatory!");
-		options.addOption("b", "build-artifacts", true, "building the artifacts file at the location specified by the option -f [--file]. If not specified, allArtifacts is used by default as a name");
+		options.addOption("b", "build-artifacts", false, "building the artifacts file at the location specified by the option -f [--file]. If not specified, allArtifacts is used by default as a name");
 		
 		 CommandLineParser parser = new DefaultParser();
 		 
