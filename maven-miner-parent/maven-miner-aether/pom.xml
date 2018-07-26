@@ -77,6 +77,16 @@
             <artifactId>indexer-core</artifactId>
             <version>5.1.0</version>
             <scope>compile</scope>
+            <exclusions>
+	            <exclusion>
+				    <groupId>org.apache.lucene</groupId>
+				    <artifactId>lucene-core</artifactId>
+	        	</exclusion>
+	        	 <exclusion>
+				    <groupId>org.apache.lucene</groupId>
+				    <artifactId>lucene-highlighter</artifactId>
+	        	</exclusion>
+        	</exclusions>
         </dependency>
 		<!-- Neo4j database dependencies  -->
 		  <dependency>
@@ -130,6 +140,7 @@
             <version>4.12</version>
             <scope>test</scope>
         </dependency>
+        
   </dependencies>
 
       <build>
