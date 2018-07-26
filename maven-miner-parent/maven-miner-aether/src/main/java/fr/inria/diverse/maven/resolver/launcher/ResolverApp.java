@@ -45,7 +45,9 @@ public class ResolverApp{
     private static final RepositorySystem system = Booter.newRepositorySystem();
     private static final RemoteRepository repo = Booter.newCentralRepository();
     private static final RepositorySystemSession session = Booter.newRepositorySystemSession(system);
+   
     private static MultiTaskDependencyVisitor myVisitor = new MultiTaskDependencyVisitor();
+   
     private static final Options options = new Options();
 
 	private static final String SEPARATOR_ARTIFACTS = ":";
@@ -71,12 +73,12 @@ public class ResolverApp{
 		
 		//initialize arguments
 		String coordinatesPath = "src/main/resources/allUniqueArtifactsOnly-mini-100";
-		boolean skipBuild = true;
+//		boolean skipBuild = true;
 		options.addOption("h", "help", false, "Show help");
 		options.addOption("f", "file", true, "Path to artiacts coordinates list file. Note, artifacts are per line");
 		options.addOption("p", "pretty-printer", true, "Path to the output file stream. Optional");
 		options.addOption("db", "database", true, "Path to store the neo4j database. Mandatory!");
-		options.addOption("b", "build-artifacts", false, "building the artifacts file at the location specified by the option -f [--file]. If not specified, allArtifacts is used by default as a name");
+//		options.addOption("b", "build-artifacts", false, "building the artifacts file at the location specified by the option -f [--file]. If not specified, allArtifacts is used by default as a name");
 		
 		 CommandLineParser parser = new DefaultParser();
 		 
@@ -87,10 +89,10 @@ public class ResolverApp{
 		   if (cmd.hasOption("h")) {
 		    help();
 		   }
-		   if (cmd.hasOption("b")) {
-			   skipBuild = false;
-			   coordinatesPath = "results/allArtifacts";
-		   }
+//		   if (cmd.hasOption("b")) {
+//			   skipBuild = false;
+//			   coordinatesPath = "results/allArtifacts";
+//		   }
 		   if (cmd.hasOption("f")) {
 			   coordinatesPath = cmd.getOptionValue("f");
 		   } 
@@ -115,9 +117,9 @@ public class ResolverApp{
 		  }
 		 BufferedReader resultsReader = null;
         try {
-        	if (!skipBuild) {
-        		writeAllArtifactInfo(coordinatesPath);
-        	}
+//        	if (!skipBuild) {
+//        		writeAllArtifactInfo(coordinatesPath);
+//        	}
         	resultsReader = new BufferedReader(new FileReader(coordinatesPath));
             String artifactCoordinate;
             int lineCounter = 0;
