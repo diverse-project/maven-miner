@@ -63,7 +63,7 @@ public class Edge {
 	            case "test":
 	                return Scope.Test;
 	            default:
-	                return null;
+	                return Scope.Compile;
 	        }
 	    }
 	}

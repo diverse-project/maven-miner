@@ -79,8 +79,8 @@ public class Vertex {
 		                return Packaging.Ear;
 		            case "pom":
 		                return Packaging.Pom;
-		            default:
-		                return null;
+		            default: // Use default packaging "jar"
+		                return Packaging.Jar;
 		        }
 		    }
 		}
