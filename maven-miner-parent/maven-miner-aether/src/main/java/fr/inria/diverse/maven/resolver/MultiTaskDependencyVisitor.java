@@ -34,5 +34,7 @@ public class MultiTaskDependencyVisitor implements DependencyVisitor {
         return true;
     }
     
-    
+    public Set<DependencyVisitorTask> getTasksList() {
+    	return taskList;
+    }
 }

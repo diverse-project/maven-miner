@@ -1,60 +1,65 @@
 package fr.inria.diverse.maven.resolver.tasks;
 
 import java.io.File;
-import java.util.Map;
-import java.util.Stack;
-import java.util.concurrent.ConcurrentHashMap;
-
 import org.apache.commons.io.FileUtils;
 import org.neo4j.graphdb.GraphDatabaseService;
+import org.neo4j.graphdb.Label;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.RelationshipType;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.graphdb.factory.GraphDatabaseFactory;
 import org.neo4j.graphdb.factory.GraphDatabaseSettings;
+import org.neo4j.graphdb.schema.Schema;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.sonatype.aether.artifact.Artifact;
 import org.sonatype.aether.graph.Dependency;
 import org.sonatype.aether.graph.DependencyNode;
 
-import com.google.common.collect.ArrayListMultimap;
-import com.google.common.collect.ListMultimap;
-
 import fr.inria.diverse.maven.resolver.MultiTaskDependencyVisitor;
 import fr.inria.diverse.maven.resolver.model.Edge.Scope;
 import fr.inria.diverse.maven.resolver.util.MavenResolverUtil;
 
-public class Neo4jGraphDependencyVisitorTask implements DependencyVisitorTask {
-
+public class Neo4jGraphDependencyVisitorTask extends  AbstractGraphBuilderVisitorTask {
+	/**
+	 * Me: Obviously a logger... 
+	 * Him (N-H): Tnx for the Info Bro! You rock!
+	 */
 	private static Logger LOGGER = LoggerFactory.getLogger(MultiTaskDependencyVisitor.class);
-	
+	/**
+	 * The path to the database directory
+	 */
 	private final String graphDirectory;
+	/*
+	 * Neo4j {@link GraphDatabaseService}
+	 */
 	private final GraphDatabaseService graphDB;
-	private Stack<Node> stack = new Stack<Node>();
 	
-	private Node root;
-	
-	private int depth = 0;
-	
-	private Map<String,Node> nodesIndex = new ConcurrentHashMap<String,Node>();
-	private ListMultimap<String, String> edgesIndex = ArrayListMultimap.create();
 
-	
-	
+	/**
+	 * Constructor
+	 * @param graphDirectory
+	 * @reurns {@link Neo4jGraphDependencyVisitorTask}
+	 */
 	public Neo4jGraphDependencyVisitorTask(String graphDirectory) {
 		this.graphDirectory = graphDirectory;
-		graphDB = initDB();
-		
+		graphDB = initDB();	
 	}
-	
+	/**
+	 * Default constructor
+	 * @return {@link Neo4jGraphDependencyVisitorTask}
+	 */
 	public Neo4jGraphDependencyVisitorTask() {
 		File tmpFile = FileUtils.getTempDirectory();
 		this.graphDirectory = tmpFile.getAbsolutePath();
 		graphDB = initDB();
 	}
-	
+	/**
+	 * Initiating the database with default option config.
+	 * 
+	 * @return {@link GraphDatabaseService}
+	 */
 	private GraphDatabaseService initDB() {
 		GraphDatabaseService db =new GraphDatabaseFactory()
 	    .newEmbeddedDatabaseBuilder(FileUtils.getFile(graphDirectory))
@@ -64,7 +69,10 @@ public class Neo4jGraphDependencyVisitorTask implements DependencyVisitorTask {
 	    .newGraphDatabase();
 		return db;
 	}
-	
+	/**
+	 * @see {@link Neo4jGraphDependencyVisitorTask#enter(DependencyNode)}
+	 *
+	 */
 	@Override
 	public void enter(DependencyNode node) {
 		depth++;
@@ -93,6 +101,7 @@ public class Neo4jGraphDependencyVisitorTask implements DependencyVisitorTask {
 			if (edgesIndex.containsEntry(sourceCoord, targetCoor)) return;
 			//Otherwise create one ...
 			Relationship relation = source.createRelationshipTo(target, DependencyRelation.DEPENDS_ON);
+			
 			relation.setProperty(Properties.SCOPE, scope.toString());
 
 			tx.success();
@@ -111,7 +120,8 @@ public class Neo4jGraphDependencyVisitorTask implements DependencyVisitorTask {
 			return nodesIndex.get(depKey);
 		try ( Transaction tx = graphDB.beginTx() ) { 
 			LOGGER.info("adding artifact: "+depKey);
-			result = graphDB.createNode();
+			Label artifactLabel = getOrCreateLabel(artifact.getGroupId());
+			result = graphDB.createNode(artifactLabel);
 			nodesIndex.put(depKey, result);
 			
 			result.setProperty(Properties.COORDINATES, depKey);
@@ -119,10 +129,22 @@ public class Neo4jGraphDependencyVisitorTask implements DependencyVisitorTask {
 			result.setProperty(Properties.CLASSIFIER, artifact.getClassifier());
 			result.setProperty(Properties.VERSION, artifact.getVersion());
 			result.setProperty(Properties.PACKAGING, MavenResolverUtil.derivePackaging(artifact).toString());
+			result.setProperty(Properties.ARTIFACT, artifact.getArtifactId());
 			
 			tx.success();
 		}
 		return  result;
+	}
+	/**
+	 * Cheks the existence of the Label on the index and creates a new one if not 
+	 * @param groupId {@link String}
+	 * @return label {@link Label}
+	 */
+	private Label getOrCreateLabel(String groupId) {
+		if (labelsIndex.containsKey(groupId)) 
+			return labelsIndex.get(groupId);
+		Label label = Label.label(groupId);
+		return label;
 	}
 
 	@Override
@@ -142,6 +164,27 @@ public class Neo4jGraphDependencyVisitorTask implements DependencyVisitorTask {
 	
 	@Override
 	public void shutdown() {
+		
+		//TODO creating tasksEvolution
+		
+		//creating indexes by labels on artifacts coordinates.
+		// note labels reflects groupID
+		try ( Transaction tx = graphDB.beginTx() )
+		{
+			LOGGER.info("Creating per Label Index on Artifact coordinates");
+		    Schema schema = graphDB.schema();
+		    graphDB.getAllLabels().forEach(label ->  {
+		    	schema.indexFor(label)
+			          .on(Properties.COORDINATES)
+			          .create();
+		    });		    
+		    tx.success();
+			LOGGER.info("Index creation finished");
+
+		} catch (Exception e) {
+			LOGGER.error(e.getMessage());
+			throw e;
+		}
 		graphDB.shutdown();
 	}
 	
@@ -160,7 +203,9 @@ public class Neo4jGraphDependencyVisitorTask implements DependencyVisitorTask {
 		private static final String VERSION = "version";
 		private static final String PACKAGING = "packaging";
 		private static final String CLASSIFIER = "classifier";
+		private static final String ARTIFACT = "artifact";
 		private static final String SCOPE = "scope";
+		
 		
 	}
 }

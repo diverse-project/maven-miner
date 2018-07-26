@@ -70,7 +70,7 @@ public class ResolverApp{
 	public static void main(String[] args) throws IOException {
 		
 		//initialize arguments
-		String coordinatesPath = "src/main/resources/allUniqueArtifactsOnly-mini";
+		String coordinatesPath = "src/main/resources/allUniqueArtifactsOnly-mini-100";
 		boolean skipBuild = true;
 		options.addOption("h", "help", false, "Show help");
 		options.addOption("f", "file", true, "Path to artiacts coordinates list file. Note, artifacts are per line");
@@ -124,26 +124,30 @@ public class ResolverApp{
             int skippedCounter = 0;
 		    while ((artifactCoordinate = resultsReader.readLine()) != null) {
 		            try {
+		            	if (artifactCoordinate.startsWith("#")) continue;
 		            	++lineCounter;
 		                DefaultArtifact artifact = new DefaultArtifact(artifactCoordinate);
 		                resolveDependencyforArtifact(artifact);
 		             } catch (Exception ee) {
 		            	--lineCounter;
 		            	++skippedCounter;
-		             	LOGGER.error("Could not resolve artifact: "+artifactCoordinate);
-		             	LOGGER.error(ee.getMessage());
+		             	LOGGER.error("Could not resolve artifact: {} ",artifactCoordinate);
+		             	ee.printStackTrace();
 		             }
 		            }
 		            
-		            LOGGER.info(lineCounter+" artifacts have been resolved"); 
-		            LOGGER.info(skippedCounter+" artifacts have been skipped"); 
+		            LOGGER.info(" {} artifacts have been resolved", lineCounter); 
+		            LOGGER.info(" {} artifacts have been skipped", skippedCounter); 
 		            
             } catch (IOException ioe) {
             	LOGGER.error("Couldn't find file: " + coordinatesPath );
-             	LOGGER.error(ioe.getMessage());
+             	ioe.printStackTrace();
              	resultsReader.close();
-            }     
+            } {
+            	//visitors.shutdown
+            }    
         resultsReader.close();
+        myVisitor.getTasksList().forEach(task -> {task.shutdown();});
 	}
 
 	private static void help() {

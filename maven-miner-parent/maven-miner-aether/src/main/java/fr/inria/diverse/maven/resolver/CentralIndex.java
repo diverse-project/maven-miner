@@ -133,9 +133,9 @@ public class CentralIndex {
         try {
             final IndexReader ir = searcher.getIndexReader();
             for (int i = startPosition; i < endPosition; i++) {
-                if (!ir.isDeleted(i)) {
+                
                     list.add(IndexUtils.constructArtifactInfo(ir.document(i), centralContext));
-                }
+                
             }
         } finally {
             centralContext.releaseIndexSearcher(searcher);
