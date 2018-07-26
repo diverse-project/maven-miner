@@ -198,6 +198,7 @@ public class Neo4jGraphDependencyVisitorTask extends  AbstractGraphBuilderVisito
 	}
 	
 	private class Properties {
+		
 		private static final String COORDINATES = "coordinates";
 		private static final String GROUP = "groupID";
 		private static final String VERSION = "version";
@@ -205,7 +206,6 @@ public class Neo4jGraphDependencyVisitorTask extends  AbstractGraphBuilderVisito
 		private static final String CLASSIFIER = "classifier";
 		private static final String ARTIFACT = "artifact";
 		private static final String SCOPE = "scope";
-		
 		
 	}
 }
