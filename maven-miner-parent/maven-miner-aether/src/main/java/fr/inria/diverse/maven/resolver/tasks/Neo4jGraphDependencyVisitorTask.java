@@ -1,7 +1,15 @@
 package fr.inria.diverse.maven.resolver.tasks;
 
 import java.io.File;
+import java.util.Comparator;
+import java.util.List;
+import java.util.stream.Collectors;
+
 import org.apache.commons.io.FileUtils;
+import org.eclipse.aether.util.version.GenericVersionScheme;
+import org.eclipse.aether.version.InvalidVersionSpecificationException;
+import org.eclipse.aether.version.Version;
+import org.eclipse.aether.version.VersionScheme;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Label;
 import org.neo4j.graphdb.Node;
@@ -118,7 +126,7 @@ public class Neo4jGraphDependencyVisitorTask extends  AbstractGraphBuilderVisito
 		Node result;
 		if (nodesIndex.containsKey(depKey))
 			return nodesIndex.get(depKey);
-		try ( Transaction tx = graphDB.beginTx() ) { 
+		try ( Transaction tx = graphDB.beginTx()) { 
 			LOGGER.info("adding artifact: "+depKey);
 			Label artifactLabel = getOrCreateLabel(artifact.getGroupId());
 			result = graphDB.createNode(artifactLabel);
@@ -164,37 +172,103 @@ public class Neo4jGraphDependencyVisitorTask extends  AbstractGraphBuilderVisito
 	
 	@Override
 	public void shutdown() {
+	
+		// clearing all indexes
+		nodesIndex.clear();
+		edgesIndex.clear();
 		
-		//TODO creating tasksEvolution
+		//creating release precedence
+		createPrecedenceShip();
 		
-		//creating indexes by labels on artifacts coordinates.
-		// note labels reflects groupID
+		//creatig indexes
+		createIndexes();
+		
+		//Shutting down database
+		graphDB.shutdown();
+	}
+	
+	private void createIndexes() {
 		try ( Transaction tx = graphDB.beginTx() )
 		{
+			LOGGER.info("Creating plugins version's evolution ");
+			
 			LOGGER.info("Creating per Label Index on Artifact coordinates");
 		    Schema schema = graphDB.schema();
 		    graphDB.getAllLabels().forEach(label ->  {
-		    	schema.indexFor(label)
+		    	try {
+		    		schema.indexFor(label)
 			          .on(Properties.COORDINATES)
 			          .create();
+				} catch (Exception e) {
+					LOGGER.info("Index {} already exists", label);
+				}
+		    	
 		    });		    
 		    tx.success();
 			LOGGER.info("Index creation finished");
-
 		} catch (Exception e) {
 			LOGGER.error(e.getMessage());
 			throw e;
 		}
-		graphDB.shutdown();
 	}
-	
+	private void createPrecedenceShip() {
+		try (Transaction tx = graphDB.beginTx()) {
+			graphDB.getAllLabelsInUse().forEach(label ->
+			{
+				List<Node> sortedNodes = graphDB.findNodes(label).stream().sorted(new Comparator<Node>() {
+
+					@Override
+					public int compare(Node n1, Node n2) {
+						//String p1 = n1.getPropert
+						String p1 = (String) n1.getProperty(Properties.ARTIFACT);
+						String p2 = (String) n2.getProperty(Properties.ARTIFACT);
+						Version v1 = null;
+						Version v2 = null;
+						if (p1.compareTo(p2) != 0) return p1.compareTo(p2);
+						final GenericVersionScheme versionScheme = new GenericVersionScheme();
+					    try {
+					    	  v1 = versionScheme.parseVersion((String)n1.getProperty(Properties.VERSION));
+							  v2 = versionScheme.parseVersion((String)n2.getProperty(Properties.VERSION));
+								
+						} catch (InvalidVersionSpecificationException e) {
+							LOGGER.info("Unable to parse version");
+							e.printStackTrace();
+						}
+					    return v1.compareTo(v2); 		
+					}
+				}).collect(Collectors.toList());//end find nodes
+				
+				for (int i =0; i< sortedNodes.size() - 2; i++) {
+					Node firstNode = sortedNodes.get(i);
+					Node secondNode = sortedNodes.get(i+1);
+					
+					if (isNextRelease(firstNode, secondNode)) {
+						firstNode.createRelationshipTo(secondNode, DependencyRelation.NEXT);
+					}
+				}
+			});//end foreach		
+			tx.success();
+		} catch (Exception e) {
+			LOGGER.error(e.getLocalizedMessage());
+			e.printStackTrace();
+			throw e;
+		}
+		
+	}
+	private boolean isNextRelease(Node firstNode, Node secondNode) {
+		String artifact1 = (String) firstNode.getProperty(Properties.ARTIFACT);
+		String artifact2 = (String) secondNode.getProperty(Properties.ARTIFACT);
+		return artifact1.equals(artifact2);
+	}
+
 	/**
 	 * 
 	 * @author Amine BENELALLAM
  	 *
 	 */
 	private static enum DependencyRelation implements RelationshipType {
-		DEPENDS_ON
+		DEPENDS_ON,
+		NEXT;
 	}
 	
 	private class Properties {

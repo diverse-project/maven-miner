@@ -14,7 +14,7 @@ import com.google.common.collect.ListMultimap;
 public abstract class AbstractGraphBuilderVisitorTask implements DependencyVisitorTask {
 
 	/**
-	 * a stack to resolve the current parent node 
+	 * A stack to resolve the current parent node 
 	 */
 	protected Stack<Node> stack = new Stack<Node>();
 	/**
@@ -28,14 +28,14 @@ public abstract class AbstractGraphBuilderVisitorTask implements DependencyVisit
 	/**
 	 * An index of already resolved artifacts in the form of Neo4j {@link Node} 
 	 */
-	protected Map<String,Node> nodesIndex = new ConcurrentHashMap<String,Node>();
+	protected Map<String,Node> nodesIndex = new HashMap<String,Node>();
 	/**
 	 * An index of already resolved dependency relationships
 	 */
 	protected ListMultimap<String, String> edgesIndex = ArrayListMultimap.create();
 	/**
-	 * A a String to Label map to cache already created labels
+	 * A String to Label map to cache already created labels
 	 */
 	protected Map<String,Label> labelsIndex = new HashMap<String,Label>();
 
-}
+   }
