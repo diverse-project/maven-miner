@@ -2,6 +2,7 @@ package fr.inria.diverse.maven.resolver.launcher;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
+import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -26,6 +27,9 @@ import org.sonatype.aether.collection.CollectResult;
 import org.sonatype.aether.collection.DependencyCollectionException;
 import org.sonatype.aether.graph.Dependency;
 import org.sonatype.aether.repository.RemoteRepository;
+import org.sonatype.aether.resolution.ArtifactRequest;
+import org.sonatype.aether.resolution.ArtifactResolutionException;
+import org.sonatype.aether.resolution.ArtifactResult;
 import org.sonatype.aether.util.artifact.DefaultArtifact;
 import org.sonatype.aether.util.artifact.JavaScopes;
 
@@ -37,7 +41,7 @@ import fr.inria.diverse.maven.resolver.tasks.DependencyVisitorTask;
 import fr.inria.diverse.maven.resolver.tasks.Neo4jGraphDependencyVisitorTask;
 
 
-public class ResolverApp{
+public class ResolverApp {
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(ResolverApp.class);
 
@@ -46,15 +50,14 @@ public class ResolverApp{
     private static final RepositorySystemSession session = Booter.newRepositorySystemSession(system);
    
     private static MultiTaskDependencyVisitor myVisitor = new MultiTaskDependencyVisitor();
+
+	private static boolean resolveArtifacts = true;
    
     private static final Options options = new Options();
 
 	private static final String SEPARATOR_ARTIFACTS = ":";
     
-
-	
-    
-    public static void resolveDependencyforArtifact(Artifact artifact) throws DependencyCollectionException {
+    public static void resolveDependencyforArtifact(Artifact artifact) throws DependencyCollectionException, ArtifactResolutionException {
 
         LOGGER.info("Resolving artifact: " + artifact);
         CollectRequest collectRequest = new CollectRequest();
@@ -64,6 +67,18 @@ public class ResolverApp{
         CollectResult collectResult = system.collectDependencies(session, collectRequest);
        // DependencyGraph localDependencies = new DependencyGraph();
         collectResult.getRoot().accept(myVisitor);
+        
+        // TODO dirty for now, I name to wave it with the behaviour of 
+        if(resolveArtifacts ) {
+        	ArtifactRequest artifactRequest = new ArtifactRequest();
+            artifactRequest.setArtifact( artifact );
+            artifactRequest.addRepository(repo);
+            
+            ArtifactResult artifactResult = system.resolveArtifact(session, artifactRequest);
+            File jarFile= artifactResult.getArtifact().getFile();
+            jarFile.delete();
+        }
+        
 
         //return localDependencies;
     }
@@ -71,7 +86,7 @@ public class ResolverApp{
 	public static void main(String[] args) throws IOException {
 		
 		//initialize arguments
-		String coordinatesPath = "src/main/resources/allUniqueArtifactsOnly-mini-100";
+		String coordinatesPath = "src/main/resources/allUniqueArtifactsOnly-mini";
 //		boolean skipBuild = true;
 		options.addOption("h", "help", false, "Show help");
 		options.addOption("f", "file", true, "Path to artiacts coordinates list file. Note, artifacts are per line");
@@ -88,10 +103,7 @@ public class ResolverApp{
 		   if (cmd.hasOption("h")) {
 		    help();
 		   }
-//		   if (cmd.hasOption("b")) {
-//			   skipBuild = false;
-//			   coordinatesPath = "results/allArtifacts";
-//		   }
+
 		   if (cmd.hasOption("f")) {
 			   coordinatesPath = cmd.getOptionValue("f");
 		   } 
@@ -116,9 +128,7 @@ public class ResolverApp{
 		  }
 		 BufferedReader resultsReader = null;
         try {
-//        	if (!skipBuild) {
-//        		writeAllArtifactInfo(coordinatesPath);
-//        	}
+
         	resultsReader = new BufferedReader(new FileReader(coordinatesPath));
             String artifactCoordinate;
             int lineCounter = 0;
@@ -135,6 +145,8 @@ public class ResolverApp{
 		             	LOGGER.error("Could not resolve artifact: {} ",artifactCoordinate);
 		             	ee.printStackTrace();
 		             }
+		            LOGGER.info("Resolving artifact {} number {} finished", artifactCoordinate, skippedCounter+lineCounter);
+		            
 		            }
 		            
 		            LOGGER.info(" {} artifacts have been resolved", lineCounter); 
@@ -144,11 +156,11 @@ public class ResolverApp{
             	LOGGER.error("Couldn't find file: " + coordinatesPath );
              	ioe.printStackTrace();
              	resultsReader.close();
-            } {
-            	//visitors.shutdown
+            }finally {
+            	resultsReader.close();
+                myVisitor.getTasksList().forEach(task -> {task.shutdown();});
             }    
-        resultsReader.close();
-        myVisitor.getTasksList().forEach(task -> {task.shutdown();});
+        
 	}
 
 	private static void help() {
