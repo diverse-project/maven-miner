@@ -78,13 +78,17 @@ public class ClassScanCounter extends URLClassLoader {
 		Enumeration<? extends JarEntry> enumeration = jar.entries();
 		// Iterates into the files in the jar file
 		while (enumeration.hasMoreElements()) {
-		    ZipEntry zipEntry = enumeration.nextElement();
-		    
+		   try { ZipEntry zipEntry = enumeration.nextElement();	    
 		    // Is this a class?
 		    if (zipEntry.getName().endsWith(".class")) 
 		    	classCount++;
+		   } catch (Exception e) {
+			   LOGGER.error(e.getMessage());
+			   e.printStackTrace();
+			   throw e;
+		   }
 		}
-		dbwrapper.updateClassCount(MavenResolverUtil.artifactToCoordinate(artifact), classCount);
+		dbwrapper.updateClassCount(artifact, classCount);
 		    
 //		    {
 //		    	Class<?> clazz = null;

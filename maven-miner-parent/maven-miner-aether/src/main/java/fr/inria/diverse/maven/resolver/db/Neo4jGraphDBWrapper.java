@@ -148,10 +148,12 @@ public class Neo4jGraphDBWrapper {
 		
 		String depKey = MavenResolverUtil.artifactToCoordinate(artifact);
 		//Artifact artifact = dependency.getArtifact();
+		
 		Node result;
 		//Label label;
 		try ( Transaction tx = graphDB.beginTx()) {
-			Label artifactLabel = getOrCreateLabel(artifact.getGroupId());
+			
+			Label artifactLabel = getOrCreateLabel(artifact.getGroupId());		
 			result = graphDB.findNode(artifactLabel, Properties.COORDINATES, depKey);
 			
 			if (result == null) {
@@ -179,10 +181,10 @@ public class Neo4jGraphDBWrapper {
 	    Runtime.getRuntime().addShutdownHook( new Thread(() -> {graphDB.shutdown();}));
 	}
 	/**
-	 * Creates An outgoing relationship of type {@link DependencyRelation#DEPENDS_ON} from @param sourceArtifact to @param target artifact  
-	 * @param sourceArtifact
-	 * @param targetArtifact
-	 * @param scope
+	 * Creates An outgoing relationship of type {@link DependencyRelation#DEPENDS_ON} from @param sourceArtifact to @param targetArtifact  
+	 * @param sourceArtifact {@link Artifact}
+	 * @param targetArtifact {@link Artifact}
+	 * @param scope {@link Scope}
 	 */
  	public void addDependencyToGraphDB( @NotNull Artifact sourceArtifact, @NotNull Artifact targetArtifact, @NotNull Scope scope) {	
  		Node source = getNodeFromArtifactCoordinate(sourceArtifact);
@@ -216,7 +218,6 @@ public class Neo4jGraphDBWrapper {
 			{	
 				@NotNull(message = "All the existing labels should have at least one node")
 				List<Node> sortedNodes = graphDB.findNodes(label).stream().sorted(new Comparator<Node>() {
-
 					@Override
 					public int compare(Node n1, Node n2) {
 						//String p1 = n1.getProperty
@@ -272,14 +273,19 @@ public class Neo4jGraphDBWrapper {
 	public void shutdown() {
 		graphDB.shutdown();	
 	}
-	public void updateDependencyCounts(String coordinates, JarCounter jarCounter) {
+	/**
+	 * 
+	 * @param coordinates
+	 * @param jarCounter
+	 */
+	public void updateDependencyCounts(Artifact artifact, JarCounter jarCounter) {
 		
-		String [] elements = MavenResolverUtil.coordinatesToElements(coordinates);
-		@NotNull String groupeID = elements[0];
+		//String [] elements = MavenResolverUtil.coordinatesToElements(coordinates);
+		@NotNull String groupeID = artifact.getGroupId();
 		
 		try (Transaction tx = graphDB.beginTx()) {
-			Label label = getOrCreateLabel(groupeID);
-			Node node = graphDB.findNode(label, Properties.COORDINATES, coordinates);
+			//Label label = getOrCreateLabel(groupeID);
+			Node node = getNodeFromArtifactCoordinate(artifact);
 			
 			node.setProperty(Properties.ANNOTATION_COUNT, jarCounter.getAnnotations());
 			node.setProperty(Properties.ENUM_COUNT, jarCounter.getEnums());
@@ -296,13 +302,18 @@ public class Neo4jGraphDBWrapper {
 	 * @param  coordinates {@link String}
 	 * @param classCount {@link Integer}
 	 */
-	public void updateClassCount(String coordinates, int classCount) {
-		String [] elements = MavenResolverUtil.coordinatesToElements(coordinates);
-		@NotNull String groupeID = elements[0];
+	public void updateClassCount(Artifact artifact, int classCount) {
 		
+		//String [] elements = MavenResolverUtil.coordinatesToElements(coordinates);
+		@NotNull String groupeID = artifact.getGroupId();
+		String coordinates = MavenResolverUtil.artifactToCoordinate(artifact);
 		try (Transaction tx = graphDB.beginTx()) {
-			Label label = getOrCreateLabel(groupeID);
-			Node node = graphDB.findNode(label, Properties.COORDINATES, coordinates);
+			//Label label = getOrCreateLabel(groupeID);
+			Node node = getNodeFromArtifactCoordinate(artifact);
+			if (node == null) {
+				tx.close();
+				return;
+			}
 			node.setProperty(Properties.CLASS_COUNT, classCount);
 			tx.success();
 		}	
@@ -340,8 +351,6 @@ public class Neo4jGraphDBWrapper {
 		private static final String INTERFACE_COUNT = "interface_count";
 		private static final String ANNOTATION_COUNT = "annotation_count";
 		private static final String METHOD_COUNT = "method_count";
-		
-		
 		
 	}
 	

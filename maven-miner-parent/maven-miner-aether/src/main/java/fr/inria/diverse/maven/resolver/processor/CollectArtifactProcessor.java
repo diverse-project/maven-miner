@@ -40,7 +40,6 @@ public class CollectArtifactProcessor extends AbstractArtifactProcessor {
 		try {
 			collectResult = system.collectDependencies(session, collectRequest);
 			collectResult.getRoot().accept(visitor);
-			collectResult.getRoot().accept(visitor);
 			collected++;
 		} catch (Exception e) {
 			LOGGER.error("Unable to collect dependency for artifact {}", artifact);

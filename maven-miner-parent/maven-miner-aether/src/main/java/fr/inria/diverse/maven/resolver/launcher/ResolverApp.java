@@ -58,7 +58,8 @@ public class ResolverApp {
 	public static void main(String[] args) throws IOException {
 		
 		//initialize arguments
-		String coordinatesPath = "src/main/resources/allUniqueArtifactsOnly-mini";
+		String coordinatesPath = "src/main/resources/allUniqueArtifactsOnly-mini-100";
+		
 		options.addOption("h", "help", false, "Show help");
 		options.addOption("f", "file", true, "Path to artiacts coordinates list file. Note, artifacts are per line");
 		options.addOption("p", "pretty-printer", true, "Path to the output file stream. Optional");
@@ -139,7 +140,7 @@ public class ResolverApp {
             }    
         
 	}
-
+	
 	private static void help() {
 
 		  HelpFormatter formater = new HelpFormatter();
