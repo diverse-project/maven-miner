@@ -1,18 +1,27 @@
 package fr.inria.diverse.maven.resolver.util;
 
-import org.neo4j.graphdb.GraphDatabaseService;
-import org.neo4j.graphdb.Node;
+import java.net.URL;
+
+import javax.validation.constraints.NotNull;
+import javax.validation.constraints.Pattern;
+
+import org.hibernate.validator.constraints.Length;
 import org.sonatype.aether.artifact.Artifact;
 import org.sonatype.aether.graph.Dependency;
 
 import fr.inria.diverse.maven.resolver.model.Vertex;
+import fr.inria.diverse.maven.resolver.model.Edge;
 import fr.inria.diverse.maven.resolver.model.Edge.Scope;
 import fr.inria.diverse.maven.resolver.model.Vertex.Packaging;
 
 public  class MavenResolverUtil {
-
-	
-	public static Vertex getVertexFromArtifactCoordinate(Dependency dependency) {
+	/**
+	 * Creates a Vertex Object out of a {@link Dependency}
+	 * @param dependency
+	 * @return {@link Vertex} vertex
+	 */
+	@NotNull 
+	public static Vertex getVertexFromArtifactCoordinate(@NotNull Dependency dependency) {
         String groupId = dependency.getArtifact().getGroupId();
         String artifactId = dependency.getArtifact().getArtifactId();
         String version = dependency.getArtifact().getVersion();
@@ -23,27 +32,56 @@ public  class MavenResolverUtil {
         //LOGGER.info(" from split -> " + artifactVertex.toString());
         return artifactVertex;
     }
-	public static Scope deriveScope(Dependency dependency) {
+	/**
+	 * 
+	 * @param dependency
+	 * @return {@link Edge.Scope}
+	 */
+	public static Scope deriveScope(@NotNull Dependency dependency) {
 	        return Scope.parseFromString(dependency.getScope());
 	}
-	public static Packaging derivePackaging(Artifact artifact) {
+	/**
+	 * Returns a {@link Packaging} enum type of a giving {@link Artifact}
+	 * @param artifact
+	 * @return {@link Packaging} 
+	 */
+	public static Packaging derivePackaging(@NotNull Artifact artifact) {
         return Packaging.parseFromString(artifact.getExtension());
     }
-	public static Node getNodeFromArtifactCoordinate(GraphDatabaseService graphDB, Dependency dependency) {
-		
-		return null;
+	/**
+	 * Creates artifacts coordinates out of an {@link Artifact} object
+	 * @param dependency
+	 * @return {@link String} coordinates
+	 */
+	public static String dependencyToCoordinate(@NotNull Dependency dependency) {
+		return artifactToCoordinate(dependency.getArtifact());
 	}
-	public static void addDependencyToGraphDB(GraphDatabaseService graphDB, Node root, Node secondLevelNode,
-			Scope scope) {
-		// TODO Auto-generated method stub
-		
-	}
-	public static String dependencyToCoordinate(Dependency dependency) {
-		Artifact artifact = dependency.getArtifact();
+	/**
+	 * Creates artifacts coordinates out of an {@link Artifact} object
+	 * @param artifact
+	 * @return {@link String} coordinates
+	 */
+	public static String artifactToCoordinate(@NotNull Artifact artifact) {
 		return artifact.getGroupId()
 				.concat(":")
 				.concat(artifact.getArtifactId())
 				.concat(":")
 				.concat(artifact.getVersion());
+	}
+	/**
+	 * a dummy method 
+	 * @return null
+	 */
+	public static URL dummyURL() {
+		return null;
+	}
+	/**
+	 * Splits a coordinates into 
+	 * @param coordinates
+	 * @return {@link String}[]
+	 */
+	@Length(min=2, max=2, message = "The returned array should contain exactly three elements" )
+	public static String[] coordinatesToElements(@Pattern (regexp = ".*?:.*?:.*?", message = "Artifact coordinates' is not well-formed") String coordinates) {
+		return coordinates.split(":");
 	}
 }

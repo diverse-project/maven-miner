@@ -4,6 +4,7 @@ import java.util.HashSet;
 import java.util.Set;
 
 import javax.annotation.Nonnull;
+import javax.validation.constraints.NotNull;
 
 import fr.inria.diverse.maven.resolver.model.Edge.Scope;
 
@@ -33,7 +34,7 @@ public class DependencyGraph {
 		this.edges = edges;
 	}
 
-	public void addDependency(Vertex firstLevelArtifactVertex, Vertex secondLevelArtifactVerteX, Scope scope) {
+	public void addDependency(@NotNull Vertex firstLevelArtifactVertex, @NotNull Vertex secondLevelArtifactVerteX, @NotNull Scope scope) {
 		vertices.add(firstLevelArtifactVertex);
 		vertices.add(secondLevelArtifactVerteX);
 		edges.add(new Edge(firstLevelArtifactVertex.getId(), secondLevelArtifactVerteX.getId(), scope));

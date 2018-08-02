@@ -182,8 +182,7 @@ public class CentralIndex
             int error = 0;
             int count = 0;
             
-            try
-            {
+            try {
                 final IndexReader ir = searcher.getIndexReader();
                 Bits liveDocs = MultiFields.getLiveDocs( ir );
                 
@@ -200,22 +199,19 @@ public class CentralIndex
                         		+ ai.getVersion()
                         		+ System.getProperty("line.separator");
                         count++;
-                    }
-                    
-                    if (i%DUMP_LIMIT == 0) {
+                    } if (i%DUMP_LIMIT == 0) {
                     	bw.write(text);
                         bw.flush();
                     }
                 }
             } catch (Exception e){
             	error++;
-            }
-            finally
-            {
+            } finally {
                 centralContext.releaseIndexSearcher( searcher );
                 bw.close();
             }
-        
+            LOGGER.info("{} artifacts have been dumped", count);
+            LOGGER.info("{} artifacts have been skipped", error);
         }
-}
+	}
 

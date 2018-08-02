@@ -2,6 +2,8 @@ package fr.inria.diverse.maven.resolver.model;
 
 import java.util.UUID;
 
+import javax.validation.constraints.NotNull;
+
 public class Edge {
 	
 	private final UUID source;
@@ -35,7 +37,7 @@ public class Edge {
 		return scope;
 	}
 
-	public void setScope(Scope scope) {
+	public void setScope(@NotNull final Scope scope) {
 		this.scope = scope;
 	}
 
@@ -48,7 +50,7 @@ public class Edge {
 	    System,
 	    Import;
 
-	    public static Scope parseFromString(String scope) {
+	    public static Scope parseFromString(@NotNull final String scope) {
 	        switch (scope) {
 	            case "compile":
 	                return Scope.Compile;
