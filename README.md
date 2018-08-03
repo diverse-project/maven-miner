@@ -9,4 +9,17 @@ We rely on a simple schema to represent the maven dependecy graph. Artifacts are
 
 ## User guide
 
+### Maven indexer
+### Maven miner 
+```
+usage: Maven-miner
+ -db,--database <arg>        Path to store the neo4j database. Mandatory!
+ -f,--file <arg>             Path to artiacts coordinates list file. Note,
+                             artifacts are per line
+ -h,--help                   Show help
+ -p,--pretty-printer <arg>   Path to the output file stream. Optional
+ -r,--resolve-jars           Actioning jars resolution and classes count.
+                             Not activated by default!
+``` 
 ## Developer guide
+TBD
