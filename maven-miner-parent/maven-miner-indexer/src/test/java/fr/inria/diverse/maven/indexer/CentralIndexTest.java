@@ -1,4 +1,6 @@
-package org.apache.maven.indexer.examples;
+package fr.inria.diverse.maven.indexer;
+
+import fr.inria.diverse.maven.indexer.CentralIndex;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
