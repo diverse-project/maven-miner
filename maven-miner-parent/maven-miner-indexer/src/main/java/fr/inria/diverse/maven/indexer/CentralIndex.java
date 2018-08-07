@@ -18,6 +18,11 @@ package fr.inria.diverse.maven.indexer;
  * under the License.
  */
 
+import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.CommandLineParser;
+import org.apache.commons.cli.DefaultParser;
+import org.apache.commons.cli.HelpFormatter;
+import org.apache.commons.cli.Options;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.MultiFields;
@@ -64,15 +69,38 @@ public class CentralIndex
 {
 	private static final Logger LOGGER = LoggerFactory.getLogger(CentralIndex.class);
 	
-
     public static void main( String[] args )
         throws Exception
     {
+    	String path = DEFAULT_PATH_VALUE;
+		options.addOption("f", "file", true, "File path to store artiacts coordinates list file. Note, artifacts are per line");
+		
+		 CommandLineParser parser = new DefaultParser();
+		 
+		 CommandLine cmd = null;
+		try {
+			   cmd = parser.parse(options, args);
+			 
+			   if (cmd.hasOption("h")) {
+			    help();
+			   }
+			   
+			   if (cmd.hasOption("f")) {
+				   path = cmd.getOptionValue("f");
+			   } 
+		} catch (Exception e) {
+			LOGGER.error("Failed to parse comand line properties", e);
+			help();
+		}
+		
         final CentralIndex index = new CentralIndex();
-        index.init().dumpAt("allArtifactsInfo"+new Timestamp(System.currentTimeMillis()));
+        
+        index.init().dumpAt(path);
     }
 
-
+    private static final String DEFAULT_PATH_VALUE = "allArtifactsInfo"+new Timestamp(System.currentTimeMillis());
+    private static final Options options = new Options();
+    
     private final PlexusContainer plexusContainer;
 
     private final Indexer indexer;
@@ -83,7 +111,7 @@ public class CentralIndex
 
     private IndexingContext centralContext;
 
-    private static final int DUMP_LIMIT = 100000;
+    private static final int DUMP_LIMIT = 10000;
     
     private static final String SEPARATOR = ":";
     public CentralIndex()
@@ -126,15 +154,10 @@ public class CentralIndex
             indexer.createIndexingContext( "central-context", "central", centralLocalCache, centralIndexDir,
                                            "http://repo1.maven.org/maven2", null, true, true, indexers );
 
-        	// Update the index (incremental update will happen if this is not 1st run and files are not deleted)
-            // This whole block below should not be executed on every app start, but rather controlled by some configuration
-            // since this block will always emit at least one HTTP GET. Central indexes are updated once a week, but
-            // other index sources might have different index publishing frequency.
-            // Preferred frequency is once a week.
+        	
             LOGGER.info( "Updating Index..." );
             LOGGER.info( "This might take a while on first run, so please be patient!" );
-            // Create ResourceFetcher implementation to be used with IndexUpdateRequest
-            // Here, we use Wagon based one as shorthand, but all we need is a ResourceFetcher implementation
+
             TransferListener listener = new AbstractTransferListener()
             {
                 public void transferStarted( TransferEvent transferEvent )
@@ -158,7 +181,7 @@ public class CentralIndex
             IndexUpdateResult updateResult = indexUpdater.fetchAndUpdateIndex( updateRequest );
             if ( updateResult.isFullUpdate() )
             {
-                LOGGER.info( "Full update happened!" );
+                LOGGER.info( "Index has fully updated" );
             }
             else if ( updateResult.getTimestamp().equals( centralContextCurrentTimestamp ) )
             {
@@ -184,24 +207,43 @@ public class CentralIndex
             
             try {
                 final IndexReader ir = searcher.getIndexReader();
+                
                 Bits liveDocs = MultiFields.getLiveDocs( ir );
                 
                 String text="";
-                
-                for ( int i = 0; i < ir.maxDoc(); i++ )
+                int maxDocs = ir.maxDoc();
+                ArtifactInfo ai;
+                for ( int i = 0; i < maxDocs; i++ )
                 {
                     if ( liveDocs == null || liveDocs.get( i ) )
                     {
-                        final Document doc = ir.document( i );
-                        final ArtifactInfo ai = IndexUtils.constructArtifactInfo( doc, centralContext );
-                        text =  ai.getGroupId() + SEPARATOR  
-                        		+ ai.getArtifactId() + SEPARATOR 
-                        		+ ai.getVersion()
-                        		+ System.getProperty("line.separator");
-                        count++;
-                    } if (i%DUMP_LIMIT == 0) {
+                    	
+                        try {
+                        	final Document doc = ir.document( i );
+                        	ai= IndexUtils.constructArtifactInfo( doc, centralContext );
+                            if (ai == null) {
+                            	error++;
+                            	continue;      	
+                            }
+                        	text +=  ai.getGroupId() + SEPARATOR  
+                            		+ ai.getArtifactId() + SEPARATOR 
+                            		+ ai.getVersion()
+                            		+ System.getProperty("line.separator");
+                            count++;
+                        } catch (NullPointerException e) {
+                        	LOGGER.error("gav with name {} not found");
+							LOGGER.error(e.getMessage());
+							error++;
+						}
+                        
+                    } 
+                    
+                    if ((i%DUMP_LIMIT == 0) || 
+                    		  (i == maxDocs)) {
                     	bw.write(text);
                         bw.flush();
+                        text="";
+                        LOGGER.info("{} artifacts have been indexed", count);
                     }
                 }
             } catch (Exception e){
@@ -213,5 +255,15 @@ public class CentralIndex
             LOGGER.info("{} artifacts have been dumped", count);
             LOGGER.info("{} artifacts have been skipped", error);
         }
-	}
+        
+     private static void help() {
+
+  		  HelpFormatter formater = new HelpFormatter();
+
+  		  formater.printHelp("Maven-miner", options);
+
+  		  System.exit(0);
+
+  	}
+}
 

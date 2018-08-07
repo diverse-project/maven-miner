@@ -1,7 +1,0 @@
-org.apache.directory.shared:shared-ldap-client-api:1.0.0-M7
-com.cedarsoft.commons.old:execution:3.0.0
-org.springframework:spring-web:2.0-m3
-org.objectweb.fractal.cecilia:fractal-cecilia-api:2.0.2
-org.ow2.bundles:ow2-util-deployment-impl:1.0.3
-com.sun.jersey.jersey-test-framework:jersey-test-framework-inmemory:1.2
-com.github.jknack:mwa-mongo:0.3.6
