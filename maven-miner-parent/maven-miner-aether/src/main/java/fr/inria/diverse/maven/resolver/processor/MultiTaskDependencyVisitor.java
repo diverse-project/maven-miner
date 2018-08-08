@@ -45,7 +45,7 @@ public class MultiTaskDependencyVisitor implements DependencyVisitor {
      * @see DependencyVisitor#visitEnter(DependencyNode)
      * {@inheritDoc}
      */
-    public boolean visitEnter(@NotNull DependencyNode node) {
+    public boolean visitEnter( DependencyNode node) {
     	taskList.forEach(task -> task.enter(node));
         return true;
     }

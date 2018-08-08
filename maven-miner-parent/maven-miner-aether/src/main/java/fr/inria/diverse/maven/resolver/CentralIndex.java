@@ -19,7 +19,6 @@ import org.codehaus.plexus.component.repository.exception.ComponentLookupExcepti
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import fr.inria.diverse.maven.resolver.launcher.ResolverApp;
 
 import java.io.File;
 import java.io.IOException;
@@ -37,7 +36,7 @@ import java.util.Set;
  */
 public class CentralIndex {
 	
-	private static final Logger LOGGER = LoggerFactory.getLogger(ResolverApp.class);
+	private static final Logger LOGGER = LoggerFactory.getLogger(CentralIndex.class);
 
     public static final int FULL_UPDATE = 1;
     public static final int PARTIAL_UPDATE = 1;

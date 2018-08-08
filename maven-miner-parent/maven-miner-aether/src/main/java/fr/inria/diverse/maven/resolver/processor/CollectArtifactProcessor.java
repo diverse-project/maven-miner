@@ -52,7 +52,7 @@ public class CollectArtifactProcessor extends AbstractArtifactProcessor {
 	@Override
 	public void report() {
 		LOGGER.info("{} artifacts have been collected", collected);
-		LOGGER.info("{} artifacts gave failed collection", skipped);
+		LOGGER.info("{} artifacts have failed collection", skipped);
 		
 	}
 
