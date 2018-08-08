@@ -20,7 +20,6 @@ public  class MavenResolverUtil {
 	 * @param dependency
 	 * @return {@link Vertex} vertex
 	 */
-	@NotNull 
 	public static Vertex getVertexFromArtifactCoordinate(@NotNull Dependency dependency) {
         String groupId = dependency.getArtifact().getGroupId();
         String artifactId = dependency.getArtifact().getArtifactId();
@@ -80,7 +79,7 @@ public  class MavenResolverUtil {
 	 * @param coordinates
 	 * @return {@link String}[]
 	 */
-	@Length(min=2, max=2, message = "The returned array should contain exactly three elements" )
+	//@Length(min=2, max=2, message = "The returned array should contain exactly three elements" )
 	public static String[] coordinatesToElements(@Pattern (regexp = ".*?:.*?:.*?", message = "Artifact coordinates' is not well-formed") String coordinates) {
 		return coordinates.split(":");
 	}
