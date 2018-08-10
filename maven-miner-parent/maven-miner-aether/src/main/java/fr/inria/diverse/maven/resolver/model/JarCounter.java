@@ -1,45 +1,58 @@
 package fr.inria.diverse.maven.resolver.model;
 
+/**
+ * 
+ * @author Amine BENELALLAM
+ *
+ */
 public class JarCounter {
+	/**
+	 * entries count
+	 */
+	private final int [] entries = new int [JarEntryType.values().length + 1];
 
-	private int methods;
-	private int classes;
-	private int interfaces;
-	private int enums;
-	private int annotations;
+	/**
+	 * 
+	 */
+	public int getValueForType(JarEntryType type) {
+		return entries[type.getIndex()];	
+	}
+
 	/**
 	 * @return the annotations
 	 */
 	public int getAnnotations() {
-		return annotations;
+		return entries[JarEntryType.ANNOTATION.getIndex()];	
 	}
 
 	/**
 	 * @return the methods
 	 */
 	public int getMethods() {
-		return methods;
+		return entries[JarEntryType.METHOD.getIndex()];	
 	}
 	
 	/**
 	 * @return the classes
 	 */
 	public int getClasses() {
-		return classes;
+		return entries[JarEntryType.CLASS.getIndex()];	
+
 	}
 	
 	/**
 	 * @return the interfaces
 	 */
 	public int getInterfaces() {
-		return interfaces;
+		return entries[JarEntryType.INTERFACE.getIndex()];	
+
 	}
 
 	/**
 	 * @return the enums
 	 */
 	public int getEnums() {
-		return enums;
+		return entries[JarEntryType.ENUM.getIndex()];	
 	}
 	/**
 	 * Constructor
@@ -51,12 +64,52 @@ public class JarCounter {
 	 */
 	public JarCounter(int methods, int classes, int interfaces, int enums, int annotations) {
 		super();
-		this.methods = methods;
-		this.classes = classes;
-		this.interfaces = interfaces;
-		this.enums = enums;
-		this.annotations = annotations;
+		entries[JarEntryType.METHOD.getIndex()] = methods;
+		entries[JarEntryType.CLASS.getIndex()] = classes;
+		entries[JarEntryType.INTERFACE.getIndex()] = interfaces;
+		entries[JarEntryType.ENUM.getIndex()] = enums;
+		entries[JarEntryType.ANNOTATION.getIndex()] = annotations;
 	}
-
+	/**
+	 * 
+	 * @author Amine BENELALLAM
+	 *
+	 */
+	public enum JarEntryType {
+		
+		CLASS("class_count",0),
+		INTERFACE("interface_count",1),
+		ENUM("enum_count",2),
+		ANNOTATION("annotation_count",3),
+		METHOD("method_count",4);
+		
+		private JarEntryType(String name, int index) {
+			this.name = name;
+			this.index = index;
+		}
+	
+		/*
+		 * The name of the jar entry
+		 */
+		private String name;
+		/**
+		 * The index of the jar entry
+		 */
+		private int index;
+		
+		/**
+		 * @return the name
+		 */
+		public String getName() {
+			return name;
+		}
+		/**
+		 * @return the index
+		 */
+		public int getIndex() {
+			return index;
+		}
+	
+	}
 	
 }

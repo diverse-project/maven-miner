@@ -19,6 +19,7 @@ import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ListMultimap;
 
 import fr.inria.diverse.maven.resolver.db.Neo4jGraphDBWrapper;
+import fr.inria.diverse.maven.resolver.model.ExceptionCounter;
 import fr.inria.diverse.maven.resolver.model.JarCounter;
 import fr.inria.diverse.maven.resolver.util.MavenResolverUtil;
 
@@ -71,73 +72,100 @@ public class ClassScanCounter extends URLClassLoader {
 		int interfaceCount= 0;
 		int enumCount= 0;
 		int annotationCount= 0;
-
+		
+		int illegalAccessCount= 0;
+		int nullPointerCount=0;
+		int classNoDefCount=0;
+		int securityCount=0;
+		int otherCount=0;
 		@SuppressWarnings("resource")
 		JarFile jar = new JarFile(jarFile);
 		//Getting the files into the jar
 		Enumeration<? extends JarEntry> enumeration = jar.entries();
 		// Iterates into the files in the jar file
-		while (enumeration.hasMoreElements()) {
-		   try { ZipEntry zipEntry = enumeration.nextElement();	    
-		    // Is this a class?
-		    if (zipEntry.getName().endsWith(".class")) 
-		    	classCount++;
-		   } catch (Exception e) {
-			   LOGGER.error(e.getMessage());
-			   e.printStackTrace();
-			   throw e;
-		   }
-		}
-		dbwrapper.updateClassCount(artifact, classCount);
+//		while (enumeration.hasMoreElements()) {
+//		   try { ZipEntry zipEntry = enumeration.nextElement();	    
+//		    // Is this a class?
+//		    if (zipEntry.getName().endsWith(".class")) 
+//		    	classCount++;
+//		   } catch (Exception e) {
+//			   LOGGER.error(e.getMessage());
+//			   e.printStackTrace();
+//			   throw e;
+//		   }
+//		}
+//		dbwrapper.updateClassCount(artifact, classCount);
+		while (enumeration.hasMoreElements())   
+		    {
+		    	Class<?> clazz = null;
+		    	ZipEntry zipEntry = null;
+		    	 try {
+		    		  zipEntry = enumeration.nextElement();	
+		            // Relative path of file into the jar.
+		            String className = zipEntry.getName();
+		            if (! className.endsWith(".class") ||
+		            		className.contains("/test/")) {
+		            	continue;
+		            }
+		            // Complete class name
+		            className = className.replace(".class", "").replace("/", ".");
+		            // Load class definition from JVM
+		            
+		           clazz = this.loadClass(className);
+		           //clazz.
+		            methodCount += clazz.getMethods().length;
+		           
+		                // Verify the type of the "class"
+		                if (clazz.isInterface()) {
+		                    interfaceCount ++;
+		                } else if (clazz.isAnnotation()) {
+		                	annotationCount++;
+		                } else if (clazz.isEnum()) {
+		                	enumCount++;
+		                } else {
+		                	classCount++;
+		                }
+		                
+		            } catch (IllegalAccessError e) {
+		            	LOGGER.trace("Illegal Access error");
+		            	illegalAccessCount++;
+		            	classCount++;
+		            	e.printStackTrace();
+		            } catch (NullPointerException e) {		            	
+		            	LOGGER.trace("Class for zipEntry {} return null", zipEntry.getName());
+		            	nullPointerCount++;
+		            	classCount++;
+		            } catch (NoClassDefFoundError e) {
+		            	LOGGER.trace("Unable to find appropriate classpath for class {}", zipEntry.getName());
+		            	classNoDefCount++;
+		            	classCount++;
+		            	e.printStackTrace();
+		            } catch (SecurityException e) {
+						LOGGER.trace("Unable to load methods for class {}", zipEntry.getName());
+						securityCount++;
+						e.printStackTrace();
+					} catch (Error | Exception e) {
+		            	otherCount++;
+		            	LOGGER.trace(e.getMessage());
+		            	e.printStackTrace();
+		            }
+		        }
 		    
-//		    {
-//		    	Class<?> clazz = null;
-//		    	 try {
-//		            // Relative path of file into the jar.
-//		            String className = zipEntry.getName();
-//		            // Complete class name
-//		            className = className.replace(".class", "").replace("/", ".");
-//		            // Load class definition from JVM
-//		            
-//		           clazz = this.loadClass(className);
-//		            methodCount += clazz.getMethods().length;
-//		           
-//		                // Verify the type of the "class"
-//		                if (clazz.isInterface()) {
-//		                    interfaceCount ++;
-//		                } else if (clazz.isAnnotation()) {
-//		                	annotationCount++;
-//		                } else if (clazz.isEnum()) {
-//		                	enumCount++;
-//		                } else {
-//		                	classCount++;
-//		                }
-//		                
-//		            } catch (ClassCastException e) {
-//		            	LOGGER.error("ClassCastException ");
-//		            	e.printStackTrace();
-//		            } catch (NullPointerException e) {
-//		            	LOGGER.error("Class for zipEntry {} return null", zipEntry.getName());
-//		            } catch (ClassNotFoundException e){
-//		            	LOGGER.error("Unable to find class {}", zipEntry.getName());
-//		            	e.printStackTrace();
-//		            } catch (NoClassDefFoundError e) {
-//		            	LOGGER.error("Unable to find Class {}", zipEntry.getName());
-//		            } catch (SecurityException e) {
-//						LOGGER.error(e.getMessage());
-//						e.printStackTrace();
-//					}
-//		        }
-//		    }
-//		dbwrapper.updateDependencyCounts(MavenResolverUtil.artifactToCoordinate(artifact),
-//										 new JarCounter(methodCount, 
-//														classCount, 
-//														interfaceCount, 
-//														enumCount, 
-//														annotationCount));
+		dbwrapper.updateDependencyCounts(artifact,
+										 new JarCounter(methodCount, 
+														classCount, 
+														interfaceCount, 
+														enumCount, 
+														annotationCount),
+										 new ExceptionCounter(
+												 			  classNoDefCount,
+												 			  illegalAccessCount,
+												 			  securityCount,
+												 			  nullPointerCount,
+												 			  otherCount));
 			
 	}
-	//TODO add the storing capability in dbWrapper
+
 	public void loadJarAndStoreContent(File jarFile)
 	        throws ClassNotFoundException, ZipException, IOException {
 

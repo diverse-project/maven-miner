@@ -5,6 +5,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.apache.commons.io.FileUtils;
+import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Label;
 import org.neo4j.graphdb.Node;
@@ -13,6 +14,8 @@ import org.neo4j.graphdb.RelationshipType;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.graphdb.factory.GraphDatabaseFactory;
 import org.neo4j.graphdb.factory.GraphDatabaseSettings;
+import org.neo4j.graphdb.index.IndexManager;
+import org.neo4j.graphdb.index.RelationshipIndex;
 import org.neo4j.graphdb.schema.Schema;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -20,11 +23,15 @@ import org.sonatype.aether.artifact.Artifact;
 import org.sonatype.aether.version.InvalidVersionSpecificationException;
 
 import fr.inria.diverse.maven.resolver.model.Edge.Scope;
+import fr.inria.diverse.maven.resolver.model.ExceptionCounter;
+import fr.inria.diverse.maven.resolver.model.ExceptionCounter.ExceptionType;
 import fr.inria.diverse.maven.resolver.processor.MultiTaskDependencyVisitor;
 import fr.inria.diverse.maven.resolver.model.JarCounter;
+import fr.inria.diverse.maven.resolver.model.JarCounter.JarEntryType;
 import fr.inria.diverse.maven.resolver.tasks.Neo4jGraphDependencyVisitorTask;
 import fr.inria.diverse.maven.resolver.util.MavenResolverUtil;
 
+import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -46,12 +53,16 @@ public class Neo4jGraphDBWrapper {
 	private static Logger LOGGER = LoggerFactory.getLogger(MultiTaskDependencyVisitor.class);
 	/**
 	 * An index of already resolved artifacts in the form of Neo4j {@link Node} 
+	 * TODO replace with neo4j indexes
 	 */
 	protected Map<String,Node> nodesIndex = new HashMap<String,Node>();
 	/**
 	 * An index of already resolved dependency relationships
+	 * TODO replace with Neo4j Relationship index -
+	 * 
 	 */
-	protected ListMultimap<String, String> edgesIndex = ArrayListMultimap.create();
+	protected RelationshipIndex edgesIndex;
+	//protected ListMultimap<String, String> edgesIndex = ArrayListMultimap.create();
 	/**
 	 * A String to Label map to cache already created labels
 	 */
@@ -60,11 +71,16 @@ public class Neo4jGraphDBWrapper {
 	 * The path to the database directory
 	 */
 	protected final String graphDirectory;
+		
 	/*
 	 * Neo4j {@link GraphDatabaseService}
 	 */
 	protected final GraphDatabaseService graphDB;
 	
+	/**
+	 * Exception nodes index
+	 */
+	protected final Label exceptionLabel = Label.label(Properties.EXCEPTION_LABEL);
 	/**
 	 * Constructor
 	 * @param graphDirectory
@@ -96,6 +112,9 @@ public class Neo4jGraphDBWrapper {
 	    .setConfig( GraphDatabaseSettings.string_block_size, "60" )
 	    .setConfig( GraphDatabaseSettings.array_block_size, "300" )
 	    .newGraphDatabase();
+		try(Transaction tx = db.beginTx()){
+			edgesIndex = db.index().forRelationships(DependencyRelation.DEPENDS_ON.name());	
+		}
 		return db;
 	}
 	/**
@@ -126,15 +145,18 @@ public class Neo4jGraphDBWrapper {
 
 	/**
 	 * Returns of the Label in the index and creates a new one if not 
-	 * @param groupId {@link String}
+	 * @param key {@link String}
 	 * @return label {@link Label}
 	 */
 	@NotNull(message = "The return label should not be null")
-	private Label getOrCreateLabel(String groupId) {
+	private Label getOrCreateLabel(String key) {
 		
-		if (labelsIndex.containsKey(groupId)) 
-			return labelsIndex.get(groupId);
-		Label label = Label.label(groupId);
+		if (labelsIndex.containsKey(key)) 
+			return labelsIndex.get(key);
+		Label label = Label.label(key);
+		//add constraints on label 
+		graphDB.schema().constraintFor(label)
+						.assertPropertyIsUnique(Properties.COORDINATES);
 		return label;
 	}
 	/**
@@ -191,19 +213,15 @@ public class Neo4jGraphDBWrapper {
 		Node target = getNodeFromArtifactCoordinate(targetArtifact);
 		
 		try ( Transaction tx = graphDB.beginTx() ) { 
-//			String sourceCoord = (String) source.getProperty(Properties.COORDINATES);
-//			String targetCoor = (String) target.getProperty(Properties.COORDINATES);
-			//If the edge already exists do nothing
-			//if (edgesIndex.containsEntry(sourceCoord, targetCoor)) return;
-			//Otherwise create one ...
-			@NotNull(message = "should always return a valid nonNull relationship")
-			Relationship relation = source.createRelationshipTo(target, DependencyRelation.DEPENDS_ON);
-			
-			relation.setProperty(Properties.SCOPE, scope.toString());
 
+			if(!edgesIndex.get(Properties.SCOPE, scope.toString(), source, target).hasNext()) {
+				@NotNull(message = "should always return a valid nonNull relationship")
+				Relationship relation = source.createRelationshipTo(target, DependencyRelation.DEPENDS_ON);
+				relation.setProperty(Properties.SCOPE, scope.toString());
+				edgesIndex.add(relation, Properties.SCOPE, scope.toString());
+			}
 			tx.success();
-			//... and update the index
-			// edgesIndex.put(sourceCoord, targetCoor);
+
 		}	
 	}
  	
@@ -214,9 +232,12 @@ public class Neo4jGraphDBWrapper {
 		LOGGER.info("Creating plugins version's evolution ");
 
 		try (Transaction tx = graphDB.beginTx()) {
-			graphDB.getAllLabelsInUse().forEach(label ->
-			{	
+			 graphDB.getAllLabelsInUse().stream()
+					.filter(label -> ! label.name().equals(Properties.EXCEPTION_LABEL))							
+					.forEach(label ->
+			{							
 				@NotNull(message = "All the existing labels should have at least one node")
+				
 				List<Node> sortedNodes = graphDB.findNodes(label).stream().sorted(new Comparator<Node>() {
 					@Override
 					public int compare(Node n1, Node n2) {
@@ -274,27 +295,70 @@ public class Neo4jGraphDBWrapper {
 		graphDB.shutdown();	
 	}
 	/**
+	 * updates the jar entries counters of a given artifact {@link Artifact}
+	 * @param artifact {@link Artifact}
+	 * @param jarCounter {@link JarCounter}
+	 */
+	public void updateDependencyCounts(Artifact artifact, JarCounter jarCounter) {
+		
+		try (Transaction tx = graphDB.beginTx()) {
+			// retrieving the artifact's node
+			Node node = getNodeFromArtifactCoordinate(artifact);
+			// updating jar entries count
+			Arrays.asList(JarEntryType.values())
+			      .forEach(type -> node.setProperty(type.getName(), jarCounter.getValueForType(type)));
+			
+			tx.success();
+		}
+		
+	}
+	/**
 	 * 
 	 * @param coordinates
 	 * @param jarCounter
 	 */
-	public void updateDependencyCounts(Artifact artifact, JarCounter jarCounter) {
+	public void updateDependencyCounts(Artifact artifact, JarCounter jarCounter, ExceptionCounter exCounter) {
 		
-		//String [] elements = MavenResolverUtil.coordinatesToElements(coordinates);
-		@NotNull String groupeID = artifact.getGroupId();
 		
 		try (Transaction tx = graphDB.beginTx()) {
-			//Label label = getOrCreateLabel(groupeID);
+			// retrieving the artifact's node
 			Node node = getNodeFromArtifactCoordinate(artifact);
+			// updating jar entries count
+			Arrays.asList(JarEntryType.values())
+				  .forEach(type -> node.setProperty(type.getName(), jarCounter.getValueForType(type)));
 			
-			node.setProperty(Properties.ANNOTATION_COUNT, jarCounter.getAnnotations());
-			node.setProperty(Properties.ENUM_COUNT, jarCounter.getEnums());
-			node.setProperty(Properties.CLASS_COUNT, jarCounter.getClasses());
-			node.setProperty(Properties.INTERFACE_COUNT, jarCounter.getInterfaces());
-			node.setProperty(Properties.METHOD_COUNT, jarCounter.getMethods());	
-			
+			//Updating exceptions count
+			Arrays.asList(ExceptionType.values())
+				  .forEach(type -> {
+					  int value = exCounter.getValueForType(type); 
+					  if (value != 0) {
+						 createExceptionRelationship(node, type, value);
+					  }
+				  });
 			tx.success();
 		}
+		
+	}
+	/**
+	 * Creates Exception Relationship of type {@link DependencyRelation#RAISES} 
+	 * @param node
+	 * @param type
+	 * @param value
+	 */
+	private void createExceptionRelationship(Node node, ExceptionType type, int value) {		
+		Node exceptionNode = getOrcreateExceptionNode(type);
+		Relationship rel= node.createRelationshipTo(exceptionNode, DependencyRelation.RAISES);
+		rel.setProperty(Properties.EXCEPTION_OCCURENCE, value);
+	}
+	
+	private Node getOrcreateExceptionNode(ExceptionType type) {
+		
+		Node result = graphDB.findNode(exceptionLabel, Properties.EXCEPTION_NAME, type.getName());
+		if (result == null) {
+			result = graphDB.createNode(exceptionLabel);
+			result.setProperty(Properties.EXCEPTION_NAME, type.getName());
+		}
+		return result;
 		
 	}
 	/**
@@ -305,21 +369,29 @@ public class Neo4jGraphDBWrapper {
 	public void updateClassCount(Artifact artifact, int classCount) {
 		
 		//String [] elements = MavenResolverUtil.coordinatesToElements(coordinates);
-		@NotNull String groupeID = artifact.getGroupId();
-		String coordinates = MavenResolverUtil.artifactToCoordinate(artifact);
 		try (Transaction tx = graphDB.beginTx()) {
 			//Label label = getOrCreateLabel(groupeID);
 			Node node = getNodeFromArtifactCoordinate(artifact);
 			if (node == null) {
+				// Sth weird is happening here!
+				// This shouldn't occur!!Mhhh
 				tx.close();
 				return;
 			}
-			node.setProperty(Properties.CLASS_COUNT, classCount);
+			node.setProperty(JarEntryType.CLASS.getName(), classCount);
 			tx.success();
 		}	
 	}
 	
-	
+	public void addResolutionExceptionRelationship(Artifact artifact) {
+		try (Transaction tx =  graphDB.beginTx()) {
+		Node node = getNodeFromArtifactCoordinate(artifact);
+		Node resolutionNode = getOrcreateExceptionNode(ExceptionType.RESOLUTION);
+		node.getRelationships(DependencyRelation.DEPENDS_ON, Direction.OUTGOING);
+		node.createRelationshipTo(resolutionNode, DependencyRelation.RAISES);
+		tx.success();}
+	}
+
 	/**
 	 * An enum type implementing Neo4j's RelationshipTypes 
 	 * @author Amine BENELALLAM
@@ -327,7 +399,8 @@ public class Neo4jGraphDBWrapper {
 	 */
 	private static enum DependencyRelation implements RelationshipType {
 		DEPENDS_ON,
-		NEXT;
+		NEXT,
+		RAISES;
 	}
 	
 	
@@ -337,7 +410,7 @@ public class Neo4jGraphDBWrapper {
 	 *
 	 */
 	private class Properties {
-		
+				
 		private static final String COORDINATES = "coordinates";
 		private static final String GROUP = "groupID";
 		private static final String VERSION = "version";
@@ -346,14 +419,10 @@ public class Neo4jGraphDBWrapper {
 		private static final String ARTIFACT = "artifact";
 		private static final String SCOPE = "scope";
 		
-		private static final String CLASS_COUNT = "class_count";
-		private static final String ENUM_COUNT = "enum_count";
-		private static final String INTERFACE_COUNT = "interface_count";
-		private static final String ANNOTATION_COUNT = "annotation_count";
-		private static final String METHOD_COUNT = "method_count";
-		
-	}
-	
+		private static final String EXCEPTION_LABEL = "exception";
+		private static final String EXCEPTION_OCCURENCE = "occurence";
+		private static final String EXCEPTION_NAME = "name";
 
+	}
 	
 }
