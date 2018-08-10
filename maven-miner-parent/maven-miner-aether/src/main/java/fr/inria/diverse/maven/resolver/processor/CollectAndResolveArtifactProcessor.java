@@ -13,8 +13,13 @@ import org.sonatype.aether.resolution.ArtifactResult;
 
 public class CollectAndResolveArtifactProcessor extends CollectArtifactProcessor {
 	
+	/**
+	 * used for reporting
+	 */
 	private int resolved=0;
-	
+	/**
+	 * used or reporting
+	 */
 	private int nonResolved=0;
 	/**
 	 * a class counter
@@ -61,44 +66,32 @@ public class CollectAndResolveArtifactProcessor extends CollectArtifactProcessor
 	        ArtifactResult artifactResult=null;
 	        File jarFile=null;
 			try {
+				
 				artifactResult = system.resolveArtifact(session, artifactRequest);
 				jarFile= artifactResult.getArtifact().getFile();
-				 if (jarFile == null) {
+				if (jarFile == null) {
 					 throw new NullPointerException();
-				 }
-				 counter.loadJarAndStoreCount(artifactResult.getArtifact());
-			     LOGGER.debug("Deleting jar file {}", jarFile.getName());
-			     jarFile.delete();
-			     resolved++;
-			     //TODO use exception wrapper :)
-			} catch (ArtifactResolutionException e) {
+				}
+				counter.loadJarAndStoreCount(artifactResult.getArtifact());
+			    LOGGER.debug("Deleting jar file {}", jarFile.getName());
+			    jarFile.delete();
+			    resolved++;
+			     
+			} catch (ArtifactResolutionException 
+							| MalformedURLException
+							| ZipException 
+							| SecurityException 
+							| NullPointerException e) {
+				if (e instanceof MalformedURLException) LOGGER.error("MalFormedURL");
+				counter.getDbwrapper().addResolutionExceptionRelationship(artifact);	
 				LOGGER.error("Unable to collect dependency for artifact {}", artifact);
 				e.printStackTrace();
 				nonResolved++;
-			} catch (MalformedURLException e) {
-				LOGGER.error("Unable to collect dependency for artifact {}. The URL {} is malformed", artifact, jarFile.toString());
-				e.printStackTrace();
-				nonResolved++;
-
-			} catch (ZipException e) {
-				LOGGER.error("Unable to collect dependency for artifact {}", artifact);
-				e.printStackTrace();
-				nonResolved++;
-
 			} catch (IOException e) {
 				LOGGER.error("Unable to collect dependency for artifact {}", artifact);
 				e.printStackTrace();
 				nonResolved++;
-
-			} catch (NullPointerException e) {
-				 LOGGER.error("Unable to resolve jar file {}", jarFile.getName());
-				 e.printStackTrace();
-				 nonResolved++;
-			} catch (SecurityException e) {
-				LOGGER.error(e.getMessage());
-				e.printStackTrace();
-				nonResolved++;
-			}
+			} 
 	}
 
 	@Override 
