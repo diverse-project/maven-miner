@@ -1,8 +1,18 @@
 package fr.inria.diverse.maven.resolver.db;
 
 import java.io.File;
+import java.io.IOException;
+import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
+import java.net.URI;
+import java.net.URL;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.TimeZone;
 
 import org.apache.commons.io.FileUtils;
 import org.neo4j.graphdb.Direction;
@@ -14,14 +24,15 @@ import org.neo4j.graphdb.RelationshipType;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.graphdb.factory.GraphDatabaseFactory;
 import org.neo4j.graphdb.factory.GraphDatabaseSettings;
-import org.neo4j.graphdb.index.IndexManager;
 import org.neo4j.graphdb.index.RelationshipIndex;
 import org.neo4j.graphdb.schema.Schema;
+import org.neo4j.values.storable.DateTimeValue;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.sonatype.aether.artifact.Artifact;
 import org.sonatype.aether.version.InvalidVersionSpecificationException;
 
+import fr.inria.diverse.maven.resolver.Booter;
 import fr.inria.diverse.maven.resolver.model.Edge.Scope;
 import fr.inria.diverse.maven.resolver.model.ExceptionCounter;
 import fr.inria.diverse.maven.resolver.model.ExceptionCounter.ExceptionType;
@@ -33,17 +44,16 @@ import fr.inria.diverse.maven.resolver.util.MavenResolverUtil;
 
 import java.util.Arrays;
 import java.util.Comparator;
+import java.util.Date;
 import java.util.List;
 import java.util.stream.Collectors;
 
 import javax.validation.constraints.NotEmpty;
 import javax.validation.constraints.NotNull;
 
+import org.sonatype.aether.util.layout.MavenDefaultLayout;
 import org.sonatype.aether.util.version.GenericVersionScheme;
 import org.sonatype.aether.version.Version;
-
-import com.google.common.collect.ArrayListMultimap;
-import com.google.common.collect.ListMultimap;
 
 public class Neo4jGraphDBWrapper {
 	/**
@@ -81,6 +91,23 @@ public class Neo4jGraphDBWrapper {
 	 * Exception nodes index
 	 */
 	protected final Label exceptionLabel = Label.label(Properties.EXCEPTION_LABEL);
+	/**
+	 * Maven defaul layout used to construct artifact URLs
+	 */
+	protected MavenDefaultLayout layout = new MavenDefaultLayout();
+	/**
+	 * Central URI url
+	 */
+	protected URI centralURI = URI.create(Booter.newCentralRepository().getUrl());
+	/**
+	 * 
+	 */
+	protected static final SimpleDateFormat sdf = new SimpleDateFormat("EEE, dd MMM yyyy hh:mm:ss z");
+	
+	static {
+		sdf.setTimeZone(TimeZone.getTimeZone("GMT"));
+	}
+
 	/**
 	 * Constructor
 	 * @param graphDirectory
@@ -167,9 +194,7 @@ public class Neo4jGraphDBWrapper {
 	 */
 	@NotNull (message = "The returned node should not be null")
 	public Node getNodeFromArtifactCoordinate(@NotNull Artifact artifact) {
-		
 		String depKey = MavenResolverUtil.artifactToCoordinate(artifact);
-		//Artifact artifact = dependency.getArtifact();
 		
 		Node result;
 		//Label label;
@@ -191,6 +216,27 @@ public class Neo4jGraphDBWrapper {
 				result.setProperty(Properties.VERSION, artifact.getVersion());
 				result.setProperty(Properties.PACKAGING, MavenResolverUtil.derivePackaging(artifact).toString());
 				result.setProperty(Properties.ARTIFACT, artifact.getArtifactId());
+				
+				//resolving last-modified from central
+		    	URL artifactURL = null;
+				try {
+					artifactURL = centralURI.resolve(layout.getPath(artifact)).toURL();
+			  		HttpURLConnection connexion = (HttpURLConnection) artifactURL.openConnection();
+			  		connexion.setRequestMethod("HEAD");
+			  		String modified = connexion.getHeaderField("Last-Modified");		  		
+			  		ZonedDateTime javaDate = sdf.parse(modified).toInstant().atZone(ZoneId.systemDefault());
+			  		result.setProperty(Properties.LAST_MODIFIED, javaDate);
+			  		System.out.println("");
+			      	} catch (MalformedURLException e) {
+			      		LOGGER.error("MalformedURL {}",artifactURL);
+			      		e.printStackTrace();
+			      	} catch (IOException e) {
+			      		e.printStackTrace();
+			      	} catch (ParseException e) {
+			      		LOGGER.error("MalformedURL {}",artifactURL);
+						e.printStackTrace();
+					}
+			      
 			}
 			tx.success();
 		}
@@ -411,6 +457,7 @@ public class Neo4jGraphDBWrapper {
 	 */
 	private class Properties {
 				
+		private static final String LAST_MODIFIED = "last_modified";
 		private static final String COORDINATES = "coordinates";
 		private static final String GROUP = "groupID";
 		private static final String VERSION = "version";

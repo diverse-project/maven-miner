@@ -15,7 +15,7 @@ public class CollectArtifactProcessor extends AbstractArtifactProcessor {
 	protected int skipped = 0;
 	
 	protected int collected = 0;
-	
+		
 	public  CollectArtifactProcessor() {
 		super();	
 	}
@@ -35,20 +35,19 @@ public class CollectArtifactProcessor extends AbstractArtifactProcessor {
         CollectRequest collectRequest = new CollectRequest();
         collectRequest.setRoot(new Dependency(artifact, JavaScopes.COMPILE)); 
         collectRequest.addRepository(repo);
-
         CollectResult collectResult;
 		try {
 			collectResult = system.collectDependencies(session, collectRequest);
+			//collectResult.getRoot().getData();
 			collectResult.getRoot().accept(visitor);
 			collected++;
 		} catch (Exception e) {
 			LOGGER.error("Unable to collect dependency for artifact {}", artifact);
 			skipped++;
-			e.printStackTrace();
-			
+			e.printStackTrace();		
 		}
-      
 	}
+	
 	@Override
 	public void report() {
 		LOGGER.info("{} artifacts have been collected", collected);

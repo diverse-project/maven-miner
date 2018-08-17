@@ -12,6 +12,7 @@ import org.sonatype.aether.util.DefaultRepositorySystemSession;
  */
 public class Booter {
 
+	private static RemoteRepository repo;
     public static RepositorySystem newRepositorySystem() {
         return ManualRepositorySystemFactory.newRepositorySystem();
     }
@@ -27,9 +28,11 @@ public class Booter {
     }
 
     public static RemoteRepository newCentralRepository() {
-        return new RemoteRepository("central", "default", "http://repo1.maven.org/maven2/");
+    	if (repo == null) {
+    		repo = new RemoteRepository("central", "default", "http://repo1.maven.org/maven2/");
+    	}
 //        return new RemoteRepository("central", "default", "http://jtechbd-cldsrvc.cloudapp.net:8090/nexus/content/repositories/maven");
 //        return new RemoteRepository("central", "default", "http://jtechbd-nexus:8090/nexus/content/repositories/maven");
-
+    	return repo;
     }
 }

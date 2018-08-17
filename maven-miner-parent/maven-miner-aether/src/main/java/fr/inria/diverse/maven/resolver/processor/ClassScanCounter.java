@@ -127,10 +127,10 @@ public class ClassScanCounter extends URLClassLoader {
 		                }
 		                
 		            } catch (IllegalAccessError e) {
-		            	LOGGER.trace("Illegal Access error");
+		            	LOGGER.trace("Illegal Access error on {}", clazz);
 		            	illegalAccessCount++;
 		            	classCount++;
-		            	e.printStackTrace();
+		            	//e.printStackTrace();
 		            } catch (NullPointerException e) {		            	
 		            	LOGGER.trace("Class for zipEntry {} return null", zipEntry.getName());
 		            	nullPointerCount++;
@@ -139,11 +139,11 @@ public class ClassScanCounter extends URLClassLoader {
 		            	LOGGER.trace("Unable to find appropriate classpath for class {}", zipEntry.getName());
 		            	classNoDefCount++;
 		            	classCount++;
-		            	e.printStackTrace();
+		            	//e.printStackTrace();
 		            } catch (SecurityException e) {
 						LOGGER.trace("Unable to load methods for class {}", zipEntry.getName());
 						securityCount++;
-						e.printStackTrace();
+						//e.printStackTrace();
 					} catch (Error | Exception e) {
 		            	otherCount++;
 		            	LOGGER.trace(e.getMessage());

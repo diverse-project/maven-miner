@@ -1,6 +1,5 @@
 package fr.inria.diverse.maven.resolver.tasks;
 
-import org.neo4j.graphdb.Node;
 import org.sonatype.aether.artifact.Artifact;
 import org.sonatype.aether.graph.DependencyNode;
 
@@ -40,6 +39,7 @@ public class Neo4jGraphDependencyVisitorTask extends  AbstractGraphBuilderVisito
 		depth++;
         if (depth == 1) {
         	root = node.getDependency().getArtifact();
+        	
             dbWrapper.getNodeFromArtifactCoordinate( node.getDependency().getArtifact());
             stack.push(root); 
         }

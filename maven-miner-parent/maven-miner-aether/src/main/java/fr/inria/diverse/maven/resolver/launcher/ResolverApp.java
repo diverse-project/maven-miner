@@ -45,7 +45,7 @@ public class ResolverApp {
      */
 	private static AbstractArtifactProcessor processor;
 	/**
-	 * Neo4j Graph D B wrapper. 
+	 * Neo4j Graph DBwrapper. 
 	 * Contains common operations to store Maven dependencies and counts
 	 */
 	private static Neo4jGraphDBWrapper dbwrapper;
