@@ -2,7 +2,7 @@
 SCRIPT_NAME=$0
 function print_usage_and_exit {
   echo "Usage: $SCRIPT_NAME"
-  echo "--file <arg>: path to artifacts info version.  Optional! The value |maven-index.db/| is used by default."
+  echo "--file <arg>: path to artifacts info version.  Optional!
   echo "--database <arg>: path to database. Optional! The value |maven-index.db/| is used by default."
   echo "--resolve-jars <arg>: Actionning jars resolution and classes count. Optional"
   exit 1
