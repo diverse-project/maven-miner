@@ -4,7 +4,7 @@ function print_usage_and_exit {
   echo "Usage: $SCRIPT_NAME"
   echo "--file <arg>: path to artifacts info version. Optional! The maven-miner-aether.jar is shipped with a toy file to for demonstration purpose"
   echo "--database <arg>: path to database. Optional!the value |maven-index.db/| is used by default."
-  echo "--results <arg>: path to the host results folder. Required"
+  echo "--results <arg>: absolute path to the host results folder. Required"
   echo "--resolve-jars: Actionning jars resolution and classes count. Optional"
   echo "--rebuild: Activates the build of the docker image build"
   exit 1
