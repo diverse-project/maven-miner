@@ -38,8 +38,7 @@ public class Neo4jGraphDependencyVisitorTask extends  AbstractGraphBuilderVisito
 	public void enter(DependencyNode node) {
 		depth++;
         if (depth == 1) {
-        	root = node.getDependency().getArtifact();
-        	
+        	root = node.getDependency().getArtifact();  	
             dbWrapper.getNodeFromArtifactCoordinate( node.getDependency().getArtifact());
             stack.push(root); 
         }
