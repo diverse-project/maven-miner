@@ -24,6 +24,7 @@ import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
+import org.apache.lucene.analysis.pattern.PatternCaptureGroupFilterFactory;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.MultiFields;
@@ -56,14 +57,21 @@ import org.slf4j.LoggerFactory;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.sql.Timestamp;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 import java.util.concurrent.TimeoutException;
+import java.util.regex.Pattern;
+import java.util.stream.Collector;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import com.rabbitmq.client.ConnectionFactory;
 import com.rabbitmq.client.Connection;
@@ -90,7 +98,10 @@ public class CentralIndex
     
     private static final String VIRTUAL_HOST_NAME = "maven-miner";
     
+    private static final String FILTER_FILE_NAME = ".filtered";
+    
     private static boolean fromFile= false;
+    
     // Aether variables
     private final PlexusContainer plexusContainer;
 
@@ -109,6 +120,7 @@ public class CentralIndex
     
 	private static Channel channel; 
 	
+    private  Stream<String> patterns;
     
     public CentralIndex()
         throws PlexusContainerException, ComponentLookupException
@@ -127,10 +139,22 @@ public class CentralIndex
         this.indexUpdater = plexusContainer.lookup( IndexUpdater.class );
         // lookup wagon used to remotely fetch index
         this.httpWagon = plexusContainer.lookup( Wagon.class, "http" );
-
+        this.patterns =  getPatternsFromCP();
     }
+    /**
+     * Transforms
+     * @return
+     */
+    private Stream<String> getPatternsFromCP() {
+		BufferedReader fileStream = new BufferedReader(
+										new InputStreamReader(CentralIndex.class
+																		  .getClassLoader()
+																		  .getResourceAsStream(FILTER_FILE_NAME)));
+		
+		return fileStream.lines().filter(line -> line.startsWith("#"));
+	}
 
-    public CentralIndex init()
+	public CentralIndex init()
         throws IOException, ComponentLookupException, InvalidVersionSpecificationException
     {
         // Files where local cache is (if any) and Lucene Index should be located
@@ -208,7 +232,7 @@ public class CentralIndex
                 
                 Bits liveDocs = MultiFields.getLiveDocs( ir );
                 
-                String text="";
+                String texts="";
                 int maxDocs = ir.maxDoc();
                 ArtifactInfo ai;
                 for ( int i = 0; i < maxDocs; i++ )
@@ -223,12 +247,16 @@ public class CentralIndex
                             	error++;
                             	continue;      	
                             }
-                        	text +=  ai.getGroupId() + SEPARATOR  
+                            
+                            String text =  ai.getGroupId() + SEPARATOR  
                             		+ ai.getArtifactId() + SEPARATOR 
                             		+ ai.getVersion()
-                            		+ System.getProperty("line.separator");
+                            		+ System.getProperty("line.separator"); 
                             
-                        	count++;
+                            if (! patterns.anyMatch(pattern -> text.matches(pattern))) {
+	                        	texts +=text;
+	                        	count++;
+                            }
                         } catch (NullPointerException e) {
                         	LOGGER.error("gav with name {} not found");
 							LOGGER.error(e.getMessage());
@@ -239,9 +267,9 @@ public class CentralIndex
                     
                     if ((i%DUMP_LIMIT == 0) || 
                     		  (i == maxDocs)) {
-                    	bw.write(text);
+                    	bw.write(texts);
                         bw.flush();
-                        text="";
+                        texts="";
                         LOGGER.info("{} artifacts have been indexed", count);
                     }
                 }
@@ -361,7 +389,7 @@ public class CentralIndex
             
             Bits liveDocs = MultiFields.getLiveDocs( ir );
             
-            String message="";
+            
             int maxDocs = ir.maxDoc();
             ArtifactInfo ai;
             for ( int i = 0; i < maxDocs; i++ )
@@ -376,12 +404,14 @@ public class CentralIndex
                         	error++;
                         	continue;      	
                         }
-                    	message = ai.getGroupId() + SEPARATOR  
-                        		+ ai.getArtifactId() + SEPARATOR 
-                        		+ ai.getVersion();
-                        		//+ System.getProperty("line.separator");
-                    	channel.basicPublish("", artifactQueueName, null, message.getBytes("UTF-8"));		
-                        count++;
+                        String message = ai.getGroupId() + SEPARATOR  
+		                        	   + ai.getArtifactId() + SEPARATOR 
+		                        	   + ai.getVersion();
+                    	if (! patterns.anyMatch(pattern -> message.matches(pattern))) {
+                    		channel.basicPublish("", artifactQueueName, null, message.getBytes("UTF-8"));		
+                            count++;
+                        }
+                    	
                     } catch (NullPointerException e) {
                     	LOGGER.error("gav with name {} not found");
 						LOGGER.error(e.getMessage());
