@@ -66,6 +66,7 @@ import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.List;
 import java.util.concurrent.TimeoutException;
 import java.util.regex.Pattern;
@@ -114,13 +115,16 @@ public class CentralIndex
     private IndexingContext centralContext;
     
     //AMQ fields
-    private static ConnectionFactory factory = new ConnectionFactory();
+    private static ConnectionFactory factory;
     
     private static Connection connection;
     
 	private static Channel channel; 
 	
-    private  Stream<String> patterns;
+    private  List<String> patterns;
+    
+    //Visited artifacts
+    private HashSet<String> visitedArtifacts = new HashSet<String>();
     
     public CentralIndex()
         throws PlexusContainerException, ComponentLookupException
@@ -145,13 +149,13 @@ public class CentralIndex
      * Transforms
      * @return
      */
-    private Stream<String> getPatternsFromCP() {
+    private List<String> getPatternsFromCP() {
 		BufferedReader fileStream = new BufferedReader(
 										new InputStreamReader(CentralIndex.class
 																		  .getClassLoader()
 																		  .getResourceAsStream(FILTER_FILE_NAME)));
 		
-		return fileStream.lines().filter(line -> line.startsWith("#"));
+		return fileStream.lines().filter(line -> ! line.startsWith("#")).collect(Collectors.toList());
 	}
 
 	public CentralIndex init()
@@ -218,7 +222,7 @@ public class CentralIndex
 
     	
     	
-    	public void dumpAtFile(String filename) throws IOException {
+    	private void dumpAtFile(String filename) throws IOException {
             
         	final IndexSearcher searcher = centralContext.acquireIndexSearcher();
         	
@@ -250,12 +254,16 @@ public class CentralIndex
                             
                             String text =  ai.getGroupId() + SEPARATOR  
                             		+ ai.getArtifactId() + SEPARATOR 
-                            		+ ai.getVersion()
-                            		+ System.getProperty("line.separator"); 
+                            		+ ai.getVersion();
+                            		
                             
-                            if (! patterns.anyMatch(pattern -> text.matches(pattern))) {
-	                        	texts +=text;
+                            if (! patterns.stream().anyMatch(pattern -> text.matches(pattern)) 
+                            		&& visitedArtifacts.add(text)) {
+	                        	texts += System.getProperty("line.separator")
+	                        			+ text;
 	                        	count++;
+                            } else {
+                            	LOGGER.info("{} is skipped",text);
                             }
                         } catch (NullPointerException e) {
                         	LOGGER.error("gav with name {} not found");
@@ -274,6 +282,7 @@ public class CentralIndex
                     }
                 }
             } catch (Exception e){
+				LOGGER.error(e.getMessage());
             	error++;
             } finally {
                 centralContext.releaseIndexSearcher( searcher );
@@ -287,7 +296,7 @@ public class CentralIndex
 
   		  HelpFormatter formater = new HelpFormatter();
 
-  		  formater.printHelp("Maven-miner", options);
+  		  formater.printHelp("Maven-indexer", options);
 
   		  System.exit(0);
 
@@ -300,47 +309,61 @@ public class CentralIndex
      public static void main( String[] args )
     	        throws Exception
     	    {
+    	 		final CentralIndex index = new CentralIndex();
     	    	String path = DEFAULT_PATH_VALUE;
     	    	
-    	    	connection = factory.newConnection();
-    	    	channel = connection.createChannel();
-    	    	
-    	    	
-    			options.addOption(new Option("f", "file", true, "File path to store artiacts coordinates list file. Note, artifacts are per line and come in the form groupId:artifactId:version"));
-    			options.addOption(new Option("q", "queue", true, "hostname and port of the RabbitMQ broker. Note, URI comes in the form hostname:port"));
-    			
+    			options.addOption(new Option("f", "from-file", true, "File path to retrieve artiacts coordinates list. If not specified, the maven central index is used instead. Note, artifacts are per line and come in the form groupId:artifactId:version. "));
+    			options.addOption(new Option("q", "queue", true, "Hostname and port of the RabbitMQ broker. Note, URI comes in the form hostname:port"));
+    			options.addOption(new Option("t","to-file",true, "Dumping the index into a file with name allArtifacsInfo. Noe the args \'t\' and \'q\' are mutually exclusive, only one should be provided"));
+    		
     			CommandLineParser parser = new DefaultParser();
     			 
     			CommandLine cmd = null;
     			try {
     				   cmd = parser.parse(options, args);
-    				 
+    				   if(cmd.getArgs().length==-1) {
+    					   LOGGER.error("No arguments have been provided!");
+    					   help();
+    				   }
+    				  
     				   if (cmd.hasOption("h")) {
     				    help();
     				   }
-    				   if (cmd.hasOption("q")) {
-    					   String [] values = cmd.getOptionValue("q").split(":");
-    					   if (values.length!=1) {
-    						   LOGGER.error("Couldnt handle hostname \"{}\"",cmd.getOptionValue("q"));
-    						   help();
-    					   }
-    					   factory.setHost(values[0]);
-    					   factory.setPort(Integer.valueOf(values[1]));
-    					   
+    				   if (cmd.hasOption("q") && cmd.hasOption("t")) {
+    					   LOGGER.error("q and t are mutually exclusive (X-OR). Only one option should be provided");
+    					   help();
     				   }
-    				   if (cmd.hasOption("f")) {
-    					   fromFile = true;
-    					   path = cmd.getOptionValue("f");
-    				  } 
+    				   if (cmd.hasOption("q") || cmd.hasOption("f") ) {
+    					   factory = new ConnectionFactory();
+    		    	       connection = factory.newConnection();
+    		    	       channel = connection.createChannel();
+    					  
+    		    	      if (cmd.hasOption("q")) {
+    		    	    	   String [] values = cmd.getOptionValue("q").split(":");
+    		    	    	   //check the presence of the port number 
+    		    	    	   if (values.length!=1) {
+		    					   LOGGER.error("Couldnt handle hostname \"{}\"",cmd.getOptionValue("q"));
+		    					   help();
+		    				   }
+		    				   factory.setHost(values[0]);
+		    				   factory.setPort(Integer.valueOf(values[1]));   
+    		    	      }
+		    			  if (cmd.hasOption("f")) {
+		    				   fromFile = true;
+		    				   path = cmd.getOptionValue("f");
+		    			  } 
+		    			  index.init().publish(path);
+    				   } else if (cmd.hasOption("t")) {
+    					   path = cmd.getOptionValue("t");
+    					   index.init().dumpAtFile(path);
+    				   }
+    					  
     			} catch (Exception e) {
     				LOGGER.error("Failed to parse comand line properties", e);
     				help();
     			}
-    			
-    	        final CentralIndex index = new CentralIndex();
+    	    }    			
     	        
-    	        index.init().publish(path);
-    	    }
 
 	private void publish(String path) throws IOException, TimeoutException {
 		if (fromFile) {
@@ -407,16 +430,21 @@ public class CentralIndex
                         String message = ai.getGroupId() + SEPARATOR  
 		                        	   + ai.getArtifactId() + SEPARATOR 
 		                        	   + ai.getVersion();
-                    	if (! patterns.anyMatch(pattern -> message.matches(pattern))) {
+                    	if (! patterns.stream().anyMatch(pattern -> message.matches(pattern))) {
                     		channel.basicPublish("", artifactQueueName, null, message.getBytes("UTF-8"));		
                             count++;
+                        } else {
+                        	LOGGER.info("{} is skipped",message);
                         }
                     	
                     } catch (NullPointerException e) {
                     	LOGGER.error("gav with name {} not found");
 						LOGGER.error(e.getMessage());
 						error++;
-					}       
+					} catch (Exception e) {
+						LOGGER.error(e.getMessage());
+						throw e;
+					}
                 }             
             }
         } catch (Exception e){
