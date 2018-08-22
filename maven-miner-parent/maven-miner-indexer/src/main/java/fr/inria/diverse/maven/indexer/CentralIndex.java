@@ -378,15 +378,24 @@ public class CentralIndex
 			BufferedReader resultsReader = null;
     		try {
 				resultsReader = new BufferedReader(new FileReader(filename));
-	            String artifactCoordinate;
+	            String artifactCoordinate="";
 	            int lineCounter = 0;
 	            int skippedCounter = 0;
+//			    while ((artifactCoordinate = resultsReader.readLine()) != null) {
 			    while ((artifactCoordinate = resultsReader.readLine()) != null) {
-			           
 			            	if (artifactCoordinate.startsWith("#")) continue;
-			            	channel.basicPublish("", ARTIFACT_QUEUE_NAME, null, artifactCoordinate.getBytes("UTF-8"));	
-			            	++lineCounter;	              		           
-			            	LOGGER.debug("Publishing artifact {} number {} ", artifactCoordinate, skippedCounter+lineCounter);
+			            	//Dirty workaround
+			            	final String coord = artifactCoordinate;
+			            	if (! patterns.stream().anyMatch(pattern -> coord.matches(pattern))
+	                    			&& visitedArtifacts.add(artifactCoordinate)) {
+	                    		channel.basicPublish("", ARTIFACT_QUEUE_NAME, null, artifactCoordinate.getBytes("UTF-8"));		
+				            	LOGGER.debug("Publishing artifact {} number {} ", artifactCoordinate, skippedCounter+lineCounter);
+				            	lineCounter++;
+	                        } else {
+	                        	LOGGER.info("{} is skipped",artifactCoordinate);
+	                        	
+	                        }
+			            	
 			    }
 			   		            
 	            } catch (Exception e) {
@@ -430,7 +439,9 @@ public class CentralIndex
                         String message = ai.getGroupId() + SEPARATOR  
 		                        	   + ai.getArtifactId() + SEPARATOR 
 		                        	   + ai.getVersion();
-                    	if (! patterns.stream().anyMatch(pattern -> message.matches(pattern))) {
+                        
+                    	if (! patterns.stream().anyMatch(pattern -> message.matches(pattern))
+                    			&& visitedArtifacts.add(message)) {
                     		channel.basicPublish("", artifactQueueName, null, message.getBytes("UTF-8"));		
                             count++;
                         } else {
