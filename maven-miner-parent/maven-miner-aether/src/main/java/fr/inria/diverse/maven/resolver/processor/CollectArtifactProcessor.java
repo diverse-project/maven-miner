@@ -6,7 +6,6 @@ import org.sonatype.aether.collection.CollectResult;
 import org.sonatype.aether.collection.DependencyCollectionException;
 import org.sonatype.aether.graph.Dependency;
 import org.sonatype.aether.resolution.ArtifactResolutionException;
-import org.sonatype.aether.util.artifact.JavaScopes;
 
 public class CollectArtifactProcessor extends AbstractArtifactProcessor {
 
@@ -30,10 +29,10 @@ public class CollectArtifactProcessor extends AbstractArtifactProcessor {
      * @throws ArtifactResolutionException
      */
 	@Override
-	public void process(Artifact artifact) {
+	public Artifact process(Artifact artifact) {
 		LOGGER.info("Collecting dependencies for artifact: " + artifact);
         CollectRequest collectRequest = new CollectRequest();
-        collectRequest.setRoot(new Dependency(artifact, JavaScopes.COMPILE)); 
+        collectRequest.setRoot(new Dependency(artifact, "")); 
         collectRequest.addRepository(repo);
         CollectResult collectResult;
 		try {
@@ -41,11 +40,15 @@ public class CollectArtifactProcessor extends AbstractArtifactProcessor {
 			//collectResult.getRoot().getData();
 			collectResult.getRoot().accept(visitor);
 			collected++;
+			// in case the artifact was moved, this assignment ensures we're dealing with the new one
+			
+			return collectResult.getRoot().getDependency().getArtifact();
 		} catch (Exception e) {
 			LOGGER.error("Unable to collect dependency for artifact {}", artifact);
 			skipped++;
 			e.printStackTrace();		
 		}
+		return null;
 	}
 	
 	@Override

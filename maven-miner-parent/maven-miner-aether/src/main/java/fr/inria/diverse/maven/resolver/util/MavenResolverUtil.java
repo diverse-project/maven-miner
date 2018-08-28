@@ -5,13 +5,12 @@ import java.net.URL;
 import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Pattern;
 
-import org.hibernate.validator.constraints.Length;
 import org.sonatype.aether.artifact.Artifact;
 import org.sonatype.aether.graph.Dependency;
 
-import fr.inria.diverse.maven.resolver.model.Vertex;
 import fr.inria.diverse.maven.resolver.model.Edge;
 import fr.inria.diverse.maven.resolver.model.Edge.Scope;
+import fr.inria.diverse.maven.resolver.model.Vertex;
 import fr.inria.diverse.maven.resolver.model.Vertex.Packaging;
 
 public  class MavenResolverUtil {
@@ -65,6 +64,7 @@ public  class MavenResolverUtil {
 				.concat(":")
 				.concat(artifact.getArtifactId())
 				.concat(":")
+				//.concat(artifact.getExtension()!=null ? artifact.getExtension()+":" : "")
 				.concat(artifact.getVersion());
 	}
 	/**

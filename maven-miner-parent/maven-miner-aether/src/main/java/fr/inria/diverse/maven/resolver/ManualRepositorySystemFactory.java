@@ -21,5 +21,4 @@ public class ManualRepositorySystemFactory {
 
 	        return locator.getService(RepositorySystem.class);
 	    }
-
 }

@@ -24,7 +24,6 @@ import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
-import org.apache.lucene.analysis.pattern.PatternCaptureGroupFilterFactory;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.MultiFields;
@@ -57,24 +56,19 @@ import org.slf4j.LoggerFactory;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.sql.Timestamp;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
 import java.util.concurrent.TimeoutException;
-import java.util.regex.Pattern;
-import java.util.stream.Collector;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
-
 import com.rabbitmq.client.ConnectionFactory;
+import com.rabbitmq.client.ShutdownSignalException;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.Channel;
 /**
@@ -96,8 +90,6 @@ public class CentralIndex
     private static final int DUMP_LIMIT = 10000;
     
     private static final String SEPARATOR = ":";
-    
-    private static final String VIRTUAL_HOST_NAME = "maven-miner";
     
     private static final String FILTER_FILE_NAME = ".filtered";
     
@@ -121,6 +113,7 @@ public class CentralIndex
     
 	private static Channel channel; 
 	
+	// filtered patterns
     private  List<String> patterns;
     
     //Visited artifacts
@@ -252,19 +245,20 @@ public class CentralIndex
                             	continue;      	
                             }
                             
-                            String text =  ai.getGroupId() + SEPARATOR  
+                            String message =  ai.getGroupId() + SEPARATOR  
                             		+ ai.getArtifactId() + SEPARATOR 
                             		+ ai.getVersion();
                             		
-                            
-                            if (! patterns.stream().anyMatch(pattern -> text.matches(pattern)) 
-                            		&& visitedArtifacts.add(text)) {
-	                        	texts += System.getProperty("line.separator")
-	                        			+ text;
-	                        	count++;
+                            if (patterns.stream().anyMatch(pattern -> message.matches(pattern))) {
+                        		LOGGER.info("{} is skipped",message);
+                            } else if (! visitedArtifacts.add(message)) {
+                            	LOGGER.info("{} is redundunt",message);
                             } else {
-                            	LOGGER.info("{} is skipped",text);
+                            	texts += System.getProperty("line.separator") + message;                            	
+                            	LOGGER.info("{} is published",message);
+                                count++;
                             }
+
                         } catch (NullPointerException e) {
                         	LOGGER.error("gav with name {} not found");
 							LOGGER.error(e.getMessage());
@@ -337,16 +331,20 @@ public class CentralIndex
     					   factory = new ConnectionFactory();
     		    	       connection = factory.newConnection();
     		    	       channel = connection.createChannel();
+    		    	       
     					  
     		    	      if (cmd.hasOption("q")) {
     		    	    	   String [] values = cmd.getOptionValue("q").split(":");
     		    	    	   //check the presence of the port number 
-    		    	    	   if (values.length!=1) {
+    		    	    	   if (values.length!=2) {
 		    					   LOGGER.error("Couldnt handle hostname \"{}\"",cmd.getOptionValue("q"));
 		    					   help();
 		    				   }
 		    				   factory.setHost(values[0]);
-		    				   factory.setPort(Integer.valueOf(values[1]));   
+		    				   factory.setPort(Integer.valueOf(values[1]));
+		    				   channel.queueDeclareNoWait(ARTIFACT_QUEUE_NAME, true, false, false, null);
+		    				   channel.queuePurge(ARTIFACT_QUEUE_NAME);
+
     		    	      }
 		    			  if (cmd.hasOption("f")) {
 		    				   fromFile = true;
@@ -358,8 +356,11 @@ public class CentralIndex
     					   index.init().dumpAtFile(path);
     				   }
     					  
-    			} catch (Exception e) {
-    				LOGGER.error("Failed to parse comand line properties", e);
+    			} catch (ShutdownSignalException | IOException e) {
+    				LOGGER.error("Channel creation error", e.getMessage());
+    			}
+    			  catch (Exception e) {
+    				LOGGER.error("Failed to parse comand line properties", e.getMessage());
     				help();
     			}
     	    }    			
@@ -379,29 +380,25 @@ public class CentralIndex
     		try {
 				resultsReader = new BufferedReader(new FileReader(filename));
 	            String artifactCoordinate="";
-	            int lineCounter = 0;
-	            int skippedCounter = 0;
-//			    while ((artifactCoordinate = resultsReader.readLine()) != null) {
-			    while ((artifactCoordinate = resultsReader.readLine()) != null) {
+
+	            while ((artifactCoordinate = resultsReader.readLine()) != null) {
 			            	if (artifactCoordinate.startsWith("#")) continue;
 			            	//Dirty workaround
-			            	final String coord = artifactCoordinate;
-			            	if (! patterns.stream().anyMatch(pattern -> coord.matches(pattern))
-	                    			&& visitedArtifacts.add(artifactCoordinate)) {
-	                    		channel.basicPublish("", ARTIFACT_QUEUE_NAME, null, artifactCoordinate.getBytes("UTF-8"));		
-				            	LOGGER.debug("Publishing artifact {} number {} ", artifactCoordinate, skippedCounter+lineCounter);
-				            	lineCounter++;
+			            	final String message = artifactCoordinate;
+			            	if (patterns.stream().anyMatch(pattern -> message.matches(pattern))) {
+	                    		LOGGER.info("{} is skipped",message);
+	                        } else if (! visitedArtifacts.add(message)) {
+	                        	LOGGER.info("{} is redundunt",message);
 	                        } else {
-	                        	LOGGER.info("{} is skipped",artifactCoordinate);
-	                        	
+	                        	channel.basicPublish("", ARTIFACT_QUEUE_NAME, null, message.getBytes("UTF-8"));	
+	                        	LOGGER.info("{} is published",message);
 	                        }
-			            	
-			    }
+	            	}
 			   		            
 	            } catch (Exception e) {
 	            	LOGGER.error("Couldn't read file {}", filename );
 	             	e.printStackTrace();
-	            }finally {
+	            } finally {
 	            	resultsReader.close();
 	            	channel.close();
 	                connection.close();
@@ -409,7 +406,7 @@ public class CentralIndex
     }
 		
 	private void publishFromIndex(String artifactQueueName) throws IOException, TimeoutException {
-		channel.queueDeclareNoWait(artifactQueueName, false, false, false, null);
+		
 		
 		final IndexSearcher searcher = centralContext.acquireIndexSearcher();
     	
@@ -420,8 +417,6 @@ public class CentralIndex
             final IndexReader ir = searcher.getIndexReader();
             
             Bits liveDocs = MultiFields.getLiveDocs( ir );
-            
-            
             int maxDocs = ir.maxDoc();
             ArtifactInfo ai;
             for ( int i = 0; i < maxDocs; i++ )
@@ -440,12 +435,16 @@ public class CentralIndex
 		                        	   + ai.getArtifactId() + SEPARATOR 
 		                        	   + ai.getVersion();
                         
-                    	if (! patterns.stream().anyMatch(pattern -> message.matches(pattern))
-                    			&& visitedArtifacts.add(message)) {
-                    		channel.basicPublish("", artifactQueueName, null, message.getBytes("UTF-8"));		
-                            count++;
+                    	if (patterns.stream().anyMatch(pattern -> message.matches(pattern))) {
+                    		LOGGER.info("{} is skipped",message);
+                    		error++;
+                        } else if (! visitedArtifacts.add(message)) {
+                        	LOGGER.info("{} is redundunt",message);
+                        	error++;
                         } else {
-                        	LOGGER.info("{} is skipped",message);
+                        	channel.basicPublish("", artifactQueueName, null, message.getBytes("UTF-8"));
+                        	LOGGER.info("{} is published",message);
+                            count++;
                         }
                     	
                     } catch (NullPointerException e) {

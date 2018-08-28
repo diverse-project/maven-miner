@@ -39,7 +39,7 @@ public class Neo4jGraphDependencyVisitorTask extends  AbstractGraphBuilderVisito
 		depth++;
         if (depth == 1) {
         	root = node.getDependency().getArtifact();  	
-            dbWrapper.getNodeFromArtifactCoordinate( node.getDependency().getArtifact());
+            dbWrapper.createNodeFromArtifactCoordinate( node.getDependency().getArtifact());
             stack.push(root); 
         }
         // get the nodes on the second level (the direct dependencies), 
@@ -47,10 +47,10 @@ public class Neo4jGraphDependencyVisitorTask extends  AbstractGraphBuilderVisito
         else {
         	root = stack.peek();
         	Artifact secondLevelNode = node.getDependency().getArtifact();
-        	dbWrapper.getNodeFromArtifactCoordinate(secondLevelNode);
-
+        	dbWrapper.createNodeFromArtifactCoordinate(secondLevelNode);
+        	// add dependency to graph
             Scope scope = MavenResolverUtil.deriveScope(node.getDependency());      
-            dbWrapper.addDependencyToGraphDB(root, secondLevelNode, scope);
+            dbWrapper.addDependency(root, secondLevelNode, scope);
             stack.push(secondLevelNode);
         }
 	}

@@ -110,7 +110,7 @@ public class ExceptionCounter {
 		 * @return the name
 		 */
 		public String getName() {
-			return name;
+			return this.name();
 		}
 
 		/**

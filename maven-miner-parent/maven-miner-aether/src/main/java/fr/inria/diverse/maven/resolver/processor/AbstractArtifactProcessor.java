@@ -27,7 +27,7 @@ public abstract class AbstractArtifactProcessor {
 	 * Processing the Artifact
 	 * @param artifact {@link Artifact}
 	 */
-	public abstract void process(@NotNull Artifact artifact);
+	public abstract Artifact process(@NotNull Artifact artifact);
 	
 	/**
 	 * Reporting on the processing 

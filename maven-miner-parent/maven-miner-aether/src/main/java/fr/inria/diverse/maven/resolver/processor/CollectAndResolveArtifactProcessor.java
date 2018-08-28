@@ -55,10 +55,10 @@ public class CollectAndResolveArtifactProcessor extends CollectArtifactProcessor
      * @throws ArtifactResolutionException
      */
 	@Override
-	public void process(Artifact artifact) {
+	public Artifact process(Artifact artifact) {
 		
-			super.process(artifact);
-			
+			artifact = super.process(artifact);
+			if (artifact == null) return null;
 	        LOGGER.info("Resolving jar file for artifact: {}", artifact);  
 	        ArtifactRequest artifactRequest = new ArtifactRequest();
 	        artifactRequest.setArtifact( artifact );
@@ -85,13 +85,14 @@ public class CollectAndResolveArtifactProcessor extends CollectArtifactProcessor
 				if (e instanceof MalformedURLException) LOGGER.error("MalFormedURL");
 				counter.getDbwrapper().addResolutionExceptionRelationship(artifact);	
 				LOGGER.error("Unable to collect dependency for artifact {}", artifact);
-				e.printStackTrace();
+				//e.printStackTrace();
 				nonResolved++;
 			} catch (IOException e) {
 				LOGGER.error("Unable to collect dependency for artifact {}", artifact);
-				e.printStackTrace();
+				//e.printStackTrace();
 				nonResolved++;
 			} 
+			return artifact;
 	}
 
 	@Override 
