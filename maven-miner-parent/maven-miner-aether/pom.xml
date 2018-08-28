@@ -83,6 +83,11 @@
 		   	<artifactId>neo4j</artifactId>
 		   	<version>3.4.0</version>
 		  </dependency>
+		  <dependency>
+		  	<groupId>org.neo4j.driver</groupId>
+			<artifactId>neo4j-java-driver</artifactId>
+			 <version>1.6.2</version>
+		  </dependency>
 		 <!-- Commons cli dependencies  -->
 		  <dependency>
 			<groupId>commons-cli</groupId>
@@ -122,6 +127,12 @@
 		    <artifactId>hibernate-validator-annotation-processor</artifactId>
 		    <version>6.0.2.Final</version>
 		</dependency>
+		<!-- AMQ: RabbitMQ -->
+		<dependency>
+		    <groupId>com.rabbitmq</groupId>
+		    <artifactId>amqp-client</artifactId>
+		    <version>5.3.0</version>
+		</dependency>
         <!-- Test dependencies  -->
         <dependency>
             <groupId>junit</groupId>
@@ -149,7 +160,7 @@
                     <archive>
                         <manifest>
                             <addClasspath>true</addClasspath>
-                            <mainClass>fr.inria.diverse.maven.resolver.launcher.ResolverApp</mainClass>
+                            <mainClass>fr.inria.diverse.maven.resolver.launcher.BatchResolverApp</mainClass>
                         </manifest>
                     </archive>
                     <descriptorRefs>
