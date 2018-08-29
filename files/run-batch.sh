@@ -39,8 +39,8 @@ done
 
 WORKING_DIR=`pwd`
 
-INDEXER_JAR=maven-miner-indexer.jar
-AETHER_JAR=maven-miner-aether.jar
+INDEXER_JAR=miner-indexer.jar
+AETHER_JAR=miner-aether.jar
 
 SORTED_ARTIFACTS=$ARTIFACT_PATH-sorted
 UNIQUE_ARTIFACTS=$ARTIFACT_PATH-unique
