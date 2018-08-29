@@ -10,6 +10,8 @@ function print_usage_and_exit {
   exit 1
 }
 
+NAME=miner
+MACHINE_NAME=maven-miner
 DB_PATH=" "
 ARTIFACT_PATH=" "
 RESOLVE_JARS=" "
@@ -54,10 +56,15 @@ if [[ $RESULTS_FOLDER = "" ]]; then
 fi
 
 if [ "$RE_BUILD"=true ]; then
-  docker build -t maven-miner .
+  docker build -t $MACHINE_NAME .
 fi
 
+docker rm -f $NAME
+WORKING_DIR=`pwd`
+FILES_DIR=$WORKING_DIR/files
+echo $FILES_DIR
 docker run -it \
---volume $RESULTS_FOLDER:/maven-miner/results \
---name miner maven-miner \
--c ./run.sh $ARTIFACT_PATH $DB_PATH $RESOLVE_JARS
+--volume $RESULTS_FOLDER:/results \
+--volume $FILES_DIR:/maven-miner \
+--name $NAME $MACHINE_NAME \
+ /maven-miner/run-batch.sh $ARTIFACT_PATH $DB_PATH $RESOLVE_JARS
