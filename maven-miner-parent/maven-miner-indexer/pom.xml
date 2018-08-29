@@ -26,6 +26,11 @@ under the License.
   <version>0.2.3-SNAPSHOT</version>
 
   <build>
+  	<resources>
+     <resource>
+       <directory>src/main/resources</directory>
+     </resource>
+    </resources>
     <plugins>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
@@ -35,14 +40,14 @@ under the License.
         </configuration>
       </plugin>
       <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-compiler-plugin</artifactId>
-                <version>3.1</version>
-                <configuration>
-                    <source>1.8</source>
-                    <target>1.8</target>
-                </configuration>
-            </plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-compiler-plugin</artifactId>
+          <version>3.1</version>
+          <configuration>
+              <source>1.8</source>
+              <target>1.8</target>
+          </configuration>
+      </plugin>
             <plugin>
                 <artifactId>maven-assembly-plugin</artifactId>
                 <configuration>
@@ -75,7 +80,8 @@ under the License.
     <surefire.redirectTestOutputToFile>true</surefire.redirectTestOutputToFile>
     <failsafe.redirectTestOutputToFile>true</failsafe.redirectTestOutputToFile>
     <checkstyle.violation.ignore>MagicNumber,ParameterNumber,MethodLength,JavadocType,AvoidNestedBlocks,InterfaceIsType</checkstyle.violation.ignore>
-
+	<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+	
     <eclipse-sisu.version>0.3.3</eclipse-sisu.version>
     <lucene.version>5.5.5</lucene.version>
     <maven.version>3.5.2</maven.version>

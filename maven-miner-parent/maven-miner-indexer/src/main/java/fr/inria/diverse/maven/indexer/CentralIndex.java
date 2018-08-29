@@ -62,6 +62,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.sql.Timestamp;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
@@ -91,7 +92,7 @@ public class CentralIndex
     
     private static final String SEPARATOR = ":";
     
-    private static final String FILTER_FILE_NAME = ".filtered";
+    private static final String FILTER_FILE_NAME = "filtered.properties";
     
     private static boolean fromFile= false;
     
@@ -143,12 +144,12 @@ public class CentralIndex
      * @return
      */
     private List<String> getPatternsFromCP() {
-		BufferedReader fileStream = new BufferedReader(
-										new InputStreamReader(CentralIndex.class
-																		  .getClassLoader()
-																		  .getResourceAsStream(FILTER_FILE_NAME)));
-		
-		return fileStream.lines().filter(line -> ! line.startsWith("#")).collect(Collectors.toList());
+//		BufferedReader fileStream = new BufferedReader(
+//										new InputStreamReader(CentralIndex.class
+//																		  .getClassLoader()
+//																		  .getResourceAsStream(FILTER_FILE_NAME)));
+//		return fileStream.lines().filter(line -> ! line.startsWith("#")).collect(Collectors.toList());
+    	return Arrays.asList(".*-sample.*", ".*:\\d+\\.\\d+\\.\\d+\\.\\d+.*");
 	}
 
 	public CentralIndex init()
