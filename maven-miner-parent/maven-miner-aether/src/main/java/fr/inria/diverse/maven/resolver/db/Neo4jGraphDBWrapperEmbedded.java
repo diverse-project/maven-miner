@@ -13,9 +13,6 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import javax.validation.constraints.NotEmpty;
-import javax.validation.constraints.NotNull;
-
 import org.apache.commons.io.FileUtils;
 
 import org.neo4j.graphdb.Direction;
@@ -60,7 +57,7 @@ public class Neo4jGraphDBWrapperEmbedded extends Neo4jGraphDBWrapper {
 	 * @param graphDirectory
 	 * @reurns {@link Neo4jGraphDependencyVisitorTask}
 	 */
-	public Neo4jGraphDBWrapperEmbedded(@NotEmpty String graphDirectory) {
+	public Neo4jGraphDBWrapperEmbedded(String graphDirectory) {
 		this.graphDirectory = graphDirectory;
 		graphDB = initDB();	
 	}
@@ -120,7 +117,6 @@ public class Neo4jGraphDBWrapperEmbedded extends Neo4jGraphDBWrapper {
 	 * @param key {@link String}
 	 * @return label {@link Label}
 	 */
-	@NotNull(message = "The return label should not be null")
 	protected Label getOrCreateLabel(String key) {
 		
 		if (labelsIndex.containsKey(key)) 
@@ -137,8 +133,7 @@ public class Neo4jGraphDBWrapperEmbedded extends Neo4jGraphDBWrapper {
 	 * @param dependency
 	 * @return {@link Node} result
 	 */
-	@NotNull (message = "The returned node should not be null")
-	protected Node getNodeFromArtifactCoordinate(@NotNull Artifact artifact) {
+	protected Node getNodeFromArtifactCoordinate(Artifact artifact) {
 		String depKey = MavenResolverUtil.artifactToCoordinate(artifact);
 		
 		Node result;
@@ -198,14 +193,13 @@ public class Neo4jGraphDBWrapperEmbedded extends Neo4jGraphDBWrapper {
 	 * @param targetArtifact {@link Artifact}
 	 * @param scope {@link Scope}
 	 */
- 	public void addDependency( @NotNull Artifact sourceArtifact, @NotNull Artifact targetArtifact, @NotNull Scope scope) {	
+ 	public void addDependency(Artifact sourceArtifact,  Artifact targetArtifact,Scope scope) {	
  		Node source = getNodeFromArtifactCoordinate(sourceArtifact);
 		Node target = getNodeFromArtifactCoordinate(targetArtifact);
 		
 		try ( Transaction tx = graphDB.beginTx() ) { 
 
 			if(!edgesIndex.get(Properties.SCOPE, scope.toString(), source, target).hasNext()) {
-				@NotNull(message = "should always return a valid nonNull relationship")
 				Relationship relation = source.createRelationshipTo(target, DependencyRelation.DEPENDS_ON);
 				relation.setProperty(Properties.SCOPE, scope.toString());
 				edgesIndex.add(relation, Properties.SCOPE, scope.toString());
@@ -227,7 +221,6 @@ public class Neo4jGraphDBWrapperEmbedded extends Neo4jGraphDBWrapper {
 										! label.name().equals(Properties.EXCEPTION_LABEL))							
 					.forEach(label ->
 			{							
-				@NotNull(message = "All the existing labels should have at least one node")
 				
 				List<Node> sortedNodes = graphDB.findNodes(label).stream().sorted(new Comparator<Node>() {
 					@Override
@@ -372,7 +365,7 @@ public class Neo4jGraphDBWrapperEmbedded extends Neo4jGraphDBWrapper {
 		tx.success();}
 	}
 	@Override
-	public void createNodeFromArtifactCoordinate(@NotNull Artifact artifact) {
+	public void createNodeFromArtifactCoordinate( Artifact artifact) {
 		getNodeFromArtifactCoordinate(artifact);	
 	}
 }

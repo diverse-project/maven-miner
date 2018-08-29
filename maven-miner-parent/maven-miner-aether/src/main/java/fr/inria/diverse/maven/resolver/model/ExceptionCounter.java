@@ -91,6 +91,7 @@ public class ExceptionCounter {
 		/**
 		 * The displayed name, referring to the original class
 		 */
+		@SuppressWarnings("unused")
 		private String name;
 		/**
 		 * The index on the table

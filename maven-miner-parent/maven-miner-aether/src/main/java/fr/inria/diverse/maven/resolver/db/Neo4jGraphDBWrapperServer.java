@@ -18,9 +18,7 @@ import static org.neo4j.driver.v1.Values.parameters;
 import java.time.ZonedDateTime;
 import java.util.Arrays;
 import java.util.Comparator;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Collectors;
 
 import fr.inria.diverse.maven.resolver.model.Edge.Scope;
@@ -152,7 +150,7 @@ public class Neo4jGraphDBWrapperServer extends Neo4jGraphDBWrapper implements Au
 						                            		 	"releaseID", Properties.LAST_MODIFIED,
 						                            		 	"releaseValue",javaDate.toString()
 						                              ));
-	                String groupID = result.single().get(0).asString();
+	                result.single().get(0).asString();
 	                
 	                return null;
 	            } );
@@ -183,7 +181,7 @@ public class Neo4jGraphDBWrapperServer extends Neo4jGraphDBWrapper implements Au
 							                            		  "coordinatesValue2", MavenResolverUtil.artifactToCoordinate(targetArtifact),
 							                            		  "scopeValue",scope.toString()
 				                            		 	       ));
-                String groupID = result.single().get(0).asString();
+                result.single().get(0).asString();
                 return null;
             } );
         } catch  (Exception e)  {
@@ -213,7 +211,7 @@ public class Neo4jGraphDBWrapperServer extends Neo4jGraphDBWrapper implements Au
                             		 	"coordinatesValue", MavenResolverUtil.artifactToCoordinate(artifact)
                               )
                            );
-            		String groupID = result.single().get(0).asString();
+            		result.single().get(0).asString();
                     return null;
             } );
         } catch  (Exception e)  {
@@ -252,7 +250,7 @@ public class Neo4jGraphDBWrapperServer extends Neo4jGraphDBWrapper implements Au
 		                 									"value",exCounter.getValueForType(type),
 		                 									"name",type.name()));
 		                 
-				String groupID = result.single().get(0).asString();
+				result.single().get(0).asString();
 		        return null;
 	        } );
 		
@@ -286,7 +284,7 @@ public class Neo4jGraphDBWrapperServer extends Neo4jGraphDBWrapper implements Au
 		                 						parameters("coordinatesValue", 
 		                 							MavenResolverUtil.artifactToCoordinate(artifact)));
 		                 
-				String groupID = result.single().get(0).asString();
+				result.single().get(0).asString();
 		        return null;
 	        } );
 		} catch  (Exception e)  {

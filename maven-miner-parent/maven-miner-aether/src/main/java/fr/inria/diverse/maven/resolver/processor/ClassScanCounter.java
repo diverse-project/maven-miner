@@ -179,7 +179,8 @@ public class ClassScanCounter extends URLClassLoader {
 	    int count = 0;
 
 	    // Your jar file
-	    JarFile jar = new JarFile(jarFile);
+	    @SuppressWarnings("resource")
+		JarFile jar = new JarFile(jarFile);
 	    // Getting the files into the jar
 	    Enumeration<? extends JarEntry> enumeration = jar.entries();
 

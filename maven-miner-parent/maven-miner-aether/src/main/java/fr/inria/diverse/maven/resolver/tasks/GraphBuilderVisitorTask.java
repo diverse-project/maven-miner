@@ -2,14 +2,11 @@ package fr.inria.diverse.maven.resolver.tasks;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.sonatype.aether.artifact.Artifact;
-import org.sonatype.aether.graph.Dependency;
 import org.sonatype.aether.graph.DependencyNode;
 
 import fr.inria.diverse.maven.resolver.model.DependencyGraph;
-import fr.inria.diverse.maven.resolver.model.Vertex;
 import fr.inria.diverse.maven.resolver.model.Edge.Scope;
-import fr.inria.diverse.maven.resolver.model.Vertex.Packaging;
+import fr.inria.diverse.maven.resolver.model.Vertex;
 import fr.inria.diverse.maven.resolver.processor.MultiTaskDependencyVisitor;
 import fr.inria.diverse.maven.resolver.util.MavenResolverUtil;
 
