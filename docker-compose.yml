@@ -1,0 +1,31 @@
+version: '3'
+services:
+
+  publisher:
+    image: openjdk-8-jdk-alpine
+    volumes:
+      - "$HOME/maven-miner/files/maven-indexer:/"
+    labels:
+      - fr.inria.diverse.publisher
+  consumer:
+    image: openjdk-8-alpine
+    volumes:
+      - "$HOME/maven-miner/files/maven-aether:/"
+    labels:
+      - fr.inria.diverse.consumer
+  neo4j:
+    image: "neo4j:3.0"
+    volumes:
+      - "$HOME/neo4j-server/data:/data"
+      - "$HOME/neo4j-server/logs:/logs"
+    environment:
+      NEO4J_AUTH: none
+      labels:
+        - fr.inria.diverse.neo4j
+  rabbitmq:
+    image: "rabbitmq:3-management"
+    ports:
+      - "15672:15672"
+      - "5672:5672"
+    labels:
+      - fr.inria.diverse.rabbitmq
