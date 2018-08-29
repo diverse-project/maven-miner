@@ -102,7 +102,6 @@ public abstract class Neo4jGraphDBWrapper {
 	 * @param dependency
 	 * @return {@link Node} result
 	 */
-	@NotNull (message = "The returned node should not be null")
 	abstract public void createNodeFromArtifactCoordinate(@NotNull Artifact artifact);
 	
 	/**
@@ -111,7 +110,7 @@ public abstract class Neo4jGraphDBWrapper {
 	 * @param targetArtifact {@link Artifact}
 	 * @param scope {@link Scope}
 	 */
- 	abstract public void addDependency( @NotNull Artifact sourceArtifact, @NotNull Artifact targetArtifact, @NotNull Scope scope);
+ 	abstract public void addDependency(Artifact sourceArtifact, Artifact targetArtifact, Scope scope);
  	
 	/**
 	 * create the precedence relationship between nodes

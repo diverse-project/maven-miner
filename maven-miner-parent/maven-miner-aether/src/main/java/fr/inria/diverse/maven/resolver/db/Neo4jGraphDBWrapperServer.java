@@ -110,8 +110,7 @@ public class Neo4jGraphDBWrapperServer extends Neo4jGraphDBWrapper implements Au
 	
 	@Override
 //	public @NotNull(message = "The returned node should not be null") 
-	public void createNodeFromArtifactCoordinate(
-			@NotNull Artifact artifact) {
+	public void createNodeFromArtifactCoordinate(Artifact artifact) {
 		//resolving last-modified from central
 		ZonedDateTime javaDate = getReleaseDateFromArtifact(artifact);
 
@@ -160,8 +159,7 @@ public class Neo4jGraphDBWrapperServer extends Neo4jGraphDBWrapper implements Au
 			}
 	}
 	@Override
-	public void addDependency(@NotNull Artifact sourceArtifact, @NotNull Artifact targetArtifact,
-			@NotNull Scope scope) {
+	public void addDependency(Artifact sourceArtifact, Artifact targetArtifact, Scope scope) {
 		try ( Session session = driver.session() )
         {
             session.writeTransaction( tx ->  {		
