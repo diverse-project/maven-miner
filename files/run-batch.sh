@@ -51,7 +51,7 @@ if [ -f $ARTIFACT_PATH ]; then
     echo "Artifacts file already exists. Index update phase is skipped"
 else
     echo "Creating artifacts index file with name $ARTIFACT_PATH"
-    java -Xms256m -Xmx8g -jar $INDEXER_JAR -f $ARTIFACT_PATH 2>&1 | tee -a results/logs/indexer.log
+    java -Xms256m -Xmx8g -jar $INDEXER_JAR -t $ARTIFACT_PATH 2>&1 | tee -a results/logs/indexer.log
 fi
 
 echo "Sorting artifacts"

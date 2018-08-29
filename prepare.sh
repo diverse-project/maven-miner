@@ -8,8 +8,8 @@ FILES=$WORKING_DIR/files
 MAVEN_INDEXER_DIR=$FILES/maven-indexer
 MAVEN_MINER_DIR=$FILES/maven-aether
 
-mkdir $MAVEN_MINER_DIR
-mkdir $MAVEN_INDEXER_DIR
+mkdir $MAVEN_MINER_DIR && chmod u+x
+mkdir $MAVEN_INDEXER_DIR && chmod u+x
 
 echo "Removing existing jars"
 INDEXER_JAR=target/maven-miner-indexer-*-jar-with-dependencies.jar
@@ -21,7 +21,7 @@ cd $MAVEN_INDEXER
 mvn clean package
 mv -f $INDEXER_JAR $MAVEN_INDEXER_DIR/miner-indexer.jar
 
-echo "Building maven-miner Indexer"
+echo "Building maven-miner Aether"
 cd $MAVEN_MINER
 mvn clean package
 mv -f $AETHER_JAR $MAVEN_MINER_DIR/miner-aether.jar
