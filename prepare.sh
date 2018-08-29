@@ -13,9 +13,9 @@ rm -f $AETHER_JAR
 echo "Building maven-miner Indexer"
 cd $MAVEN_INDEXER
 mvn clean package
-mv -f $INDEXER_JAR $FILES/maven-miner-indexer.jar
+mv -f $INDEXER_JAR $FILES/maven-indexer/maven-miner-indexer.jar
 
 echo "Building maven-miner Indexer"
 cd $MAVEN_MINER
 mvn clean package
-mv -f $AETHER_JAR $FILES/maven-miner-aether.jar
+mv -f $AETHER_JAR $FILES/maven-miner/maven-miner-aether.jar
