@@ -10,6 +10,7 @@ buildNumber.properties
 test-db/
 results/
 resources/all*
-files/*.jar
+files/**/*.jar
 # Avoid ignoring Maven wrapper jar file (.jar files are usually ignored)
 !/.mvn/wrapper/maven-wrapper.jar
+logs/
