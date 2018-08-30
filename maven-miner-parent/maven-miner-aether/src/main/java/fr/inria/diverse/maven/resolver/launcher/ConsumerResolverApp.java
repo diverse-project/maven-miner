@@ -46,6 +46,7 @@ public class ConsumerResolverApp {
 	
     private static final String ARTIFACT_QUEUE_NAME = "artifactsQueue";
 
+    private static final String DEFAULT_USERNAME = "user";
 	
 	/**
 	 * The resolver application logger
@@ -115,19 +116,30 @@ public class ConsumerResolverApp {
 			   processor = new CollectArtifactProcessor(myVisitor);
 		   }
 		   if (cmd.hasOption("q")) {
-			   factory = new ConnectionFactory();
-			   factory.setHost("localhost");
+			   String [] values = cmd.getOptionValue("q").split(":");
+	    	   //check the presence of the port number 
+	    	   if (values.length!=2) {
+				   LOGGER.error("Couldnt handle hostname \"{}\"",cmd.getOptionValue("q"));
+				   help();
+			   }
+	    	   factory = new ConnectionFactory();
+    	       
+			   factory.setHost(values[0]);
+			   factory.setPort(Integer.valueOf(values[1]));
+			   factory.setUsername(DEFAULT_USERNAME);
+			   factory.setPassword(DEFAULT_USERNAME);
 			   connection = factory.newConnection();
-			   channel = connection.createChannel();
+    	       channel = connection.createChannel();
+    	       
 			   channel.queueDeclare(ARTIFACT_QUEUE_NAME, true, false, false, null);
 		   } else {
 			   LOGGER.error("Missing the hostname and port of rabbitMQ");
 		   }
 		   } catch (ParseException e) {
-			   LOGGER.error("Failed to parse comand line properties", e);
+			   LOGGER.error("Failed to parse comand line properties {}", e.getMessage());
 			   help();
 		   } catch (TimeoutException e) {
-			   LOGGER.error("Error while trying to connect to the RabbitMQ server");
+			   LOGGER.error("Error while trying to connect to the RabbitMQ server {}",e.getMessage());
 			   e.printStackTrace();
 		   }
 
@@ -150,7 +162,7 @@ public class ConsumerResolverApp {
             	LOGGER.error("Couldn't find arifact {}", coordinatesPath );
              	ioe.printStackTrace();
             } catch (Exception e) {
-            	LOGGER.error("unhandled error");
+            	LOGGER.error("unhandled error {}",e.getMessage());
             	e.printStackTrace();
             }
 		  	  finally {

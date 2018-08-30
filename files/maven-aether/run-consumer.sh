@@ -9,16 +9,15 @@ function print_usage_and_exit {
 }
 
 echo "Setting up default variables"
-MAIN_CLASS=ConsumerResolverApp
-DB=""
-
+MAIN_CLASS=fr.inria.diverse.maven.resolver.launcher.ConsumerResolverApp
+RESOLVE_JARS=" "
 while [[ $# > 1 ]]
 do
 key="$1"
 shift
 case $key in
-    --file)
-    DB="-f $1"
+    --db)
+    DB="$1"
     shift
     ;;
     --resolve-jars)
@@ -44,10 +43,10 @@ if [ -z "$QUEUE" ]; then
     print_usage_and_exit
 fi
 
-if [ -z "$QUEUE" ]; then
+if [ -z "$DB" ]; then
     echo "hostname and port number of Neo4j server is not provided"
     print_usage_and_exit
 fi
 
 HOSTNAME=`cat /etc/hostname`
-java -jar $AETHER_JAR $MAIN_CLASS -q $QUEUE -db $DB $RESOLVE_JARS >&1 | tee -a logs/consumer-$HOSTNAME.log
+java -cp $AETHER_JAR $MAIN_CLASS -q $QUEUE -db $DB $RESOLVE_JARS 2>&1 | tee -a logs/consumer-$HOSTNAME.log

@@ -112,7 +112,9 @@ public class CentralIndex
     
     private static Connection connection;
     
-	private static Channel channel; 
+	private static Channel channel;
+
+	private static String DEFAULT_USERNAME = "user"; 
 	
 	// filtered patterns
     private  List<String> patterns;
@@ -330,10 +332,7 @@ public class CentralIndex
     				   }
     				   if (cmd.hasOption("q") || cmd.hasOption("f") ) {
     					   factory = new ConnectionFactory();
-    		    	       connection = factory.newConnection();
-    		    	       channel = connection.createChannel();
-    		    	       
-    					  
+
     		    	      if (cmd.hasOption("q")) {
     		    	    	   String [] values = cmd.getOptionValue("q").split(":");
     		    	    	   //check the presence of the port number 
@@ -343,6 +342,10 @@ public class CentralIndex
 		    				   }
 		    				   factory.setHost(values[0]);
 		    				   factory.setPort(Integer.valueOf(values[1]));
+		    				   factory.setUsername(DEFAULT_USERNAME );
+		    				   factory.setPassword(DEFAULT_USERNAME);
+		    				   connection = factory.newConnection();
+	    		    	       channel = connection.createChannel();
 		    				   channel.queueDeclareNoWait(ARTIFACT_QUEUE_NAME, true, false, false, null);
 		    				   channel.queuePurge(ARTIFACT_QUEUE_NAME);
 
@@ -358,10 +361,12 @@ public class CentralIndex
     				   }
     					  
     			} catch (ShutdownSignalException | IOException e) {
-    				LOGGER.error("Channel creation error", e.getMessage());
+    				LOGGER.error("Channel creation error {}", e.getMessage());
+    				e.printStackTrace();
     			}
     			  catch (Exception e) {
-    				LOGGER.error("Failed to parse comand line properties", e.getMessage());
+    				LOGGER.error("Failed to parse comand line properties {}", e.getMessage());
+    				e.printStackTrace();
     				help();
     			}
     	    }    			

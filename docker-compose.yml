@@ -2,7 +2,7 @@ version: '3'
 services:
   #publisher service
   publisher:
-    image: openjdk:8u171-jdk-alpine3.8
+    build: dockerize/
     volumes:
       - "$HOME/git/maven-miner/files/maven-indexer:/dist"
 #    deploy:
@@ -13,10 +13,13 @@ services:
     depends_on:
       - neo4j
       - rabbitmq
-    command: /dist/run-producer.sh -queue localhost:5672
+#    network_mode: "host"
+    command: dockerize -wait http://rabbitmq:15672 -timeout 30s /dist/run-producer.sh --queue rabbitmq:5672
+#    command: dockerize -wait http://localhost:15672 -timeout 30s /dist/run-producer.sh --queue localhost:5672
+#    command: /dist/run-producer.sh --queue rabbitmq:5672
   #consumer service
   consumer:
-    image: openjdk:8u171-jdk-alpine3.8
+    build: dockerize/
     volumes:
       - "$HOME/git/maven-miner/files/maven-aether:/dist"
 #    deploy:
@@ -27,7 +30,10 @@ services:
     depends_on:
       - neo4j
       - rabbitmq
-    command: /dist/run-consumer.sh -db localhost:7687 -queue localhost:5672
+#    network_mode: "host"
+    command: dockerize -wait http://neo4j:7474  -wait http://rabbitmq:15672/#/queues/%2F/artifactsQueue -timeout 30s /dist/run-consumer.sh --db neo4j:7687 --queue rabbitmq:5672
+#    command: dockerize -wait http://localhost:7474  -wait http://localhost:15672 -timeout 30s /dist/run-consumer.sh --db localhost:7687 --queue localhost:5672
+#    command: /dist/run-consumer.sh --db neo4j:7687 --queue rabbitmq:5672
   #neo4j service
   neo4j:
     image: neo4j:3.0
@@ -41,7 +47,10 @@ services:
       NEO4J_AUTH: none
   #rabbit mq service
   rabbitmq:
-    image: rabbitmq:3-management
+    build: rabbitmq/
     ports:
       - "15672:15672"
       - "5672:5672"
+  #  environment:
+  #      RABBITMQ_DEFAULT_USER: worker
+  #      RABBITMQ_DEFAULT_PASS: worker

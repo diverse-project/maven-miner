@@ -6,7 +6,7 @@ function print_usage_and_exit {
   echo "--queue <arg>: hostname and prot number of rabbitMQ server"
   exit 1
 }
-
+sleep 30s
 echo "Setting up default variables"
 
 ARTIFACT_PATH=""
@@ -17,7 +17,7 @@ key="$1"
 shift
 case $key in
     --file)
-    ARTIFACT_PATH="-f $1"
+    ARTIFACT_PATH="$1"
     shift
     ;;
     --queue)

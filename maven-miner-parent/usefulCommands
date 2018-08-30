@@ -1,0 +1,17 @@
+// running rabbitMQ
+
+docker run -d \
+	--hostname rabbitmq \
+	--name rabbit \
+	--publish 15672:15672 --publish 5672:5672 \
+	rabbitmq:3-management
+	
+// running neo4j passwordless
+docker run \
+	--hostname neo4j
+	--name neo4j
+    --publish=7474:7474 --publish=7687:7687 \
+    --volume=$HOME/neo4j-server/data:/data \
+    --volume=$HOME/neo4j-server/logs:/logs \
+    --env=NEO4J_AUTH=none \
+    neo4j:3.0
