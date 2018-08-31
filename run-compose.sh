@@ -8,6 +8,7 @@ function print_usage_and_exit {
 }
 NEO4J_DUMP=$HOME/neo4j-server
 CONSUMERS=2
+
 while [[ $# > 1 ]]
 do
 key="$1"
@@ -34,6 +35,6 @@ mkdir $NEO4J_DUMP/logs
 docker build -t miner/rabbitmq rabbitmq/
 docker build -t miner/dockerize dockerize/
 export NEO4J_VAR=$NEO4J_DUMP
-export REPLICAS=$CONSUMERS
 export MINER=`pwd`
-docker stack deploy -c docker-stack-deploy.yml maven-miner-exp
+#export REPLICAS=$CONSUMERS
+docker-compose up -d --scale consumer=$CONSUMERS
