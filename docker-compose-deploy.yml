@@ -4,7 +4,7 @@ services:
   publisher:
     build: dockerize/
     volumes:
-      - "$HOME/git/maven-miner/files/maven-indexer:/dist"
+      - "$HOME/maven-miner/files/maven-indexer:/dist"
     deploy:
       update_config:
         delay: 30s
@@ -17,13 +17,12 @@ services:
     command: dockerize -wait http://rabbitmq:15672 -timeout 30s /dist/run-producer.sh --queue rabbitmq:5672
 #    command: dockerize -wait http://localhost:15672 -timeout 30s /dist/run-producer.sh --queue localhost:5672
 #    command: /dist/run-producer.sh --queue rabbitmq:5672
-    networks:
-      minernet:
+
   #consumer service
   consumer:
     build: dockerize/
     volumes:
-      - "$HOME/git/maven-miner/files/maven-aether:/dist"
+      - "$HOME/maven-miner/files/maven-aether:/dist"
     deploy:
       update_config:
         delay: 20s
@@ -36,8 +35,7 @@ services:
     command: dockerize -wait http://neo4j:7474  -wait http://rabbitmq:15672/#/queues/%2F/artifactsQueue -timeout 30s /dist/run-consumer.sh --db neo4j:7687 --queue rabbitmq:5672
 #    command: dockerize -wait http://localhost:7474  -wait http://localhost:15672 -timeout 30s /dist/run-consumer.sh --db localhost:7687 --queue localhost:5672
 #    command: /dist/run-consumer.sh --db neo4j:7687 --queue rabbitmq:5672
-    networks:
-      minernet:
+
   #neo4j service
   neo4j:
     image: neo4j:3.0
@@ -52,8 +50,6 @@ services:
     deploy:
       placement:
         constraints: [node.role == manager]
-    networks:
-      minernet:
   #rabbit mq service
   rabbitmq:
     build: rabbitmq/
@@ -63,8 +59,3 @@ services:
     deploy:
       placement:
         constraints: [node.role == manager]
-    networks:
-      minernet:
-# Networks
-  networks:
-    minernet:
