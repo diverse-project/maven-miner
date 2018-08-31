@@ -1,0 +1,70 @@
+version: '3'
+services:
+  #publisher service
+  publisher:
+    build: dockerize/
+    volumes:
+      - "$HOME/git/maven-miner/files/maven-indexer:/dist"
+    deploy:
+      update_config:
+        delay: 30s
+      restart_policy:
+        condition: on-failure
+    depends_on:
+      - neo4j
+      - rabbitmq
+#    network_mode: "host"
+    command: dockerize -wait http://rabbitmq:15672 -timeout 30s /dist/run-producer.sh --queue rabbitmq:5672
+#    command: dockerize -wait http://localhost:15672 -timeout 30s /dist/run-producer.sh --queue localhost:5672
+#    command: /dist/run-producer.sh --queue rabbitmq:5672
+    networks:
+      minernet:
+  #consumer service
+  consumer:
+    build: dockerize/
+    volumes:
+      - "$HOME/git/maven-miner/files/maven-aether:/dist"
+    deploy:
+      update_config:
+        delay: 20s
+      restart_policy:
+        condition: on-failure
+    depends_on:
+      - neo4j
+      - rabbitmq
+#    network_mode: "host"
+    command: dockerize -wait http://neo4j:7474  -wait http://rabbitmq:15672/#/queues/%2F/artifactsQueue -timeout 30s /dist/run-consumer.sh --db neo4j:7687 --queue rabbitmq:5672
+#    command: dockerize -wait http://localhost:7474  -wait http://localhost:15672 -timeout 30s /dist/run-consumer.sh --db localhost:7687 --queue localhost:5672
+#    command: /dist/run-consumer.sh --db neo4j:7687 --queue rabbitmq:5672
+    networks:
+      minernet:
+  #neo4j service
+  neo4j:
+    image: neo4j:3.0
+    volumes:
+      - "$HOME/neo4j-server/data:/data"
+      - "$HOME/neo4j-server/logs:/logs"
+    ports:
+      - "7474:7474"
+      - "7687:7687"
+    environment:
+      NEO4J_AUTH: none
+    deploy:
+      placement:
+        constraints: [node.role == manager]
+    networks:
+      minernet:
+  #rabbit mq service
+  rabbitmq:
+    build: rabbitmq/
+    ports:
+      - "15672:15672"
+      - "5672:5672"
+    deploy:
+      placement:
+        constraints: [node.role == manager]
+    networks:
+      minernet:
+# Networks
+  networks:
+    minernet:
