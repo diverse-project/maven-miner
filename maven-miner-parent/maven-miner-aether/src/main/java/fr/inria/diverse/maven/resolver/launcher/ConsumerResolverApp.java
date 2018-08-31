@@ -83,7 +83,7 @@ public class ConsumerResolverApp {
 		
 		options.addOption("h", "help", false, "Show help");
 		options.addOption("p", "pretty-printer", true, "Path to the output file stream. Optional");
-		options.addOption("db", "database", true, "Path to store the neo4j database. Mandatory!");
+		options.addOption("db", "database", true, "Hostname of the neo4j server. <host:port>. Required");
 		options.addOption("r", "resolve-jars", false, "Actioning jars resolution and classes count. Not activated by default!");
 		options.addOption(new Option("q", "queue", true, "Hostname and port of the RabbitMQ broker. Note, URI comes in the form hostname:port"));
 

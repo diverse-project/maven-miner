@@ -309,9 +309,9 @@ public class CentralIndex
     	 		final CentralIndex index = new CentralIndex();
     	    	String path = DEFAULT_PATH_VALUE;
     	    	
-    			options.addOption(new Option("f", "from-file", true, "File path to retrieve artiacts coordinates list. If not specified, the maven central index is used instead. Note, artifacts are per line and come in the form groupId:artifactId:version. "));
+    			options.addOption(new Option("f", "from-file", true, "File path to retrieve artifacts coordinates list. If not specified, the maven central index is used instead. Note, artifacts are per line and come in the form groupId:artifactId:version. "));
     			options.addOption(new Option("q", "queue", true, "Hostname and port of the RabbitMQ broker. Note, URI comes in the form hostname:port"));
-    			options.addOption(new Option("t","to-file",true, "Dumping the index into a file with name allArtifacsInfo. Noe the args \'t\' and \'q\' are mutually exclusive, only one should be provided"));
+    			options.addOption(new Option("t","to-file",true, "Dumping the index into a file with name allArtifacsInfo. Note the args \'t\' and \'q\' are mutually exclusive, only one should be provided"));
     		
     			CommandLineParser parser = new DefaultParser();
     			 
