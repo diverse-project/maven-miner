@@ -4,7 +4,7 @@ services:
   publisher:
     image: miner/dockerize
     volumes:
-      - "$HOME/maven-miner/files/maven-indexer:/dist"
+      - "$MINER/files/maven-indexer:/dist"
     deploy:
       update_config:
         delay: 15s
@@ -22,9 +22,9 @@ services:
   consumer:
     image: miner/dockerize
     volumes:
-      - "$HOME/maven-miner/files/maven-aether:/dist"
+      - "$MINER/files/maven-aether:/dist"
     deploy:
-      replicas: 5
+      replicas: $REPLICAS
       update_config:
         delay: 30s
       restart_policy:
@@ -41,8 +41,8 @@ services:
   neo4j:
     image: neo4j:3.0
     volumes:
-      - "$HOME/neo4j-server/data:/data"
-      - "$HOME/neo4j-server/logs:/logs"
+      - "$NEO4J_VAR/data:/data"
+      - "$NEO4J_VAR/logs:/logs"
     ports:
       - "7474:7474"
       - "7687:7687"
