@@ -6,9 +6,8 @@ services:
     volumes:
       - "$HOME/maven-miner/files/maven-indexer:/dist"
     deploy:
-      replicas: 5
       update_config:
-        delay: 30s
+        delay: 15s
       restart_policy:
         condition: on-failure
     depends_on:
@@ -25,8 +24,11 @@ services:
     volumes:
       - "$HOME/maven-miner/files/maven-aether:/dist"
     deploy:
+      replicas: 5
       update_config:
-        delay: 20s
+        delay: 30s
+      restart_policy:
+        condition: on-failure
     depends_on:
       - neo4j
       - rabbitmq
