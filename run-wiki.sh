@@ -44,8 +44,8 @@ mkdir $NEO4J_DUMP
 mkdir $NEO4J_DUMP/data
 mkdir $NEO4J_DUMP/logs
 
-docker build -t miner/rabbitmq rabbitmq/
-docker build -t miner/dockerize dockerize/
+#docker build -t miner/rabbitmq rabbitmq/
+#docker build -t miner/dockerize dockerize/
 export NEO4J_VAR=$NEO4J_DUMP
 export MINER=`pwd`
 export FILE_COMMAND=$FILE_PATH
