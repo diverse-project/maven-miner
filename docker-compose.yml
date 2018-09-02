@@ -5,35 +5,22 @@ services:
     build: dockerize/
     volumes:
       - "$MINER/files/maven-indexer:/dist"
-#    deploy:
-#      update_config:
-#        delay: 10s
-#      restart_policy:
-#        condition: on-failure
+
     depends_on:
       - neo4j
       - rabbitmq
-#    network_mode: "host"
-    command: dockerize -wait http://rabbitmq:15672 -timeout 30s /dist/run-producer.sh --queue rabbitmq:5672
-#    command: dockerize -wait http://localhost:15672 -timeout 30s /dist/run-producer.sh --queue localhost:5672
-#    command: /dist/run-producer.sh --queue rabbitmq:5672
+    command: dockerize -wait http://rabbitmq:15672 -timeout 30s /dist/run-producer.sh --queue rabbitmq:5672 $FILE_COMMAND
+
   #consumer service
   consumer:
     build: dockerize/
     volumes:
       - "$MINER/files/maven-aether:/dist"
-#    deploy:
-#      update_config:
-#        delay: 10s
-#      restart_policy:
-#        condition: on-failure
     depends_on:
       - neo4j
       - rabbitmq
-#    network_mode: "host"
-    command: dockerize -wait http://neo4j:7474  -wait http://rabbitmq:15672/#/queues/%2F/artifactsQueue -timeout 30s /dist/run-consumer.sh --db neo4j:7687 --queue rabbitmq:5672
-#    command: dockerize -wait http://localhost:7474  -wait http://localhost:15672 -timeout 30s /dist/run-consumer.sh --db localhost:7687 --queue localhost:5672
-#    command: /dist/run-consumer.sh --db neo4j:7687 --queue rabbitmq:5672
+    command: dockerize -wait http://neo4j:7474  -wait http://rabbitmq:15672/#/queues/%2F/artifactsQueue -timeout 60s /dist/run-consumer.sh --db neo4j:7687 --queue rabbitmq:5672
+
   #neo4j service
   neo4j:
     image: neo4j:3.0
@@ -45,12 +32,10 @@ services:
       - "7687:7687"
     environment:
       NEO4J_AUTH: none
+
   #rabbit mq service
   rabbitmq:
     build: rabbitmq/
     ports:
       - "15672:15672"
       - "5672:5672"
-  #  environment:
-  #      RABBITMQ_DEFAULT_USER: worker
-  #      RABBITMQ_DEFAULT_PASS: worker
