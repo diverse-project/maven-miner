@@ -33,6 +33,9 @@ mkdir $NEO4J_DUMP/logs
 
 docker build -t miner/rabbitmq rabbitmq/
 docker build -t miner/dockerize dockerize/
+docker build -t miner/consumer miner/maven-aether/
+docker build -t miner/producer miner/maven-indexer/
+
 export NEO4J_VAR=$NEO4J_DUMP
 export REPLICAS=$CONSUMERS
 export MINER=`pwd`

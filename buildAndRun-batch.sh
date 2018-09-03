@@ -61,7 +61,7 @@ fi
 
 docker rm -f $NAME
 WORKING_DIR=`pwd`
-FILES_DIR=$WORKING_DIR/files
+FILES_DIR=$WORKING_DIR/miner
 echo $FILES_DIR
 docker run -it \
 --volume $RESULTS_FOLDER:/results \

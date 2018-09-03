@@ -1,10 +1,10 @@
 version: '3'
 services:
   #publisher service
-  publisher:
-    image: miner/dockerize
-    volumes:
-      - "$MINER/files/maven-indexer:/dist"
+  producer:
+    image: miner/producer
+#    volumes:
+#      - "$MINER/miner/maven-indexer:/dist"
     deploy:
       update_config:
         delay: 15s
@@ -20,9 +20,9 @@ services:
 
   #consumer service
   consumer:
-    image: miner/dockerize
-    volumes:
-      - "$MINER/files/maven-aether:/dist"
+    image: miner/consumer
+#    volumes:
+#      - "$MINER/miner/maven-aether:/dist"
     deploy:
       replicas: $REPLICAS
       update_config:

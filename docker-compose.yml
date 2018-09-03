@@ -4,7 +4,7 @@ services:
   publisher:
     build: dockerize/
     volumes:
-      - "$MINER/files/maven-indexer:/dist"
+      - "$MINER/miner/maven-indexer:/dist"
 
     depends_on:
       - neo4j
@@ -15,7 +15,7 @@ services:
   consumer:
     build: dockerize/
     volumes:
-      - "$MINER/files/maven-aether:/dist"
+      - "$MINER/miner/maven-aether:/dist"
     depends_on:
       - neo4j
       - rabbitmq

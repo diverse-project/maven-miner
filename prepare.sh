@@ -4,7 +4,7 @@ WORKING_DIR=`pwd`
 
 MAVEN_INDEXER=$WORKING_DIR/maven-miner-parent/maven-miner-indexer
 MAVEN_MINER=$WORKING_DIR/maven-miner-parent/maven-miner-aether
-FILES=$WORKING_DIR/files
+FILES=$WORKING_DIR/miner
 MAVEN_INDEXER_DIR=$FILES/maven-indexer
 MAVEN_MINER_DIR=$FILES/maven-aether
 

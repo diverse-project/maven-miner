@@ -4,11 +4,12 @@ function print_usage_and_exit {
   echo "Usage: $SCRIPT_NAME"
   echo "--n-consumer <NUM>        Number of consumers. Default=$HOME/neo4j-server"
   echo "--neo4j-dump <path>       Local path where to dump neo4j data and logs. Default=2"
+  echo "--detach                  "
   exit 1
 }
 NEO4J_DUMP=$HOME/neo4j-server
 CONSUMERS=2
-
+DETACH=" "
 while [[ $# > 1 ]]
 do
 key="$1"
@@ -16,6 +17,10 @@ shift
 case $key in
     --n-consumer)
     CONSUMERS=$1
+    shift
+    ;;
+    --detach)
+    DETACH=" -d "
     shift
     ;;
     --neo4j-dump)
@@ -37,4 +42,4 @@ mkdir $NEO4J_DUMP/logs
 export NEO4J_VAR=$NEO4J_DUMP
 export MINER=`pwd`
 #export REPLICAS=$CONSUMERS
-docker-compose up -d --scale consumer=$CONSUMERS
+docker-compose up $DETACH --scale consumer=$CONSUMERS
