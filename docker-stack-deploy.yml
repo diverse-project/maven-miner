@@ -2,9 +2,7 @@ version: '3'
 services:
   #publisher service
   producer:
-    image: miner/producer
-#    volumes:
-#      - "$MINER/miner/maven-indexer:/dist"
+    image: amineben/producer:miner-$TAG
     deploy:
       update_config:
         delay: 15s
@@ -13,16 +11,11 @@ services:
     depends_on:
       - neo4j
       - rabbitmq
-#    network_mode: "host"
     command: dockerize -wait http://rabbitmq:15672 -timeout 30s /dist/run-producer.sh --queue rabbitmq:5672
-#    command: dockerize -wait http://localhost:15672 -timeout 30s /dist/run-producer.sh --queue localhost:5672
-#    command: /dist/run-producer.sh --queue rabbitmq:5672
 
   #consumer service
   consumer:
-    image: miner/consumer
-#    volumes:
-#      - "$MINER/miner/maven-aether:/dist"
+    image: amineben/consumer:miner-$TAG
     deploy:
       replicas: $REPLICAS
       update_config:
@@ -32,10 +25,7 @@ services:
     depends_on:
       - neo4j
       - rabbitmq
-#    network_mode: "host"
     command: dockerize -wait http://neo4j:7474  -wait http://rabbitmq:15672/#/queues/%2F/artifactsQueue -timeout 30s /dist/run-consumer.sh --db neo4j:7687 --queue rabbitmq:5672
-#    command: dockerize -wait http://localhost:7474  -wait http://localhost:15672 -timeout 30s /dist/run-consumer.sh --db localhost:7687 --queue localhost:5672
-#    command: /dist/run-consumer.sh --db neo4j:7687 --queue rabbitmq:5672
 
   #neo4j service
   neo4j:
@@ -53,7 +43,7 @@ services:
         constraints: [node.role == manager]
   #rabbit mq service
   rabbitmq:
-    image: miner/rabbitmq
+    image: amineben/rabbitmq:miner-$TAG
     ports:
       - "15672:15672"
       - "5672:5672"

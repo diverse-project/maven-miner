@@ -8,6 +8,7 @@ function print_usage_and_exit {
 }
 NEO4J_DUMP=$HOME/neo4j-server
 CONSUMERS=2
+VERSION=0.2.4
 while [[ $# > 1 ]]
 do
 key="$1"
@@ -15,6 +16,10 @@ shift
 case $key in
     --n-consumer)
     CONSUMERS=$1
+    shift
+    ;;
+    --tag)
+    VERSION=$1
     shift
     ;;
     --neo4j-dump)
@@ -31,12 +36,13 @@ mkdir $NEO4J_DUMP
 mkdir $NEO4J_DUMP/data
 mkdir $NEO4J_DUMP/logs
 
-docker build -t miner/rabbitmq rabbitmq/
-docker build -t miner/dockerize dockerize/
-docker build -t miner/consumer miner/maven-aether/
-docker build -t miner/producer miner/maven-indexer/
+#docker build -t miner/rabbitmq rabbitmq/
+#docker build -t miner/dockerize dockerize/
+#docker build -t miner/consumer miner/maven-aether/
+#docker build -t miner/producer miner/maven-indexer/
 
 export NEO4J_VAR=$NEO4J_DUMP
 export REPLICAS=$CONSUMERS
 export MINER=`pwd`
+export TAG=$VERSION
 docker stack deploy -c docker-stack-deploy.yml maven-miner-exp
