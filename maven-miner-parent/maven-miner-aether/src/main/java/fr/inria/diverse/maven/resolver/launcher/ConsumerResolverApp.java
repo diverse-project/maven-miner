@@ -22,6 +22,9 @@ import com.rabbitmq.client.AMQP;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.DefaultConsumer;
 import com.rabbitmq.client.Envelope;
+import com.rabbitmq.client.Method;
+import com.rabbitmq.client.ShutdownListener;
+import com.rabbitmq.client.ShutdownSignalException;
 
 import fr.inria.diverse.maven.resolver.db.Neo4jGraphDBWrapper;
 import fr.inria.diverse.maven.resolver.db.Neo4jGraphDBWrapperServer;
@@ -128,7 +131,29 @@ public class ConsumerResolverApp {
 			   factory.setPort(Integer.valueOf(values[1]));
 			   factory.setUsername(DEFAULT_USERNAME);
 			   factory.setPassword(DEFAULT_USERNAME);
+			   factory.setNetworkRecoveryInterval(1000000);
 			   connection = factory.newConnection();
+			   connection.addShutdownListener(new ShutdownListener() {
+				    public void shutdownCompleted(ShutdownSignalException cause)
+				    {
+			    	     LOGGER.error("Connection shut down for the reason below! ");
+				    	 if (cause.isHardError())
+				    	  {
+				    	    Connection conn = (Connection)cause.getReference();
+				    	    if (!cause.isInitiatedByApplication())
+				    	    {
+				    	      Method reason = cause.getReason();
+				    	      LOGGER.error("The shutdown was caused by the application! ");
+				    	      LOGGER.error(reason.protocolMethodName());
+				    	    }
+				    	  } else {
+				    	    Channel ch = (Channel)cause.getReference();
+				    	    LOGGER.error("The shutdown was caused by the application! ");
+				    	    LOGGER.error(cause.getMessage());
+				    	    
+				    	  }
+				    }
+			   });
     	       channel = connection.createChannel();
     	       
 			   channel.queueDeclare(ARTIFACT_QUEUE_NAME, true, false, false, null);

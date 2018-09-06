@@ -69,6 +69,8 @@ import java.util.List;
 import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
 import com.rabbitmq.client.ConnectionFactory;
+import com.rabbitmq.client.Method;
+import com.rabbitmq.client.ShutdownListener;
 import com.rabbitmq.client.ShutdownSignalException;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.Channel;
@@ -344,7 +346,29 @@ public class CentralIndex
 		    				   factory.setPort(Integer.valueOf(values[1]));
 		    				   factory.setUsername(DEFAULT_USERNAME );
 		    				   factory.setPassword(DEFAULT_USERNAME);
+		    				   factory.setNetworkRecoveryInterval(1000000);
 		    				   connection = factory.newConnection();
+		    				   connection.addShutdownListener(new ShutdownListener() {
+		    					    public void shutdownCompleted(ShutdownSignalException cause)
+		    					    {
+		    				    	     LOGGER.error("Connection shut down for the reason below! ");
+		    					    	 if (cause.isHardError())
+		    					    	  {
+		    					    	    Connection conn = (Connection)cause.getReference();
+		    					    	    if (!cause.isInitiatedByApplication())
+		    					    	    {
+		    					    	      Method reason = cause.getReason();
+		    					    	      LOGGER.error("The shutdown was caused by the application! ");
+		    					    	      LOGGER.error(reason.protocolMethodName());
+		    					    	    }
+		    					    	  } else {
+		    					    	    Channel ch = (Channel)cause.getReference();
+		    					    	    LOGGER.error("The shutdown was caused by the application! ");
+		    					    	    LOGGER.error(cause.getMessage());
+		    					    	    
+		    					    	  }
+		    					    }
+		    				   });
 	    		    	       channel = connection.createChannel();
 		    				   channel.queueDeclareNoWait(ARTIFACT_QUEUE_NAME, true, false, false, null);
 		    				   channel.queuePurge(ARTIFACT_QUEUE_NAME);
