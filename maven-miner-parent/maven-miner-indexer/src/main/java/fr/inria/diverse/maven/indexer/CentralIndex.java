@@ -18,6 +18,20 @@ package fr.inria.diverse.maven.indexer;
  * under the License.
  */
 
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.sql.Timestamp;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Date;
+import java.util.HashSet;
+import java.util.List;
+import java.util.concurrent.TimeoutException;
+
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.DefaultParser;
@@ -53,27 +67,13 @@ import org.eclipse.aether.version.InvalidVersionSpecificationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.BufferedReader;
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.FileReader;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.sql.Timestamp;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Date;
-import java.util.HashSet;
-import java.util.List;
-import java.util.concurrent.TimeoutException;
-import java.util.stream.Collectors;
+import com.rabbitmq.client.AMQP.Queue.DeclareOk;
+import com.rabbitmq.client.Channel;
+import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
 import com.rabbitmq.client.Method;
 import com.rabbitmq.client.ShutdownListener;
 import com.rabbitmq.client.ShutdownSignalException;
-import com.rabbitmq.client.Connection;
-import com.rabbitmq.client.Channel;
 /**
  * Collection of some use cases.
  */
@@ -117,6 +117,8 @@ public class CentralIndex
 	private static Channel channel;
 
 	private static String DEFAULT_USERNAME = "user"; 
+	
+	private static  DeclareOk myQueue;
 	
 	// filtered patterns
     private  List<String> patterns;
@@ -346,7 +348,8 @@ public class CentralIndex
 		    				   factory.setPort(Integer.valueOf(values[1]));
 		    				   factory.setUsername(DEFAULT_USERNAME );
 		    				   factory.setPassword(DEFAULT_USERNAME);
-		    				   factory.setNetworkRecoveryInterval(1000000);
+		    				   factory.setNetworkRecoveryInterval(1000);
+		    				   factory.setAutomaticRecoveryEnabled(true);
 		    				   connection = factory.newConnection();
 		    				   connection.addShutdownListener(new ShutdownListener() {
 		    					    public void shutdownCompleted(ShutdownSignalException cause)
@@ -354,7 +357,7 @@ public class CentralIndex
 		    				    	     LOGGER.error("Connection shut down for the reason below! ");
 		    					    	 if (cause.isHardError())
 		    					    	  {
-		    					    	    Connection conn = (Connection)cause.getReference();
+		    					    	    //Connection conn = (Connection)cause.getReference();
 		    					    	    if (!cause.isInitiatedByApplication())
 		    					    	    {
 		    					    	      Method reason = cause.getReason();
@@ -362,16 +365,18 @@ public class CentralIndex
 		    					    	      LOGGER.error(reason.protocolMethodName());
 		    					    	    }
 		    					    	  } else {
-		    					    	    Channel ch = (Channel)cause.getReference();
+		    					    	    //Channel ch = (Channel)cause.getReference();
 		    					    	    LOGGER.error("The shutdown was caused by the application! ");
 		    					    	    LOGGER.error(cause.getMessage());
 		    					    	    
 		    					    	  }
 		    					    }
 		    				   });
+		    				   
 	    		    	       channel = connection.createChannel();
 		    				   channel.queueDeclareNoWait(ARTIFACT_QUEUE_NAME, true, false, false, null);
 		    				   channel.queuePurge(ARTIFACT_QUEUE_NAME);
+		    				   myQueue = channel.queueDeclarePassive(ARTIFACT_QUEUE_NAME);
 
     		    	      }
 		    			  if (cmd.hasOption("f")) {
@@ -403,10 +408,10 @@ public class CentralIndex
 			publishFromIndex(ARTIFACT_QUEUE_NAME);
 		}
 	}
-
 	
 	private void publishFromFile(String filename) throws IOException, TimeoutException {
 			BufferedReader resultsReader = null;
+			//myQueue = channel.queueDeclarePassive(ARTIFACT_QUEUE_NAME);
     		try {
 				resultsReader = new BufferedReader(new FileReader(filename));
 	            String artifactCoordinate="";
@@ -420,6 +425,10 @@ public class CentralIndex
 	                        } else if (! visitedArtifacts.add(message)) {
 	                        	LOGGER.info("{} is redundunt",message);
 	                        } else {
+	                        	while (myQueue.getMessageCount() > DUMP_LIMIT) {
+	                        		LOGGER.info("Queue busy! producer going to sleep for 1000 ms");
+	                        		Thread.sleep(1000);
+	                        	}
 	                        	channel.basicPublish("", ARTIFACT_QUEUE_NAME, null, message.getBytes("UTF-8"));	
 	                        	LOGGER.info("{} is published",message);
 	                        }
@@ -430,7 +439,7 @@ public class CentralIndex
 	             	e.printStackTrace();
 	            } finally {
 	            	resultsReader.close();
-	            	channel.close();
+	//            	channel.close();
 	                connection.close();
 	            }         
     }
@@ -472,9 +481,15 @@ public class CentralIndex
                         	LOGGER.info("{} is redundunt",message);
                         	error++;
                         } else {
+                        	
+                        	while (myQueue.getMessageCount() > DUMP_LIMIT) {
+                        		LOGGER.info("Queue busy! producer going to sleep for 1000 ms");
+                        		Thread.sleep(1000);
+                        	}
                         	channel.basicPublish("", artifactQueueName, null, message.getBytes("UTF-8"));
                         	LOGGER.info("{} is published",message);
                             count++;
+                           // Thread.sleep(50);
                         }
                     	
                     } catch (NullPointerException e) {
@@ -491,7 +506,7 @@ public class CentralIndex
         	error++;
         } finally {
             centralContext.releaseIndexSearcher( searcher );
-            channel.close();
+//            channel.close();
             connection.close();
         }
         LOGGER.info("{} artifacts have been dumped", count);
