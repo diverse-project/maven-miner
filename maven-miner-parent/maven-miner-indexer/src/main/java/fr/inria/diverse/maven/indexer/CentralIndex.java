@@ -21,16 +21,30 @@ package fr.inria.diverse.maven.indexer;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.UnsupportedEncodingException;
+import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.sql.Timestamp;
+import java.text.ParseException;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Base64;
+import java.util.Collections;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.TimeoutException;
+import java.util.stream.Collectors;
 
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
@@ -68,6 +82,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.rabbitmq.client.AMQP.Queue.DeclareOk;
+
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
@@ -90,11 +105,11 @@ public class CentralIndex
     
     private static final String DEFAULT_PATH_VALUE = "allArtifactsInfo"+new Timestamp(System.currentTimeMillis());
     
-    private static final int DUMP_LIMIT = 10000;
+    private static final int DUMP_LIMIT = 100;
     
     private static final String SEPARATOR = ":";
     
-    private static final String FILTER_FILE_NAME = "filtered.properties";
+    //private static final String FILTER_FILE_NAME = "filtered.properties";
     
     private static boolean fromFile= false;
     
@@ -121,11 +136,15 @@ public class CentralIndex
 	private static  DeclareOk myQueue;
 	
 	// filtered patterns
-    private  List<String> patterns;
+    private  static List<String> patterns;
     
     //Visited artifacts
     private HashSet<String> visitedArtifacts = new HashSet<String>();
-    
+    /**
+     * Default constructor
+     * @throws PlexusContainerException
+     * @throws ComponentLookupException
+     */
     public CentralIndex()
         throws PlexusContainerException, ComponentLookupException
     {
@@ -143,19 +162,126 @@ public class CentralIndex
         this.indexUpdater = plexusContainer.lookup( IndexUpdater.class );
         // lookup wagon used to remotely fetch index
         this.httpWagon = plexusContainer.lookup( Wagon.class, "http" );
-        this.patterns =  getPatternsFromCP();
     }
     /**
-     * Transforms
-     * @return
+     * 
+     * @param args
+     * @throws Exception
      */
-    private List<String> getPatternsFromCP() {
-//		BufferedReader fileStream = new BufferedReader(
-//										new InputStreamReader(CentralIndex.class
-//																		  .getClassLoader()
-//																		  .getResourceAsStream(FILTER_FILE_NAME)));
-//		return fileStream.lines().filter(line -> ! line.startsWith("#")).collect(Collectors.toList());
-    	return Arrays.asList(".*-sample.*", ".*:\\d+\\.\\d+\\.\\d+\\.\\d+.*");
+    public static void main( String[] args )
+   	        throws Exception
+   	    {
+   	 		final CentralIndex index = new CentralIndex();
+   	    	String path = DEFAULT_PATH_VALUE;
+   	    	boolean isFiltering = false;
+   			options.addOption(new Option("f", "from-file", true, "File path to retrieve artifacts coordinates list. If not specified, the maven central index is used instead. Note, artifacts are per line and come in the form groupId:artifactId:version. "));
+   			options.addOption(new Option("q", "queue", true, "Hostname and port of the RabbitMQ broker. Note, URI comes in the form hostname:port"));
+   			options.addOption(new Option("t","to-file",true, "Dumping the index into a file with name allArtifacsInfo. Note the args \'t\' and \'q\' are mutually exclusive, only one should be provided"));
+   			options.addOption("i", "filter", true, "The file path to filtering patterns");
+   			CommandLineParser parser = new DefaultParser();
+   			 
+   			CommandLine cmd = null;
+   			try {
+   				   cmd = parser.parse(options, args);
+   				   if(cmd.getArgs().length==-1) {
+   					   LOGGER.error("No arguments have been provided!");
+   					   help();
+   				   }
+   				  
+   				   if (cmd.hasOption("h")) {
+   				    help();
+   				   }
+   				   if (cmd.hasOption("i")) {
+   					   isFiltering = true;    					  
+   				       patterns =  getPatternsFromCP(cmd.getOptionValue("i"));
+   				   } else {
+   					   isFiltering=false;
+   					   patterns = Collections.EMPTY_LIST;
+   				   }
+   				   if (cmd.hasOption("q") && cmd.hasOption("t")) {
+   					   LOGGER.error("q and t are mutually exclusive (X-OR). Only one option should be provided");
+   					   help();
+   				   }
+   				   if (cmd.hasOption("q") || cmd.hasOption("f") ) {
+   					   factory = new ConnectionFactory();
+
+   		    	      if (cmd.hasOption("q")) {
+   		    	    	   String [] values = cmd.getOptionValue("q").split(":");
+   		    	    	   //check the presence of the port number 
+   		    	    	   if (values.length!=2) {
+		    					   LOGGER.error("Couldnt handle hostname \"{}\"",cmd.getOptionValue("q"));
+		    					   help();
+		    				   }
+		    				   factory.setHost(values[0]);
+		    				   factory.setPort(Integer.valueOf(values[1]));
+		    				   factory.setUsername(DEFAULT_USERNAME );
+		    				   factory.setPassword(DEFAULT_USERNAME);
+		    				   factory.setNetworkRecoveryInterval(1000);
+		    				   factory.setAutomaticRecoveryEnabled(true);
+		    				   connection = factory.newConnection();
+		    				   connection.addShutdownListener(new ShutdownListener() {
+		    					    public void shutdownCompleted(ShutdownSignalException cause)
+		    					    {
+		    				    	     LOGGER.info("Connection shutdown! ");
+		    					    	 if (cause.isHardError())
+		    					    	  {
+		    					    	    //Connection conn = (Connection)cause.getReference();
+		    					    	    if (!cause.isInitiatedByApplication())
+		    					    	    {
+		    					    	      Method reason = cause.getReason();
+		    					    	      LOGGER.error("The shutdown was caused by the server! ");
+		    					    	      LOGGER.error(reason.protocolMethodName());
+		    					    	    } else {
+			    					    	    Method reason = cause.getReason();
+		    					    	    	LOGGER.info("The shutdown was caused by the application! ");
+			    					    	    LOGGER.info("invoking {}",reason.protocolMethodName());
+		    					    	    }
+		    					    	  } else {
+		    					    	    //Channel ch = (Channel)cause.getReference();
+		    					    	    LOGGER.error("The shutdown was caused by the application! ");
+		    					    	    LOGGER.error(cause.getMessage());		    					      
+		    					    	  }
+		    					    }
+		    				   });
+		    				   
+	    		    	       channel = connection.createChannel();
+	    		    	       Map<String, Object> lazyArg = new HashMap<String, Object>();
+	    		    	       lazyArg.put("x-queue-mode", "lazy");
+		    				   channel.queueDeclareNoWait(ARTIFACT_QUEUE_NAME, true, false, false, lazyArg);
+		    				   channel.queuePurge(ARTIFACT_QUEUE_NAME);
+		    				  // myQueue = channel.queueDeclarePassive(ARTIFACT_QUEUE_NAME);
+
+   		    	      }
+			    	   if (cmd.hasOption("f")) {
+			    				   fromFile = true;
+			    				   path = cmd.getOptionValue("f");
+			    		} 
+		    			index.init().publish(path);
+   				   } else if (cmd.hasOption("t")) {
+   					   path = cmd.getOptionValue("t");
+   					   index.init().dumpAtFile(path);
+   				   }
+   					  
+   			} catch (ShutdownSignalException | IOException e) {
+   				LOGGER.error("Channel creation error {}", e.getMessage());
+   				e.printStackTrace();
+   			}
+   			  catch (Exception e) {
+   				LOGGER.error("Failed to parse comand line properties {}", e.getMessage());
+   				e.printStackTrace();
+   				help();
+   			}
+   	    }    			 	      
+    
+    /**
+     * Transforms a file into a list of Stringn pattenrs
+     * @return {@link List}<String>
+     * @throws FileNotFoundException 
+     */
+    private static List<String> getPatternsFromCP(String path) throws FileNotFoundException {
+		BufferedReader fileStream = new BufferedReader(new FileReader(path));
+		return fileStream.lines().filter(line -> ! line.startsWith("#")).collect(Collectors.toList());
+//    	return Arrays.asList(".*-sample.*", ".*:\\d+\\.\\d+\\.\\d+\\.\\d+.*");
 	}
 
 	public CentralIndex init()
@@ -191,6 +317,8 @@ public class CentralIndex
 
                 public void transferProgress( TransferEvent transferEvent, byte[] buffer, int length )
                 {
+                    LOGGER.info( "  Transfer in progress " + transferEvent.getResource().getName());
+
                 }
 
                 public void transferCompleted( TransferEvent transferEvent )
@@ -219,9 +347,11 @@ public class CentralIndex
             }
             return this;
         }
-
-    	
-    	
+ 		/**
+ 		 * Dumps the the index into a file as per line GAV
+ 		 * @param filename
+ 		 * @throws IOException
+ 		 */
     	private void dumpAtFile(String filename) throws IOException {
             
         	final IndexSearcher searcher = centralContext.acquireIndexSearcher();
@@ -292,7 +422,9 @@ public class CentralIndex
             LOGGER.info("{} artifacts have been dumped", count);
             LOGGER.info("{} artifacts have been skipped", error);
         }
-        
+      /**
+       * Displays the help  
+       */
      private static void help() {
 
   		  HelpFormatter formater = new HelpFormatter();
@@ -302,110 +434,17 @@ public class CentralIndex
   		  System.exit(0);
 
   	}
-     /**
-      * 
-      * @param args
-      * @throws Exception
-      */
-     public static void main( String[] args )
-    	        throws Exception
-    	    {
-    	 		final CentralIndex index = new CentralIndex();
-    	    	String path = DEFAULT_PATH_VALUE;
-    	    	
-    			options.addOption(new Option("f", "from-file", true, "File path to retrieve artifacts coordinates list. If not specified, the maven central index is used instead. Note, artifacts are per line and come in the form groupId:artifactId:version. "));
-    			options.addOption(new Option("q", "queue", true, "Hostname and port of the RabbitMQ broker. Note, URI comes in the form hostname:port"));
-    			options.addOption(new Option("t","to-file",true, "Dumping the index into a file with name allArtifacsInfo. Note the args \'t\' and \'q\' are mutually exclusive, only one should be provided"));
-    		
-    			CommandLineParser parser = new DefaultParser();
-    			 
-    			CommandLine cmd = null;
-    			try {
-    				   cmd = parser.parse(options, args);
-    				   if(cmd.getArgs().length==-1) {
-    					   LOGGER.error("No arguments have been provided!");
-    					   help();
-    				   }
-    				  
-    				   if (cmd.hasOption("h")) {
-    				    help();
-    				   }
-    				   if (cmd.hasOption("q") && cmd.hasOption("t")) {
-    					   LOGGER.error("q and t are mutually exclusive (X-OR). Only one option should be provided");
-    					   help();
-    				   }
-    				   if (cmd.hasOption("q") || cmd.hasOption("f") ) {
-    					   factory = new ConnectionFactory();
-
-    		    	      if (cmd.hasOption("q")) {
-    		    	    	   String [] values = cmd.getOptionValue("q").split(":");
-    		    	    	   //check the presence of the port number 
-    		    	    	   if (values.length!=2) {
-		    					   LOGGER.error("Couldnt handle hostname \"{}\"",cmd.getOptionValue("q"));
-		    					   help();
-		    				   }
-		    				   factory.setHost(values[0]);
-		    				   factory.setPort(Integer.valueOf(values[1]));
-		    				   factory.setUsername(DEFAULT_USERNAME );
-		    				   factory.setPassword(DEFAULT_USERNAME);
-		    				   factory.setNetworkRecoveryInterval(1000);
-		    				   factory.setAutomaticRecoveryEnabled(true);
-		    				   connection = factory.newConnection();
-		    				   connection.addShutdownListener(new ShutdownListener() {
-		    					    public void shutdownCompleted(ShutdownSignalException cause)
-		    					    {
-		    				    	     LOGGER.error("Connection shut down for the reason below! ");
-		    					    	 if (cause.isHardError())
-		    					    	  {
-		    					    	    //Connection conn = (Connection)cause.getReference();
-		    					    	    if (!cause.isInitiatedByApplication())
-		    					    	    {
-		    					    	      Method reason = cause.getReason();
-		    					    	      LOGGER.error("The shutdown was caused by the application! ");
-		    					    	      LOGGER.error(reason.protocolMethodName());
-		    					    	    }
-		    					    	  } else {
-		    					    	    //Channel ch = (Channel)cause.getReference();
-		    					    	    LOGGER.error("The shutdown was caused by the application! ");
-		    					    	    LOGGER.error(cause.getMessage());
-		    					    	    
-		    					    	  }
-		    					    }
-		    				   });
-		    				   
-	    		    	       channel = connection.createChannel();
-		    				   channel.queueDeclareNoWait(ARTIFACT_QUEUE_NAME, true, false, false, null);
-		    				   channel.queuePurge(ARTIFACT_QUEUE_NAME);
-		    				   myQueue = channel.queueDeclarePassive(ARTIFACT_QUEUE_NAME);
-
-    		    	      }
-		    			  if (cmd.hasOption("f")) {
-		    				   fromFile = true;
-		    				   path = cmd.getOptionValue("f");
-		    			  } 
-		    			  index.init().publish(path);
-    				   } else if (cmd.hasOption("t")) {
-    					   path = cmd.getOptionValue("t");
-    					   index.init().dumpAtFile(path);
-    				   }
-    					  
-    			} catch (ShutdownSignalException | IOException e) {
-    				LOGGER.error("Channel creation error {}", e.getMessage());
-    				e.printStackTrace();
-    			}
-    			  catch (Exception e) {
-    				LOGGER.error("Failed to parse comand line properties {}", e.getMessage());
-    				e.printStackTrace();
-    				help();
-    			}
-    	    }    			
-    	        
-
+   /**
+    * Publishing String  
+    * @param path
+    * @throws IOException
+    * @throws TimeoutException
+    */
 	private void publish(String path) throws IOException, TimeoutException {
 		if (fromFile) {
 			publishFromFile(path);
 		} else {
-			publishFromIndex(ARTIFACT_QUEUE_NAME);
+			publishFromIndex();
 		}
 	}
 	
@@ -417,23 +456,9 @@ public class CentralIndex
 	            String artifactCoordinate="";
 
 	            while ((artifactCoordinate = resultsReader.readLine()) != null) {
-			            	if (artifactCoordinate.startsWith("#")) continue;
-			            	//Dirty workaround
-			            	final String message = artifactCoordinate;
-			            	if (patterns.stream().anyMatch(pattern -> message.matches(pattern))) {
-	                    		LOGGER.info("{} is skipped",message);
-	                        } else if (! visitedArtifacts.add(message)) {
-	                        	LOGGER.info("{} is redundunt",message);
-	                        } else {
-	                        	while (myQueue.getMessageCount() > DUMP_LIMIT) {
-	                        		LOGGER.info("Queue busy! producer going to sleep for 1000 ms");
-	                        		Thread.sleep(1000);
-	                        	}
-	                        	channel.basicPublish("", ARTIFACT_QUEUE_NAME, null, message.getBytes("UTF-8"));	
-	                        	LOGGER.info("{} is published",message);
-	                        }
-	            	}
-			   		            
+			            	if (artifactCoordinate.startsWith("#")) continue;		            
+			            	pushMsgToQueue(artifactCoordinate);
+	            	}		   		            
 	            } catch (Exception e) {
 	            	LOGGER.error("Couldn't read file {}", filename );
 	             	e.printStackTrace();
@@ -444,9 +469,71 @@ public class CentralIndex
 	            }         
     }
 		
-	private void publishFromIndex(String artifactQueueName) throws IOException, TimeoutException {
-		
-		
+	private void pushMsgToQueue(final String message) throws InterruptedException, UnsupportedEncodingException, IOException {
+		if (patterns.stream().anyMatch(pattern -> message.matches(pattern))) {
+    		LOGGER.info("{} is skipped",message);
+        } else if (! visitedArtifacts.add(message)) {
+        	LOGGER.info("{} is redundunt",message);
+        } else {
+        	while (getMessageCount() > DUMP_LIMIT) {
+        		LOGGER.info("Queue busy! producer going to sleep for 1000 ms");
+        		Thread.sleep(1000);
+        	}
+        	channel.basicPublish("", ARTIFACT_QUEUE_NAME, null, message.getBytes("UTF-8"));	
+        	LOGGER.info("{} is published",message);
+        }
+	}
+	/**
+	 * 
+	 * @return
+	 */
+	private static int getMessageCount() {
+//		try {
+//			
+//			StringBuilder builder = new StringBuilder("http://");
+//			builder.append(factory.getHost())
+//				   .append(':')
+//				   .append(factory.getPort())
+//				   .append("/api/queues/%2F/")
+//				   .append(ARTIFACT_QUEUE_NAME);
+//			
+//			URL queueURL = new URL(builder.toString()); 
+//			String userpass = factory.getUsername() + ":" + factory.getPassword();
+//			String basicAuth = "Basic " + Base64.getEncoder().encode(userpass.getBytes());
+//			
+//	  		HttpURLConnection connexion = (HttpURLConnection) queueURL.openConnection();
+//	  		connexion.setRequestMethod("GET");
+//	  		//connexion.setRequestProperty("Content-Type", "application/json");
+//	  		
+//			connexion.setRequestProperty ("Authorization", basicAuth);
+////
+//	  		BufferedReader in = new BufferedReader(new InputStreamReader(connexion.getInputStream()));
+//  			String inputLine;
+//  			while ((inputLine = in.readLine()) != null) {
+//  			   if (inputLine.contains("messages_ready")) 
+//  			   {
+//  				   break;
+//  			   }
+//  			}
+//  			in.close();
+// 		String modified = connexion.getHeaderField("messages_ready");		  		
+////  		ZonedDateTime javaDate = sdf.parse(modified).toInstant().atZone(ZoneId.systemDefault());
+////  		result.setProperty(Properties.LAST_MODIFIED, javaDate);
+//      	} catch (MalformedURLException e) {
+//      		LOGGER.error("MalformedURL {}");
+//      		e.printStackTrace();
+//      	} catch (IOException e) {
+//      		LOGGER.error(e.getMessage());
+//      		e.printStackTrace();
+//      	}
+		return 0;
+	}
+	/**
+	 * 
+	 * @throws IOException
+	 * @throws TimeoutException
+	 */
+	private void publishFromIndex() throws IOException, TimeoutException {	
 		final IndexSearcher searcher = centralContext.acquireIndexSearcher();
     	
         int error = 0;
@@ -473,24 +560,7 @@ public class CentralIndex
                         String message = ai.getGroupId() + SEPARATOR  
 		                        	   + ai.getArtifactId() + SEPARATOR 
 		                        	   + ai.getVersion();
-                        
-                    	if (patterns.stream().anyMatch(pattern -> message.matches(pattern))) {
-                    		LOGGER.info("{} is skipped",message);
-                    		error++;
-                        } else if (! visitedArtifacts.add(message)) {
-                        	LOGGER.info("{} is redundunt",message);
-                        	error++;
-                        } else {
-                        	
-                        	while (myQueue.getMessageCount() > DUMP_LIMIT) {
-                        		LOGGER.info("Queue busy! producer going to sleep for 1000 ms");
-                        		Thread.sleep(1000);
-                        	}
-                        	channel.basicPublish("", artifactQueueName, null, message.getBytes("UTF-8"));
-                        	LOGGER.info("{} is published",message);
-                            count++;
-                           // Thread.sleep(50);
-                        }
+                        pushMsgToQueue(message);                    	
                     	
                     } catch (NullPointerException e) {
                     	LOGGER.error("gav with name {} not found");
