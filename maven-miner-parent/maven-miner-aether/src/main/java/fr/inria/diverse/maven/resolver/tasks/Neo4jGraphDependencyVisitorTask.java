@@ -13,7 +13,7 @@ public class Neo4jGraphDependencyVisitorTask extends  AbstractGraphBuilderVisito
 	/**
 	 * A wrapper to perform common operations to store maven dependencies
 	 */
-	private Neo4jGraphDBWrapper dbWrapper;
+	protected Neo4jGraphDBWrapper dbWrapper;
 	
 	/**
 	 * 
@@ -44,7 +44,7 @@ public class Neo4jGraphDependencyVisitorTask extends  AbstractGraphBuilderVisito
         }
         // get the nodes on the second level (the direct dependencies), 
         //and add these with the first node to the graph
-        else {
+        else if (depth == 2) {
         	root = stack.peek();
         	Artifact secondLevelNode = node.getDependency().getArtifact();
         	dbWrapper.createNodeFromArtifactCoordinate(secondLevelNode);
@@ -54,14 +54,13 @@ public class Neo4jGraphDependencyVisitorTask extends  AbstractGraphBuilderVisito
             stack.push(secondLevelNode);
         }
 	}
-
 	/**
 	 * @see Neo4jGraphDependencyVisitorTask#leave(DependencyNode)
 	 */
 	@Override
 	public void leave(DependencyNode node) {
 		depth--;
-		stack.pop();
+		if(depth < 2) stack.pop();
 	}
 
 	/**
@@ -77,13 +76,9 @@ public class Neo4jGraphDependencyVisitorTask extends  AbstractGraphBuilderVisito
 	@Override
 	public void shutdown() {	
 		//creating release precedence
-		dbWrapper.createPrecedenceShip();
-		
+		dbWrapper.createPrecedenceShip();	
 		//creating indexes
-		dbWrapper.createIndexes();
-		
-		//Shutting down database
-		//dbWrapper.shutdown();
+		dbWrapper.createIndexes();	
 	}
 	
 

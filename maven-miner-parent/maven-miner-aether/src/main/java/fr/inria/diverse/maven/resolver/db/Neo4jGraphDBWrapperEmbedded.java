@@ -174,8 +174,7 @@ public class Neo4jGraphDBWrapperEmbedded extends Neo4jGraphDBWrapper {
 			      		LOGGER.error("MalformedURL {}",artifactURL);
 						e.printStackTrace();
 					}
-			      
-			}
+			} 
 			result.addLabel(getOrCreateLabel(artifact.getGroupId()));
 			tx.success();
 		}

@@ -1,7 +1,5 @@
 package fr.inria.diverse.maven.resolver.db;
 
-import javax.validation.constraints.NotNull;
-
 import org.neo4j.driver.v1.AccessMode;
 import org.neo4j.driver.v1.Driver;
 import org.neo4j.driver.v1.GraphDatabase;
