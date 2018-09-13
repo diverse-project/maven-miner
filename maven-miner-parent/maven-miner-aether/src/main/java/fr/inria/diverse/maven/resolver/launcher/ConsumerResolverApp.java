@@ -1,6 +1,8 @@
 package fr.inria.diverse.maven.resolver.launcher;
 
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.TimeoutException;
 
 import org.apache.commons.cli.CommandLine;
@@ -35,6 +37,7 @@ import fr.inria.diverse.maven.resolver.processor.CollectArtifactProcessor;
 import fr.inria.diverse.maven.resolver.processor.MultiTaskDependencyVisitor;
 import fr.inria.diverse.maven.resolver.tasks.DependencyGraphPrettyPrinterTask;
 import fr.inria.diverse.maven.resolver.tasks.DependencyVisitorTask;
+import fr.inria.diverse.maven.resolver.tasks.Neo4jGraphDeepDependencyVisitorTask;
 import fr.inria.diverse.maven.resolver.tasks.Neo4jGraphDependencyVisitorTask;
 
 public class ConsumerResolverApp {
@@ -88,8 +91,10 @@ public class ConsumerResolverApp {
 		options.addOption("p", "pretty-printer", true, "Path to the output file stream. Optional");
 		options.addOption("db", "database", true, "Hostname of the neo4j server. <host:port>. Required");
 		options.addOption("r", "resolve-jars", false, "Actioning jars resolution and classes count. Not activated by default!");
-		options.addOption(new Option("q", "queue", true, "Hostname and port of the RabbitMQ broker. Note, URI comes in the form hostname:port"));
-
+		options.addOption("q", "queue", true, "Hostname and port of the RabbitMQ broker. Note, URI comes in the form hostname:port");
+		options.addOption("d", "deep", false, "Actioning deep dependency resolution. Not activated by default");
+		options.addOption("u", "user", true, "User and password of the rabbitMQ. Note, it comes in the form user:password. By default user:user");
+		
 		CommandLineParser parser = new DefaultParser();
 		 
 		  CommandLine cmd = null;
@@ -101,11 +106,17 @@ public class ConsumerResolverApp {
 		   if(cmd.hasOption("p")) {
 				DependencyVisitorTask prettyPrinter = new DependencyGraphPrettyPrinterTask();
 				myVisitor.addTask(prettyPrinter);
-		   } 
+		   }
+		   Neo4jGraphDependencyVisitorTask neo4jGraphBuilder = null;
+		   if(cmd.hasOption("d")) {
+			   neo4jGraphBuilder = new Neo4jGraphDeepDependencyVisitorTask();
+		   } else {
+			   neo4jGraphBuilder = new Neo4jGraphDependencyVisitorTask();
+		   }
 		   if(cmd.hasOption("db")) {
 			    String path = cmd.getOptionValue("db");
 			    dbwrapper = new Neo4jGraphDBWrapperServer(path);
-				Neo4jGraphDependencyVisitorTask neo4jGraphBuilder = new Neo4jGraphDependencyVisitorTask();
+				//Neo4jGraphDependencyVisitorTask neo4jGraphBuilder = new Neo4jGraphDependencyVisitorTask();
 				neo4jGraphBuilder.setDbWrapper(dbwrapper);
 				myCounter.setDbwrapper(dbwrapper);
 				myVisitor.addTask(neo4jGraphBuilder);
@@ -131,32 +142,38 @@ public class ConsumerResolverApp {
 			   factory.setPort(Integer.valueOf(values[1]));
 			   factory.setUsername(DEFAULT_USERNAME);
 			   factory.setPassword(DEFAULT_USERNAME);
-			   factory.setNetworkRecoveryInterval(1000000);
+			   factory.setNetworkRecoveryInterval(1000);
+			   factory.setAutomaticRecoveryEnabled(true);
 			   connection = factory.newConnection();
 			   connection.addShutdownListener(new ShutdownListener() {
 				    public void shutdownCompleted(ShutdownSignalException cause)
 				    {
-			    	     LOGGER.error("Connection shut down for the reason below! ");
+			    	     LOGGER.info("Connection shutdown! ");
 				    	 if (cause.isHardError())
 				    	  {
-				    	    Connection conn = (Connection)cause.getReference();
+				    	    //Connection conn = (Connection)cause.getReference();
 				    	    if (!cause.isInitiatedByApplication())
 				    	    {
 				    	      Method reason = cause.getReason();
-				    	      LOGGER.error("The shutdown was caused by the application! ");
+				    	      LOGGER.error("The shutdown was caused by the server! ");
 				    	      LOGGER.error(reason.protocolMethodName());
+				    	    } else {
+					    	    Method reason = cause.getReason();
+				    	    	LOGGER.info("The shutdown was caused by the application! ");
+					    	    LOGGER.info("invoking {}",reason.protocolMethodName());
 				    	    }
 				    	  } else {
-				    	    Channel ch = (Channel)cause.getReference();
+				    	    //Channel ch = (Channel)cause.getReference();
 				    	    LOGGER.error("The shutdown was caused by the application! ");
-				    	    LOGGER.error(cause.getMessage());
-				    	    
+				    	    LOGGER.error(cause.getMessage());		    					      
 				    	  }
 				    }
 			   });
     	       channel = connection.createChannel();
-    	       
-			   channel.queueDeclare(ARTIFACT_QUEUE_NAME, true, false, false, null);
+    	       channel.basicQos(1);
+    	       Map<String, Object> lazyArg = new HashMap<String, Object>();
+    	       lazyArg.put("x-queue-mode", "lazy");
+			   channel.queueDeclare(ARTIFACT_QUEUE_NAME, true, false, false, lazyArg);
 		   } else {
 			   LOGGER.error("Missing the hostname and port of rabbitMQ");
 		   }
@@ -178,7 +195,10 @@ public class ConsumerResolverApp {
 						  String artifactCoordinate = new String(body, "UTF-8");
 						  DefaultArtifact artifact = new DefaultArtifact(artifactCoordinate);
 			              processor.process(artifact);
-					  } finally {
+					  } catch (Exception e) {
+						  LOGGER.error("Handle deleviery Error {}", e.getMessage());
+					  }  finally {
+					
 						  channel.basicAck(envelope.getDeliveryTag(), false); 
 					  }
 			      }

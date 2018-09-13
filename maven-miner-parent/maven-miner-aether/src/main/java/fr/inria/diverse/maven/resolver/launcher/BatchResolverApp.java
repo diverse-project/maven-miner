@@ -23,6 +23,7 @@ import fr.inria.diverse.maven.resolver.processor.CollectArtifactProcessor;
 import fr.inria.diverse.maven.resolver.processor.MultiTaskDependencyVisitor;
 import fr.inria.diverse.maven.resolver.tasks.DependencyGraphPrettyPrinterTask;
 import fr.inria.diverse.maven.resolver.tasks.DependencyVisitorTask;
+import fr.inria.diverse.maven.resolver.tasks.Neo4jGraphDeepDependencyVisitorTask;
 import fr.inria.diverse.maven.resolver.tasks.Neo4jGraphDependencyVisitorTask;
 
 
@@ -66,7 +67,7 @@ public class BatchResolverApp {
 		options.addOption("p", "pretty-printer", true, "Path to the output file stream. Optional");
 		options.addOption("db", "database", true, "Path to store the neo4j database. Mandatory!");
 		options.addOption("r", "resolve-jars", false, "Actioning jars resolution and classes count. Not activated by default!");
-		
+		options.addOption("d", "deep", false, "Actioning deep dependency resolution. Not activated by default");
 		 CommandLineParser parser = new DefaultParser();
 		 
 		  CommandLine cmd = null;
@@ -84,12 +85,17 @@ public class BatchResolverApp {
 		   if(cmd.hasOption("p")) {
 				DependencyVisitorTask prettyPrinter = new DependencyGraphPrettyPrinterTask();
 				myVisitor.addTask(prettyPrinter);
-		   } 
+		   }
 		   
+		   Neo4jGraphDependencyVisitorTask neo4jGraphBuilder = null;
+		   if(cmd.hasOption("d")) {
+			   neo4jGraphBuilder = new Neo4jGraphDeepDependencyVisitorTask();
+		   } else {
+			   new Neo4jGraphDependencyVisitorTask();
+		   }
 		   if(cmd.hasOption("db")) {
 			    String path = cmd.getOptionValue("db");
-			    dbwrapper = new Neo4jGraphDBWrapperEmbedded(path);
-				Neo4jGraphDependencyVisitorTask neo4jGraphBuilder = new Neo4jGraphDependencyVisitorTask();
+			    dbwrapper = new Neo4jGraphDBWrapperEmbedded(path);			
 				neo4jGraphBuilder.setDbWrapper(dbwrapper);
 				myCounter.setDbwrapper(dbwrapper);
 				myVisitor.addTask(neo4jGraphBuilder);
