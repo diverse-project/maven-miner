@@ -140,8 +140,19 @@ public class ConsumerResolverApp {
     	       
 			   factory.setHost(values[0]);
 			   factory.setPort(Integer.valueOf(values[1]));
-			   factory.setUsername(DEFAULT_USERNAME);
-			   factory.setPassword(DEFAULT_USERNAME);
+			   String username = DEFAULT_USERNAME;
+			   String password = DEFAULT_USERNAME;
+			   if (cmd.hasOption("u")) {
+				   String [] credentials = cmd.getOptionValue("u").split(":"); 
+				   if (credentials.length!=2) {
+					   LOGGER.error("Malformated RabbitMQ credentials \"{}\". It should rather be in the form user:pass",cmd.getOptionValue("u"));
+					   help();
+				   }
+				   username = credentials[0];
+				   password = credentials[1];
+			   }
+			   factory.setUsername(username);
+			   factory.setPassword(password);
 			   factory.setNetworkRecoveryInterval(1000);
 			   factory.setAutomaticRecoveryEnabled(true);
 			   connection = factory.newConnection();
