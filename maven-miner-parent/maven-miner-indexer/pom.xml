@@ -23,7 +23,7 @@ under the License.
 
   <artifactId>maven-miner-indexer</artifactId>
   <groupId>fr.inria.diverse</groupId>
-  <version>0.2.4-SNAPSHOT</version>
+  <version>0.3.0-SNAPSHOT</version>
 
   <build>
   	<resources>
