@@ -264,11 +264,13 @@ public class CentralIndex
 		    				  // myQueue = channel.queueDeclarePassive(ARTIFACT_QUEUE_NAME);
 
    		    	      }
-			    	   if (cmd.hasOption("f")) {
-			    				   fromFile = true;
-			    				   path = cmd.getOptionValue("f");
-			    		} 
-		    			index.init().publish(path);
+			    	    if (cmd.hasOption("f")) {
+			    			fromFile = true;
+			    			path = cmd.getOptionValue("f");
+			    			index.publish(path);	   
+			    		}  else {
+			    			index.init().publish(path);
+			    		}
    				   } else if (cmd.hasOption("t")) {
    					   path = cmd.getOptionValue("t");
    					   index.init().dumpAtFile(path);
@@ -329,7 +331,7 @@ public class CentralIndex
 
                 public void transferProgress( TransferEvent transferEvent, byte[] buffer, int length )
                 {
-                    LOGGER.info( "  Transfer in progress " + transferEvent.getResource().getName());
+                    //LOGGER.info( "  Transfer in progress " + transferEvent.getResource().getName());
 
                 }
 

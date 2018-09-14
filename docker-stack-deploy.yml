@@ -48,9 +48,9 @@ services:
       - "15672:15672"
       - "5672:5672"
     volumes:
-      - $RABBITMQ_VAR:/data/mnesia
+      - $RABBIT_VAR:/data/mnesia
     environment:
-      - RABBITMQ_NODENAME: node@rabbitmq
+      RABBITMQ_NODENAME: node@rabbitmq
     deploy:
       placement:
         constraints: [node.role == manager]

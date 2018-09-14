@@ -3,14 +3,14 @@ SCRIPT_NAME=$0
 function print_usage_and_exit {
   echo "Usage: ./run-prducer.sh"
   echo "--file <arg>: path to artifacts info version.  Optional!"
-  echo "--queue <arg>: hostname and prot number of rabbitMQ server"
-  echo "--index"
+  echo "--queue <arg>: hostname and port number of rabbitMQ server"
+  echo "--index <arg>: file index to be provided"
   exit 1
 }
 sleep 30s
 echo "Setting up default variables"
 
-ARTIFACT_PATH="/dist/artifacts/artifact-0"
+ARTIFACT_PATH="/dist/artifacts/artifacts-0"
 INDEX=0
 while [[ $# > 1 ]]
 do
@@ -25,12 +25,12 @@ case $key in
     QUEUE="$1"
     shift
     ;;
-    *)
-    print_usage_and_exit
-    ;;
     --index)
     INDEX="$1"
     shift
+    ;;
+    *)
+    print_usage_and_exit
     ;;
 esac
 done
@@ -43,4 +43,4 @@ if [ -z "$QUEUE" ]; then
     echo "hostname and port number of rabbitMQ server is not provided 'host:number'"
     print_usage_and_exit
 fi
-./run-producer --queue $QUEUE --file $ARTIFACT_PATH$INDEX 
+/dist/run-producer.sh --queue $QUEUE --file $ARTIFACT_PATH$INDEX

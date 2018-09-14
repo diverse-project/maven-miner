@@ -9,7 +9,7 @@ function print_usage_and_exit {
   exit 1
 }
 NEO4J_DUMP=$HOME/neo4j-server
-RABBIT_DUMP=$HOME/rabbitMQ/
+RABBIT_DUMP=$HOME/rabbitMQ
 CONSUMERS=2
 VERSION=0.3.0
 while [[ $# > 1 ]]

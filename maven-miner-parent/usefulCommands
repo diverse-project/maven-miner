@@ -9,7 +9,7 @@ docker run -d \
 	rabbitmq:3-management
 	
 // running neo4j passwordless
-docker run \
+docker run -d \
 	--hostname neo4j \
 	--name neo4j \
     --publish=7474:7474 --publish=7687:7687 \
@@ -17,3 +17,6 @@ docker run \
     --volume=$HOME/neo4j-server/logs:/logs \
     --env=NEO4J_AUTH=none \
     neo4j:3.0
+
+//SSH forward tunneling 
+ssh -nNT -L 7474:localhost:7474 -L 15672:localhost:15672 ubuntu@10.0.0.1 
