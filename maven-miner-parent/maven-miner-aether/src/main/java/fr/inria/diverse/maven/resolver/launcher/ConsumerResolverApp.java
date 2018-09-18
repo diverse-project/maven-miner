@@ -57,7 +57,7 @@ public class ConsumerResolverApp {
 	/**
 	 * The resolver application logger
 	 */
-	private static final Logger LOGGER = LoggerFactory.getLogger(BatchResolverApp.class);
+	private static final Logger LOGGER = LoggerFactory.getLogger(ConsumerResolverApp.class);
 	
     /**
      * A multiTask visitor. To add additional visit behaviour/task @see {@link MultiTaskDependencyVisitor}  
@@ -203,14 +203,14 @@ public class ConsumerResolverApp {
 			      public void handleDelivery(String consumerTag, Envelope envelope, AMQP.BasicProperties properties, byte[] body)
 			          throws IOException {
 					  try {
+						  channel.basicAck(envelope.getDeliveryTag(), false); 
 						  String artifactCoordinate = new String(body, "UTF-8");
 						  DefaultArtifact artifact = new DefaultArtifact(artifactCoordinate);
 			              processor.process(artifact);
 					  } catch (Exception e) {
 						  LOGGER.error("Handle deleviery Error {}", e.getMessage());
 					  }  finally {
-					
-						  channel.basicAck(envelope.getDeliveryTag(), false); 
+						  //channel.basicAck(envelope.getDeliveryTag(), false); 
 					  }
 			      }
 			  });
