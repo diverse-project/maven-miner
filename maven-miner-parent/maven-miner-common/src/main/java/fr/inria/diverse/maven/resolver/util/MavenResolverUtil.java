@@ -1,6 +1,10 @@
 package fr.inria.diverse.maven.resolver.util;
 
 import java.net.URL;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 
 import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Pattern;
@@ -8,12 +12,14 @@ import javax.validation.constraints.Pattern;
 import org.sonatype.aether.artifact.Artifact;
 import org.sonatype.aether.graph.Dependency;
 
-import fr.inria.diverse.maven.resolver.model.Edge;
-import fr.inria.diverse.maven.resolver.model.Edge.Scope;
-import fr.inria.diverse.maven.resolver.model.Vertex;
-import fr.inria.diverse.maven.resolver.model.Vertex.Packaging;
+import fr.inria.diverse.maven.model.Edge;
+import fr.inria.diverse.maven.model.Vertex;
+import fr.inria.diverse.maven.model.Edge.Scope;
+import fr.inria.diverse.maven.model.Vertex.Packaging;
 
 public  class MavenResolverUtil {
+	
+	protected static final SimpleDateFormat sdf = new SimpleDateFormat("EEE, dd MMM yyyy hh:mm:ss z");
 	/**
 	 * Creates a Vertex Object out of a {@link Dependency}
 	 * @param dependency
@@ -83,4 +89,23 @@ public  class MavenResolverUtil {
 	public static String[] coordinatesToElements(@Pattern (regexp = ".*?:.*?:.*?", message = "Artifact coordinates' is not well-formed") String coordinates) {
 		return coordinates.split(":");
 	}
+	
+	public static ZonedDateTime toZonedTime(String modified) throws ParseException {		
+		ZonedDateTime result = null;
+		try {
+			result = sdf.parse(modified).toInstant().atZone(ZoneId.systemDefault());
+		} catch (ParseException e) {
+			e.printStackTrace();
+			throw e;
+		}
+		return result;
+	}
+	
+	public static ZonedDateTime fromZonedTime(String time) {
+		ZonedDateTime result = null;
+		result = ZonedDateTime.parse(time);
+		return result;
+	}
+
+	
 }

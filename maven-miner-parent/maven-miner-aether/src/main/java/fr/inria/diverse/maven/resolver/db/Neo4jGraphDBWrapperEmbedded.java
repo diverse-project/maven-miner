@@ -29,11 +29,13 @@ import org.sonatype.aether.util.version.GenericVersionScheme;
 import org.sonatype.aether.version.InvalidVersionSpecificationException;
 import org.sonatype.aether.version.Version;
 
-import fr.inria.diverse.maven.resolver.model.Edge.Scope;
-import fr.inria.diverse.maven.resolver.model.ExceptionCounter;
-import fr.inria.diverse.maven.resolver.model.ExceptionCounter.ExceptionType;
-import fr.inria.diverse.maven.resolver.model.JarCounter;
-import fr.inria.diverse.maven.resolver.model.JarCounter.JarEntryType;
+import fr.inria.diverse.maven.common.DependencyRelation;
+import fr.inria.diverse.maven.common.Properties;
+import fr.inria.diverse.maven.model.Edge.Scope;
+import fr.inria.diverse.maven.model.ExceptionCounter;
+import fr.inria.diverse.maven.model.ExceptionCounter.ExceptionType;
+import fr.inria.diverse.maven.model.JarCounter;
+import fr.inria.diverse.maven.model.JarCounter.JarEntryType;
 import fr.inria.diverse.maven.resolver.tasks.Neo4jGraphDependencyVisitorTask;
 import fr.inria.diverse.maven.resolver.util.MavenResolverUtil;
 

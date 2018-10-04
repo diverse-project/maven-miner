@@ -1,0 +1,89 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
+                      http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+   <parent>
+     <groupId>fr.inria.diverse</groupId>
+     <artifactId>maven-miner-parent</artifactId>
+     <version>0.3.0-SNAPSHOT</version>
+   </parent>
+   <artifactId>maven-miner-procedures</artifactId>
+
+  <packaging>jar</packaging>
+  <name>maven-miner-procedures</name>
+  <description>A template project for building a Neo4j Procedure</description>
+
+  <properties>
+    <neo4j.version>3.4.0</neo4j.version>
+    <maven.version>3.0.3</maven.version>
+  </properties>
+
+  <dependencies>
+  	<dependency>
+	  <groupId>fr.inria.diverse</groupId>
+	   <artifactId>maven-miner-common</artifactId>
+	   <version>${project.version}</version>
+  	</dependency>
+    <dependency>
+      <groupId>org.neo4j</groupId>
+      <artifactId>neo4j</artifactId>
+      <scope>provided</scope>
+    </dependency>
+	<dependency>
+	  <groupId>org.apache.maven</groupId>
+      <artifactId>maven-core</artifactId>
+	</dependency>
+	<dependency>
+      <groupId>org.apache.maven</groupId>
+      <artifactId>maven-aether-provider</artifactId>
+    </dependency>
+    <!-- Test Dependencies -->
+    <dependency>
+      <!-- This is used for a utility that lets us start Neo4j with
+           a specific Procedure, which is nice for writing tests. -->
+      <groupId>org.neo4j.test</groupId>
+      <artifactId>neo4j-harness</artifactId>
+      <scope>test</scope>
+    </dependency>
+
+    <dependency>
+      <!-- Used to send cypher statements to our procedure. -->
+      <groupId>org.neo4j.driver</groupId>
+      <artifactId>neo4j-java-driver</artifactId>
+      <scope>test</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>junit</groupId>
+      <artifactId>junit</artifactId>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <plugins>
+      <plugin>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <version>3.1</version>
+        <configuration>
+          <!-- Neo4j Procedures require Java 8 -->
+          <source>1.8</source>
+          <target>1.8</target>
+        </configuration>
+      </plugin>
+      <plugin>
+        <artifactId>maven-shade-plugin</artifactId>
+        <version>2.4.3</version>
+        <executions>
+          <execution>
+            <phase>package</phase>
+            <goals>
+              <goal>shade</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
+  </build>
+</project>

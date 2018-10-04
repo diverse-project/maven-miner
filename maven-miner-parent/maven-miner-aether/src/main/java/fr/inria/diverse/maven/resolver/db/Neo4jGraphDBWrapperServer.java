@@ -19,11 +19,12 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import fr.inria.diverse.maven.resolver.model.Edge.Scope;
-import fr.inria.diverse.maven.resolver.model.ExceptionCounter;
-import fr.inria.diverse.maven.resolver.model.ExceptionCounter.ExceptionType;
-import fr.inria.diverse.maven.resolver.model.JarCounter.JarEntryType;
-import fr.inria.diverse.maven.resolver.model.JarCounter;
+import fr.inria.diverse.maven.common.Properties;
+import fr.inria.diverse.maven.model.Edge.Scope;
+import fr.inria.diverse.maven.model.ExceptionCounter;
+import fr.inria.diverse.maven.model.ExceptionCounter.ExceptionType;
+import fr.inria.diverse.maven.model.JarCounter.JarEntryType;
+import fr.inria.diverse.maven.model.JarCounter;
 import fr.inria.diverse.maven.resolver.util.MavenResolverUtil;
 
 public class Neo4jGraphDBWrapperServer extends Neo4jGraphDBWrapper implements AutoCloseable{
@@ -109,10 +110,8 @@ public class Neo4jGraphDBWrapperServer extends Neo4jGraphDBWrapper implements Au
 	@Override
 //	public @NotNull(message = "The returned node should not be null") 
 	public void createNodeFromArtifactCoordinate(Artifact artifact) {
-		//resolving last-modified from central
-		ZonedDateTime javaDate = getReleaseDateFromArtifact(artifact);
-
-		// setting the artifact metadata properties
+		
+		ZonedDateTime javaDate =getReleaseDateFromArtifact(artifact);
 		 try ( Session session = driver.session() )
 	        {
 	            session.writeTransaction( tx ->
@@ -152,7 +151,7 @@ public class Neo4jGraphDBWrapperServer extends Neo4jGraphDBWrapper implements Au
 	                return null;
 	            } );
 	        } catch (Exception e) {
-				LOGGER.error("Ooohhh lala! An exception");
+				LOGGER.error(e.getMessage());
 				e.printStackTrace();
 			}
 	}
@@ -317,7 +316,6 @@ public class Neo4jGraphDBWrapperServer extends Neo4jGraphDBWrapper implements Au
 			
 		});
 		labels.forEach(label -> {
-			@SuppressWarnings("unused")
 			List<DefaultArtifact> artifactsPerLabel=null; 
 			try (Session session =  driver.session()) {
 				artifactsPerLabel = session.readTransaction(tx -> {
@@ -428,7 +426,5 @@ public class Neo4jGraphDBWrapperServer extends Neo4jGraphDBWrapper implements Au
 	public void createIndexes() {
 		// TODO Auto-generated method stub
 	}
-
-
 }
 

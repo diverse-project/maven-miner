@@ -7,27 +7,29 @@ import java.net.URI;
 import java.net.URL;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.TimeZone;
 
+import javax.validation.constraints.NotNull;
+
 import org.neo4j.graphdb.Label;
 import org.neo4j.graphdb.Node;
-import org.neo4j.graphdb.RelationshipType;
 import org.neo4j.graphdb.index.RelationshipIndex;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.sonatype.aether.artifact.Artifact;
-import fr.inria.diverse.maven.resolver.Booter;
-import fr.inria.diverse.maven.resolver.model.Edge.Scope;
-import fr.inria.diverse.maven.resolver.model.ExceptionCounter;
-import fr.inria.diverse.maven.resolver.processor.MultiTaskDependencyVisitor;
-import fr.inria.diverse.maven.resolver.model.JarCounter;
-import javax.validation.constraints.NotNull;
-
 import org.sonatype.aether.util.layout.MavenDefaultLayout;
+
+import fr.inria.diverse.maven.common.DependencyRelation;
+import fr.inria.diverse.maven.common.Properties;
+import fr.inria.diverse.maven.model.Edge.Scope;
+import fr.inria.diverse.maven.model.ExceptionCounter;
+import fr.inria.diverse.maven.model.JarCounter;
+import fr.inria.diverse.maven.resolver.Booter;
+import fr.inria.diverse.maven.resolver.processor.MultiTaskDependencyVisitor;
+import fr.inria.diverse.maven.resolver.util.MavenResolverUtil;
 
 public abstract class Neo4jGraphDBWrapper {
 	/**
@@ -37,7 +39,6 @@ public abstract class Neo4jGraphDBWrapper {
 	protected static Logger LOGGER = LoggerFactory.getLogger(MultiTaskDependencyVisitor.class);
 	/**
 	 * An index of already resolved artifacts in the form of Neo4j {@link Node} 
-	 * TODO replace with neo4j indexes
 	 */
 
 	protected RelationshipIndex edgesIndex;
@@ -67,6 +68,7 @@ public abstract class Neo4jGraphDBWrapper {
 	 * Returns the release date of a given artifact
 	 * @param artifact
 	 * @return javaDate {@link ZonedDateTime}
+	 * @throws ParseException 
 	 */
 	protected ZonedDateTime getReleaseDateFromArtifact(@NotNull Artifact artifact) {
 		URL artifactURL = null;
@@ -76,11 +78,12 @@ public abstract class Neo4jGraphDBWrapper {
 	  		HttpURLConnection connexion = (HttpURLConnection) artifactURL.openConnection();
 	  		connexion.setRequestMethod("HEAD");
 	  		String modified = connexion.getHeaderField("Last-Modified");		  		
-	  		javaDate = sdf.parse(modified).toInstant().atZone(ZoneId.systemDefault());
+	  		javaDate = MavenResolverUtil.toZonedTime(modified);
 	      	} catch (MalformedURLException e) {
 	      		LOGGER.error("MalformedURL {}",artifactURL);
 	      		e.printStackTrace();
 	      	} catch (IOException e) {
+	      		LOGGER.error("MalformedURL {}",artifactURL);
 	      		e.printStackTrace();
 	      	} catch (ParseException e) {
 	      		LOGGER.error("MalformedURL {}",artifactURL);
@@ -88,7 +91,6 @@ public abstract class Neo4jGraphDBWrapper {
 			}
 		return javaDate;
 	}
-	
 	/**
 	 * Creating per Label Index on Artifact coordinates 
 	 * 
@@ -154,37 +156,7 @@ public abstract class Neo4jGraphDBWrapper {
 	 * @author Amine BENELALLAM
  	 *
 	 */
-	protected static enum DependencyRelation implements RelationshipType {
-		DEPENDS_ON,
-		NEXT,
-		RAISES;
-	}
-	
-	
-	/**
-	 * An internal class containing node properties used for persistence
-	 * @author Amine BENELALLAM
-	 *
-	 */
-	protected class Properties {
-				
-		 static final String LAST_MODIFIED = "release_date";
-		 static final String COORDINATES = "coordinates";
-		 static final String GROUP = "groupID";
-		 static final String VERSION = "version";
-		 static final String PACKAGING = "packaging";
-		 static final String CLASSIFIER = "classifier";
-		 static final String ARTIFACT = "artifact";
-		 static final String SCOPE = "scope";
-		
-		 static final String EXCEPTION_LABEL = "Exception";
-		 static final String EXCEPTION_OCCURENCE = "occurence";
-		 static final String EXCEPTION_NAME = "name";
-		 static final String ARTIFACT_LABEL = "Artifact";
-
-	}
 
 	abstract public void addResolutionExceptionRelationship(Artifact artifact);
-
 
 }

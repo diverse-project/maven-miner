@@ -25,18 +25,9 @@ import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.io.UnsupportedEncodingException;
-import java.net.HttpURLConnection;
-import java.net.MalformedURLException;
-import java.net.URL;
 import java.sql.Timestamp;
-import java.text.ParseException;
-import java.time.ZoneId;
-import java.time.ZonedDateTime;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Base64;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
@@ -80,8 +71,6 @@ import org.codehaus.plexus.component.repository.exception.ComponentLookupExcepti
 import org.eclipse.aether.version.InvalidVersionSpecificationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.rabbitmq.client.AMQP.Queue.DeclareOk;
 
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
@@ -133,8 +122,6 @@ public class CentralIndex
 
 	private static String DEFAULT_USERNAME = "user"; 
 	
-	private static  DeclareOk myQueue;
-	
 	// filtered patterns
     private  static List<String> patterns;
     
@@ -168,7 +155,8 @@ public class CentralIndex
      * @param args
      * @throws Exception
      */
-    public static void main( String[] args )
+    @SuppressWarnings("unused")
+	public static void main( String[] args )
    	        throws Exception
    	    {
    	 		final CentralIndex index = new CentralIndex();
@@ -196,7 +184,7 @@ public class CentralIndex
    				       patterns =  getPatternsFromCP(cmd.getOptionValue("i"));
    				   } else {
    					   isFiltering=false;
-   					   patterns = Collections.EMPTY_LIST;
+   					   patterns = Collections.emptyList();
    				   }
    				   if (cmd.hasOption("q") && cmd.hasOption("t")) {
    					   LOGGER.error("q and t are mutually exclusive (X-OR). Only one option should be provided");
@@ -229,7 +217,8 @@ public class CentralIndex
 		    					   username = credentials[0];
 		    					   password = credentials[1];
 		    				   }
-		    				   
+		    				   factory.setUsername(username);
+		    				   factory.setPassword(password);
 		    				   connection = factory.newConnection();
 		    				   connection.addShutdownListener(new ShutdownListener() {
 		    					    public void shutdownCompleted(ShutdownSignalException cause)
@@ -293,6 +282,7 @@ public class CentralIndex
      * @throws FileNotFoundException 
      */
     private static List<String> getPatternsFromCP(String path) throws FileNotFoundException {
+		@SuppressWarnings("resource")
 		BufferedReader fileStream = new BufferedReader(new FileReader(path));
 		return fileStream.lines().filter(line -> ! line.startsWith("#")).collect(Collectors.toList());
 //    	return Arrays.asList(".*-sample.*", ".*:\\d+\\.\\d+\\.\\d+\\.\\d+.*");

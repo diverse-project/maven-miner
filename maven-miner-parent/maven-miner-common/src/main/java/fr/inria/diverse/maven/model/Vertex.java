@@ -1,4 +1,4 @@
-package fr.inria.diverse.maven.resolver.model;
+package fr.inria.diverse.maven.model;
 
 import java.util.Set;
 import java.util.UUID;

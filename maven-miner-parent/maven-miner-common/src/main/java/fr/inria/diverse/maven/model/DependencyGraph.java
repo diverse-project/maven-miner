@@ -1,12 +1,11 @@
-package fr.inria.diverse.maven.resolver.model;
+package fr.inria.diverse.maven.model;
 
 import java.util.HashSet;
 import java.util.Set;
 
-import javax.annotation.Nonnull;
 import javax.validation.constraints.NotNull;
 
-import fr.inria.diverse.maven.resolver.model.Edge.Scope;
+import fr.inria.diverse.maven.model.Edge.Scope;
 
 
 public class DependencyGraph {
@@ -18,11 +17,11 @@ public class DependencyGraph {
 	}
 
 	
-	public void setVertices(@Nonnull Set<Vertex> vertices) {
+	public void setVertices(@NotNull Set<Vertex> vertices) {
 		this.vertices = vertices;
 	}
 	
-	public boolean addVertex(@Nonnull Vertex vertex) {
+	public boolean addVertex(@NotNull Vertex vertex) {
 		return vertices.add(vertex);
 	}
 
@@ -30,7 +29,7 @@ public class DependencyGraph {
 		return edges;
 	}
 
-	public void setEdges(@Nonnull Set<Edge> edges) {
+	public void setEdges(@NotNull Set<Edge> edges) {
 		this.edges = edges;
 	}
 

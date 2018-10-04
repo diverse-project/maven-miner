@@ -3,8 +3,7 @@ package fr.inria.diverse.maven.resolver.tasks;
 import org.sonatype.aether.artifact.Artifact;
 import org.sonatype.aether.graph.DependencyNode;
 
-import fr.inria.diverse.maven.resolver.db.Neo4jGraphDBWrapper;
-import fr.inria.diverse.maven.resolver.model.Edge.Scope;
+import fr.inria.diverse.maven.model.Edge.Scope;
 import fr.inria.diverse.maven.resolver.util.MavenResolverUtil;
 
 public class Neo4jGraphDeepDependencyVisitorTask extends  Neo4jGraphDependencyVisitorTask {

@@ -1,3 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
   <groupId>fr.inria.diverse</groupId>
@@ -6,9 +7,93 @@
   <packaging>pom</packaging>
 
   <properties>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
   	<aether.version>1.13.1</aether.version>
   	<maven.core.version>3.0.3</maven.core.version>
+  	<maven.version>3.0.3</maven.version>
   	<slf4j.version>1.7.25</slf4j.version>
+  	<aether.version>1.13.1</aether.version>
+  	<wagon.version>2.10</wagon.version>
+  	<codehaus.version>3.0.22</codehaus.version>
+  	<validator.hibernate.version>6.0.2.Final</validator.hibernate.version>
+  	<neo4j.version>3.4.0</neo4j.version>
+  	<neo4j.driver.version>1.6.2</neo4j.driver.version>
   </properties>
+  <dependencyManagement>
+    <dependencies>
+	    <dependency>
+		  <groupId>org.apache.maven</groupId>
+	      <artifactId>maven-core</artifactId>
+		  <version>${maven.version}</version>
+		</dependency>
+		<dependency>
+	      <groupId>org.apache.maven</groupId>
+	      <artifactId>maven-aether-provider</artifactId>
+	      <version>${maven.version}</version>
+	    </dependency>
+        <dependency>
+          <groupId>org.codehaus.plexus</groupId>
+          <artifactId>plexus-utils</artifactId>
+          <version>${codehaus.version}</version>
+        </dependency>
+        <!-- Bean validation dependencies-->
+        <dependency>
+		    <groupId>javax.validation</groupId>
+		    <artifactId>validation-api</artifactId>
+		    <version>2.0.0.Final</version>
+		</dependency>
+        <dependency>
+		    <groupId>org.hibernate.validator</groupId>
+		    <artifactId>hibernate-validator</artifactId>
+		    <version>${validator.hibernate.version}</version>
+		</dependency>
+		<dependency>
+		    <groupId>org.hibernate.validator</groupId>
+		    <artifactId>hibernate-validator-annotation-processor</artifactId>
+		    <version>${validator.hibernate.version}</version>
+		</dependency>
+    <dependency>
+      <groupId>org.neo4j</groupId>
+      <artifactId>neo4j</artifactId>
+      <version>${neo4j.version}</version>
+    </dependency>
+	<dependency>
+	  <groupId>org.apache.maven</groupId>
+      <artifactId>maven-core</artifactId>
+	  <version>${maven.version}</version>
+	</dependency>
+	<dependency>
+      <groupId>org.apache.maven</groupId>
+      <artifactId>maven-aether-provider</artifactId>
+      <version>${maven.version}</version>
+    </dependency>
+    <!-- Test Dependencies -->
+    <dependency>
+      <!-- This is used for a utility that lets us start Neo4j with
+           a specific Procedure, which is nice for writing tests. -->
+      <groupId>org.neo4j.test</groupId>
+      <artifactId>neo4j-harness</artifactId>
+      <version>${neo4j.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <!-- Used to send cypher statements to our procedure. -->
+      <groupId>org.neo4j.driver</groupId>
+      <artifactId>neo4j-java-driver</artifactId>
+      <version>1.6.2</version>
+    </dependency>
 
+    <dependency>
+      <groupId>junit</groupId>
+      <artifactId>junit</artifactId>
+      <version>4.12</version>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
+  </dependencyManagement>
+  <modules>
+    <module>maven-miner-common</module>
+    <module>maven-miner-aether</module>
+    <module>maven-miner-procedures</module>
+  </modules>
 </project>

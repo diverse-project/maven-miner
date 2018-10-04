@@ -19,8 +19,8 @@ import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ListMultimap;
 
 import fr.inria.diverse.maven.resolver.db.Neo4jGraphDBWrapper;
-import fr.inria.diverse.maven.resolver.model.ExceptionCounter;
-import fr.inria.diverse.maven.resolver.model.JarCounter;
+import fr.inria.diverse.maven.model.ExceptionCounter;
+import fr.inria.diverse.maven.model.JarCounter;
 import fr.inria.diverse.maven.resolver.util.MavenResolverUtil;
 
 public class ClassScanCounter extends URLClassLoader {

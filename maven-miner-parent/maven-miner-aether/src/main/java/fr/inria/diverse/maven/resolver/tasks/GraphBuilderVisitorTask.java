@@ -4,9 +4,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.sonatype.aether.graph.DependencyNode;
 
-import fr.inria.diverse.maven.resolver.model.DependencyGraph;
-import fr.inria.diverse.maven.resolver.model.Edge.Scope;
-import fr.inria.diverse.maven.resolver.model.Vertex;
+import fr.inria.diverse.maven.model.DependencyGraph;
+import fr.inria.diverse.maven.model.Edge.Scope;
+import fr.inria.diverse.maven.model.Vertex;
 import fr.inria.diverse.maven.resolver.processor.MultiTaskDependencyVisitor;
 import fr.inria.diverse.maven.resolver.util.MavenResolverUtil;
 
