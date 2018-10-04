@@ -1,0 +1,67 @@
+= Neo4j Procedure Template
+:branch: 3.3
+:root: https://github.com/neo4j-examples/neo4j-procedure-template/blob/{branch}/src
+
+This project is an example you can use to build user defined procedures, functions and aggregation functions in Neo4j.
+It contains two procedures, for reading and updating a full-text index.
+
+To try this out, simply clone this repository and have a look at the source and test code (including Test-Server-Setup).
+
+[Note]
+This project requires a Neo4j {branch}.x dependency.
+
+
+=== User Defined Procedure
+
+The user defined procedure allows you to index and search a explicit Lucene index within Neo4j.
+
+Given properties of a node can be added to indexes named according to the labels of the node.
+After that the data can be searched with Lucene Syntax.
+
+See link:{root}/main/java/example/FullTextIndex.java[`FullTextIndex.java`] and the link:{root}/test/java/example/LegacyFullTextIndexTest.java[`LegacyFullTextIndexTest.java`].
+
+[source,cypher]
+----
+MATCH (n:Person)
+CALL example.index(id(n), ['name']);
+
+CALL example.search('Person','name:Jo*') YIELD nodeId
+----
+
+=== User Defined Function
+
+The user defined function is a simple join function that joins a list of strings using a delimiter.
+
+See link:{root}/main/java/example/Join.java[`Join.java`] and the link:{root}/test/java/example/JoinTest.java[`JoinTest.java`].
+
+[source,cypher]
+----
+RETURN example.join(['A','quick','brown','fox'],' ') as sentence
+----
+
+=== User Defined Aggregation Function
+
+The aggregation function `example.last` returns the last row of an aggregation.
+
+[source,cypher]
+----
+MATCH (n:Person)
+WITH n ORDER BY n.born
+RETURN n.born, example.last(n) as last
+----
+
+See link:{root}/main/java/example/Last.java[`Last.java`] and the link:{root}/test/java/example/LastTest.java[`LastTest.java`].
+
+== Building
+
+This project uses maven, to build a jar-file with the procedure in this
+project, simply package the project with maven:
+
+    mvn clean package
+
+This will produce a jar-file,`target/procedure-template-1.0.0-SNAPSHOT.jar`,
+that can be deployed in the `plugin` directory of your Neo4j instance.
+
+== License
+
+Apache License V2, see LICENSE

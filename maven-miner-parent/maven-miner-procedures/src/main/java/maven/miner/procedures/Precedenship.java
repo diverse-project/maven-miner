@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.Label;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Transaction;
@@ -43,7 +44,7 @@ public class Precedenship extends AbstractProcedureEnv {
 	@Procedure(value="maven.miner.group.precedenceship", mode = Mode.WRITE)
 	@Description("Creating per-version precedence relationship for all group nodes ")
 	public Stream<BooleanOutput> createPerGroupPercedenceship(@Name("The group name") String groupName) {
-		log.info(String.format("Creating precedenceship for %s group's artifacts",groupName));
+		log.info(String.format("Creating precedenceship for %s",groupName));
 		Label label = Label.label(groupName);	
 		
 		try (Transaction tx = graphDB.beginTx()) {
@@ -69,11 +70,14 @@ public class Precedenship extends AbstractProcedureEnv {
 			}
 		}).collect(Collectors.toList());//end find nodes
 		
-		for (int i =0; i< sortedNodes.size() - 2; i++) {
+		for (int i =0; i< sortedNodes.size() - 1; i++) {
 			Node firstNode = sortedNodes.get(i);
 			Node secondNode = sortedNodes.get(i+1);
 			
 			if (isNextRelease(firstNode, secondNode)) {
+				if (firstNode.hasRelationship(DependencyRelation.NEXT, Direction.OUTGOING))
+					firstNode.getSingleRelationship(DependencyRelation.NEXT, Direction.OUTGOING)
+							 .delete();
 				firstNode.createRelationshipTo(secondNode, DependencyRelation.NEXT);
 			}
 		}

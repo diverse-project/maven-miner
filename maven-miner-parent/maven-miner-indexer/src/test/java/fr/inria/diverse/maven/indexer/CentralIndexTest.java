@@ -23,12 +23,8 @@ import fr.inria.diverse.maven.indexer.CentralIndex;
 
 import junit.framework.TestCase;
 
-public class CentralIndexTest
-    extends TestCase
-{
-    public void testApp()
-        throws Exception
-    {
+public class CentralIndexTest extends TestCase {
+    public void testApp() throws Exception {
         CentralIndex.main(null);
     }
 }

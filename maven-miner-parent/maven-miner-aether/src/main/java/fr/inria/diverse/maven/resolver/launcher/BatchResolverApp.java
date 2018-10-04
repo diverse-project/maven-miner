@@ -35,7 +35,7 @@ public class BatchResolverApp {
 	private static final Logger LOGGER = LoggerFactory.getLogger(BatchResolverApp.class);
 	
     /**
-     * A multiTask visitor. To add additional visit behaviour/task @see {@link MultiTaskDependencyVisitor}  
+     * A multiTask visitor. To add additional visit behavior/task @see {@link MultiTaskDependencyVisitor}  
      */
     private static MultiTaskDependencyVisitor myVisitor = new MultiTaskDependencyVisitor();
     /**
@@ -144,8 +144,7 @@ public class BatchResolverApp {
             	resultsReader.close();
                 myVisitor.getTaskSet().forEach(task -> {task.shutdown();});
                 processor.report();
-            }    
-        
+            } 
 	}
 	
 	private static void help() {

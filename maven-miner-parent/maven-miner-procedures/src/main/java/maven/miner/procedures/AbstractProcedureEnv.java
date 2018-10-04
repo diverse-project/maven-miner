@@ -32,8 +32,9 @@ public class AbstractProcedureEnv {
 		log.info("Retrieving all labels in use");
 		try (Transaction tx = graphDB.beginTx()) {
 			 allLabels = graphDB.getAllLabelsInUse().stream()
-					.filter(label -> ! label.name().equals(Properties.EXCEPTION_LABEL) ||
-										! label.name().equals(Properties.EXCEPTION_LABEL))
+					.filter( label -> ! label.name().equals(Properties.EXCEPTION_LABEL) &&
+									  ! label.name().equals(Properties.ARTIFACT_LABEL)  &&
+									  ! label.name().equals(Properties.CALENDAR_LABEL))	
 					.map(Label::toString);
 			tx.success();
 			
