@@ -34,7 +34,7 @@ import fr.inria.diverse.maven.resolver.util.MavenResolverUtil;
 public abstract class Neo4jGraphDBWrapper {
 	/**
 	 * Me: Obviously a logger... 
-	 * Him (N-H): Tnx for the Info Bro! You rock!
+	 * Him (N-H): Tnx for the info Bro! You rock!
 	 */
 	protected static Logger LOGGER = LoggerFactory.getLogger(MultiTaskDependencyVisitor.class);
 	/**
