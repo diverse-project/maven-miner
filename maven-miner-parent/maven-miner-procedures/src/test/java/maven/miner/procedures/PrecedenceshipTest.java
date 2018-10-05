@@ -19,8 +19,9 @@ public class PrecedenceshipTest
 {
 
     @Rule
-    public Neo4jRule neo4j = new Neo4jRule().withProcedure( Precedenship.class );
+    public  Neo4jRule neo4j = new Neo4jRule().withProcedure( Precedenship.class );
 
+   
     @Test
     public void precedenceshipShouldBeCreated() throws Throwable {
     	try( Driver driver = GraphDatabase.driver(neo4j.boltURI() , 
@@ -110,11 +111,51 @@ public class PrecedenceshipTest
  			result = session.run(query);
  			assertThat(result.single().get(0).asInt(), equalTo(2));
  			
- 			query = "match p=(:ant)-[:NEXT*]->(:ant) return max(length(p))";
- 			result = session.run(query);
- 			assertThat(result.single().get(0).asInt(), equalTo(1));
 
         }
     }
     
+    @Test 
+    public void isIdempotent() {
+    	try( Driver driver = GraphDatabase.driver(neo4j.boltURI() , 
+				   Config.build().withoutEncryption().toConfig()))
+		{
+			
+			Session session = driver.session();
+			
+			String query = "CREATE (p1:abbot:Artifact {\n" + 
+			"  artifact: 'abbot',\n" + 
+			"  groupID: 'abbot',\n" + 
+			"  coordinates: 'abbot:abbot:0.13.0',\n" + 
+			"  version: '0.13.0'" + 
+			"})";
+			query+="CREATE (p2:abbot:Artifact {\n" + 
+			"  artifact: 'abbot',\n" + 
+			"  groupID: 'abbot',\n" + 
+			"  coordinates: 'abbot:abbot:0.12.1',\n" + 
+			"  version: '0.12.1'" + 
+			"})";
+			query+="CREATE (p3:abbot:Artifact {\n" + 
+			"  artifact: 'abbot',\n" + 
+			"  groupID: 'abbot',\n" + 
+			"  coordinates: 'abbot:abbot:1.14.0',\n" + 
+			"  version: '1.14.0'" + 
+			"})";
+			session.run( query );
+			
+			session.run( "CALL maven.miner.group.precedenceship('abbot')");
+			StatementResult result = session.run( "CALL maven.miner.group.precedenceship('abbot')");			
+			assertThat(result.single().get(0).asBoolean(), equalTo(true));
+			
+			query = "match p=(:abbot{coordinates: 'abbot:abbot:0.13.0'})-[r:NEXT]->(:abbot {coordinates: 'abbot:abbot:1.14.0'}) return count(r)";
+			result = session.run(query);
+			
+			assertThat(result.single().get(0).asInt(), equalTo(1));
+			
+			query = "match p=(:abbot{coordinates: 'abbot:abbot:0.12.1'})-[r:NEXT]->(:abbot {coordinates: 'abbot:abbot:0.13.0'}) return count(r)";
+			result = session.run(query);
+			
+			assertThat(result.single().get(0).asInt(), equalTo(1));
+			}
+    }
 }

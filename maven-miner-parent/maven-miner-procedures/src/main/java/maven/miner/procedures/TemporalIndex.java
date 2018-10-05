@@ -1,6 +1,5 @@
 package maven.miner.procedures;
 
-import java.text.ParseException;
 import java.time.Month;
 import java.time.ZonedDateTime;
 import java.util.HashMap;
@@ -70,7 +69,6 @@ public class TemporalIndex extends AbstractProcedureEnv {
 		} catch (Exception e) {
 			if (e.getMessage() != null)
 				log.error(e.getMessage());
-			e.printStackTrace();
 			throw e;
 		}
 		BooleanOutput result = new BooleanOutput();

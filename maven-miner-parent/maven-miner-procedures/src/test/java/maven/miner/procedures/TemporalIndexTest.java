@@ -24,10 +24,8 @@ public class TemporalIndexTest
     @Test
     public void shouldPass() throws Throwable {
     	try( Driver driver = GraphDatabase.driver(neo4j.boltURI() , 
-    											   Config.build().withoutEncryption().toConfig()))
-        {
-
-            Session session = driver.session();
+    											   Config.build().withoutEncryption().toConfig())) {   
+    		Session session = driver.session();
             
             String query = "CREATE (p:abbot {\n" + 
         			"  artifact: 'abbot',\n" + 
@@ -38,14 +36,14 @@ public class TemporalIndexTest
         			"  version: '0.13.0'" + 
         			"}) return id(p)";
         			
-        			session.run( query );
+        	session.run( query );
             StatementResult result = session.run( "CALL maven.miner.group.temporalIndex('abbot')");
             
             assertThat(result.single().get(0).asBoolean(), equalTo(true));
             
-            query = String.format("match (n:abbot)-[:%s]->(y)\n"
-					+ "match (n:abbot)-[:%s]->(m)\n"
-					+ "match (n:abbot)-[:%s]->(d)\n"
+            query = String.format("match (n:abbot)-[ry:%s]->(y)\n"
+					+ "match (n:abbot)-[rm:%s]->(m)\n"
+					+ "match (n:abbot)-[rd:%s]->(d)\n"
 					+ "return y, m, d", 
 					DependencyRelation.YEAR.toString(),
 					DependencyRelation.MONTH.toString(),
@@ -54,11 +52,35 @@ public class TemporalIndexTest
  			Record resultRecord = result.single();
  			
  			assertThat(resultRecord.get("y").get(Properties.YEAR).asString(), equalTo("2005"));
-//			assertThat(result.list().get(0).asNode().get(Properties.YEAR).asString(), equalTo("2005"));
 			assertThat(resultRecord.get("m").get(Properties.MONTH).asString(), equalTo("AUGUST"));
 			assertThat(resultRecord.get("d").get(Properties.DAY).asString(), equalTo("1"));
+			
+			result = session.run( "CALL maven.miner.group.temporalIndex('abbot')");
+			
+			assertThat(result.single().get(0).asBoolean(), equalTo(true));
+			
+			query = String.format("match (n:abbot)-[ry:%s]->(y)\n"
+			+ "match (n:abbot)-[rm:%s]->(m)\n"
+			+ "match (n:abbot)-[rd:%s]->(d)\n"
+			+ "return count(y), "
+			+ " count(m),"
+			+ " count(d),"
+			+ " count(ry),"
+			+ " count(rm),"
+			+ " count(rd)", 
+			DependencyRelation.YEAR.toString(),
+			DependencyRelation.MONTH.toString(),
+			DependencyRelation.DAY.toString());
+			result = session.run(query);
+			resultRecord = result.single();
+			
+			assertThat(resultRecord.get(0).asInt(), equalTo(1));
+			assertThat(resultRecord.get(1).asInt(), equalTo(1));
+			assertThat(resultRecord.get(2).asInt(), equalTo(1));
+			assertThat(resultRecord.get(3).asInt(), equalTo(1));
+			assertThat(resultRecord.get(4).asInt(), equalTo(1));
+			assertThat(resultRecord.get(5).asInt(), equalTo(1));		
         }
     }
-    
     
 }
