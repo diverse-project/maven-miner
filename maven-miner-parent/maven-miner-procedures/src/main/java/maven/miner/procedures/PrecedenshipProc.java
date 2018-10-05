@@ -20,10 +20,32 @@ import org.sonatype.aether.version.Version;
 import fr.inria.diverse.maven.common.DependencyRelation;
 import fr.inria.diverse.maven.common.Properties;
 import maven.miner.output.BooleanOutput;
+import maven.miner.output.OutputNode;
 
 
-public class Precedenship extends AbstractProcedureEnv {
+public class PrecedenshipProc extends AbstractProcedureEnv {
 	
+	/**
+	 * 
+	 * This procedure returns all latest artifacts
+	 */
+	@Procedure(value="maven.miner.artifacts.latest", mode = Mode.READ)
+	@Description("retrieve all latest artifacts")
+	public Stream<OutputNode> getLatestArtifacts(@Name(value = "group name", defaultValue = Properties.ARTIFACT_LABEL) String groupName) {
+		Stream<OutputNode> result = null;
+		try (Transaction tx = graphDB.beginTx()) {
+			result = graphDB.findNodes(Label.label(groupName)).stream()
+							.filter(node -> ! node.hasRelationship(
+													DependencyRelation.NEXT, 
+													Direction.OUTGOING))
+							.map(OutputNode::new);
+			tx.success();
+		} catch (Exception e) {
+			log.error(e.getMessage());
+			throw e;	
+		}
+		return result;
+	}
 	/**
 	 * This procedure is responsible for creating  
 	 */
@@ -97,7 +119,6 @@ public class Precedenship extends AbstractProcedureEnv {
 		String artifact2 = (String) secondNode.getProperty(Properties.ARTIFACT);
 		return artifact1.equals(artifact2);	
 	}
-	
 
 	
 }

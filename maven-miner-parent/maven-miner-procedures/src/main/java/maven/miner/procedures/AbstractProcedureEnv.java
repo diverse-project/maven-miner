@@ -22,7 +22,15 @@ public class AbstractProcedureEnv {
 	 */
 	@Context 
 	public Log log;
+	/**
+	 * The calendar Label
+	 */
+	protected static final Label calendarLabel = Label.label(Properties.CALENDAR_LABEL);
 	
+	/**
+	 * The Artifact Label
+	 */
+	protected static final Label artifactLabel = Label.label(Properties.ARTIFACT_LABEL);
 	/**
 	 * 
 	 * @return {@link Stream<String>} allLabels

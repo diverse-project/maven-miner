@@ -3,23 +3,14 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.neo4j.driver.v1.*;
 import org.neo4j.harness.junit.Neo4jRule;
-import org.sonatype.aether.graph.Dependency;
-
-import fr.inria.diverse.maven.common.DependencyRelation;
-import fr.inria.diverse.maven.common.Properties;
-
 import static org.hamcrest.core.IsEqual.equalTo;
 import static org.junit.Assert.assertThat;
-
-import org.junit.After;
-import org.junit.Before;
-import org.junit.BeforeClass;
 
 public class PrecedenceshipTest
 {
 
     @Rule
-    public  Neo4jRule neo4j = new Neo4jRule().withProcedure( Precedenship.class );
+    public  Neo4jRule neo4j = new Neo4jRule().withProcedure( PrecedenshipProc.class );
 
    
     @Test
@@ -111,7 +102,9 @@ public class PrecedenceshipTest
  			result = session.run(query);
  			assertThat(result.single().get(0).asInt(), equalTo(2));
  			
-
+ 			query = "call maven.miner.artifacts.latest";
+ 			result = session.run(query);
+ 			assertThat(result.list().size(), equalTo(2));
         }
     }
     

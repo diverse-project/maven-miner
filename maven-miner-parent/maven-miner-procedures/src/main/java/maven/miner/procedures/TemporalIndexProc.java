@@ -1,6 +1,5 @@
 package maven.miner.procedures;
 
-import java.time.Month;
 import java.time.ZonedDateTime;
 import java.util.HashMap;
 import java.util.stream.Stream;
@@ -18,19 +17,19 @@ import fr.inria.diverse.maven.common.Properties;
 import fr.inria.diverse.maven.resolver.util.MavenResolverUtil;
 import maven.miner.output.BooleanOutput;
 
-public class TemporalIndex extends AbstractProcedureEnv {
+public class TemporalIndexProc extends AbstractProcedureEnv {
 	/**
 	 * an index of the nodes representing years
 	 */
-	public static HashMap<String, Node> yearNodes = new HashMap<String,Node>();
+	public static HashMap<Integer, Node> yearNodes = new HashMap<>();
 	/**
 	 * an index of nodes representing the months 
 	 */
-	public static HashMap<String, Node> monthNodes = new HashMap<String,Node>();
+	public static HashMap<Integer, Node> monthNodes = new HashMap<>();
 	/**
 	 * an index of nodes representing the days of the week
 	 */
-	public static HashMap<String, Node> dayNodes = new HashMap<String,Node>();
+	public static HashMap<Integer, Node> dayNodes = new HashMap<>();
 	/**
 	 * The calendar label node
 	 */
@@ -84,7 +83,7 @@ public class TemporalIndex extends AbstractProcedureEnv {
 		log.debug(String.format("creating temporal nodes for artifact: %s", 
 				  node.getProperty(Properties.COORDINATES)));
 		Node yearNode = getOrCreateYearNode(zonedTime.getYear());
-		Node monthNode = getOrCreateMonthNode(zonedTime.getMonth());
+		Node monthNode = getOrCreateMonthNode(zonedTime.getMonthValue());
 		Node dayNode = getOrCreateDayNode(zonedTime.getDayOfMonth());
 		
 		if(!node.hasRelationship(DependencyRelation.YEAR))
@@ -103,12 +102,12 @@ public class TemporalIndex extends AbstractProcedureEnv {
 	private Node getOrCreateDayNode(int dayOfWeek) {
 		
 		Node day = null; 
-		String dayString = ""+dayOfWeek;
-		if (dayNodes.containsKey(dayString)) {
-			day = dayNodes.get(dayString);
+
+		if (dayNodes.containsKey(dayOfWeek)) {
+			day = dayNodes.get(dayOfWeek);
 		} else {
-			day = findCalendarNode(Properties.DAY, dayString);
-			dayNodes.put(dayString, day);
+			day = findCalendarNode(Properties.DAY, dayOfWeek);
+			dayNodes.put(dayOfWeek, day);
 		}
 		return day;
 	}
@@ -118,13 +117,13 @@ public class TemporalIndex extends AbstractProcedureEnv {
 	 * @param month
 	 * @return
 	 */
-	private Node getOrCreateMonthNode(Month monthP) {
+	private Node getOrCreateMonthNode(int monthP) {
 		Node month = null; 
-		if (monthNodes.containsKey(monthP.toString())) {
-			month = monthNodes.get(monthP.toString());
+		if (monthNodes.containsKey( monthP)) {
+			month = monthNodes.get( monthP);
 		} else {
-			month = findCalendarNode(Properties.MONTH, monthP.toString());
-			monthNodes.put(monthP.toString(), month);
+			month = findCalendarNode(Properties.MONTH,  monthP);
+			monthNodes.put( monthP, month);
 		}
 		return month;
 	}
@@ -136,12 +135,12 @@ public class TemporalIndex extends AbstractProcedureEnv {
 	 */
 	private Node getOrCreateYearNode(int years) {
 		Node year = null;
-		String yearP = ""+years;
-		if (yearNodes.containsKey(yearP)) {
-			year = yearNodes.get(yearP);
+
+		if (yearNodes.containsKey(years)) {
+			year = yearNodes.get(years);
 		} else {
-			year = findCalendarNode(Properties.YEAR, yearP);
-			yearNodes.put(yearP, year);
+			year = findCalendarNode(Properties.YEAR, years);
+			yearNodes.put(years, year);
 		}
 		return year;
 	}
@@ -152,7 +151,7 @@ public class TemporalIndex extends AbstractProcedureEnv {
 	 * @param value
 	 * @return
 	 */
-	private Node findCalendarNode(String property, String value) {
+	private Node findCalendarNode(String property, int value) {
 		Node node = graphDB.findNode(calendarLabel, property, value);
 		if (node == null) {
 			node = graphDB.createNode(calendarLabel);
