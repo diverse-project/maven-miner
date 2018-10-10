@@ -65,6 +65,18 @@ public abstract class Neo4jGraphDBWrapper {
 		sdf.setTimeZone(TimeZone.getTimeZone("GMT"));
 	}
 	/**
+	 * A throwable instance for managing failure execptions
+	 */
+	protected Throwable txEx = null;
+	/**
+	 * The number of times to retry a transaction in case of failure 
+	 */
+	protected static final int RETRIES = 5;
+	/**
+	 * The sleep time in case of failure
+	 */
+	protected static final int BACKOFF = 3000;
+	/**
 	 * Returns the release date of a given artifact
 	 * @param artifact
 	 * @return javaDate {@link ZonedDateTime}

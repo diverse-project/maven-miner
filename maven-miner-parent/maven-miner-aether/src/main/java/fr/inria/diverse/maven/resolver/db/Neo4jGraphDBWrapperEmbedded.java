@@ -21,9 +21,10 @@ import org.neo4j.graphdb.Label;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.Transaction;
+import org.neo4j.graphdb.TransactionFailureException;
 import org.neo4j.graphdb.factory.GraphDatabaseFactory;
 import org.neo4j.graphdb.schema.Schema;
-
+import org.neo4j.kernel.DeadlockDetectedException;
 import org.sonatype.aether.artifact.Artifact;
 import org.sonatype.aether.util.version.GenericVersionScheme;
 import org.sonatype.aether.version.InvalidVersionSpecificationException;
@@ -140,47 +141,78 @@ public class Neo4jGraphDBWrapperEmbedded extends Neo4jGraphDBWrapper {
 		
 		Node result;
 		//Label label;
-		try ( Transaction tx = graphDB.beginTx()) {
-			
-			Label artifactLabel = getOrCreateLabel(Properties.ARTIFACT_LABEL);		
-			result = graphDB.findNode(artifactLabel, Properties.COORDINATES, depKey);
-			
-			if (result == null) {
-			
-				LOGGER.debug("adding artifact: "+depKey);
-				result = graphDB.createNode(artifactLabel);
+		for (int i = 0; i < RETRIES; i++) {
+			try ( Transaction tx = graphDB.beginTx()) {
 				
-				// setting the artifact metadata properties
-				result.setProperty(Properties.COORDINATES, depKey);
-				result.setProperty(Properties.GROUP, artifact.getGroupId());
-				result.setProperty(Properties.CLASSIFIER, artifact.getClassifier());
-				result.setProperty(Properties.VERSION, artifact.getVersion());
-				result.setProperty(Properties.PACKAGING, MavenResolverUtil.derivePackaging(artifact).toString());
-				result.setProperty(Properties.ARTIFACT, artifact.getArtifactId());
+				Label artifactLabel = getOrCreateLabel(Properties.ARTIFACT_LABEL);		
+				result = graphDB.findNode(artifactLabel, Properties.COORDINATES, depKey);
 				
-				//resolving last-modified from central
-		    	URL artifactURL = null;
-				try {
-					artifactURL = centralURI.resolve(layout.getPath(artifact)).toURL();
-			  		HttpURLConnection connexion = (HttpURLConnection) artifactURL.openConnection();
-			  		connexion.setRequestMethod("HEAD");
-			  		String modified = connexion.getHeaderField("Last-Modified");		  		
-			  		ZonedDateTime javaDate = sdf.parse(modified).toInstant().atZone(ZoneId.systemDefault());
-			  		result.setProperty(Properties.LAST_MODIFIED, javaDate);
-			      	} catch (MalformedURLException e) {
-			      		LOGGER.error("MalformedURL {}",artifactURL);
-			      		e.printStackTrace();
-			      	} catch (IOException e) {
-			      		e.printStackTrace();
-			      	} catch (ParseException e) {
-			      		LOGGER.error("MalformedURL {}",artifactURL);
-						e.printStackTrace();
-					}
-			} 
-			result.addLabel(getOrCreateLabel(artifact.getGroupId()));
-			tx.success();
+				if (result == null) {
+				
+					LOGGER.debug("adding artifact: "+depKey);
+					result = graphDB.createNode(artifactLabel);
+					
+					// setting the artifact metadata properties
+					result.setProperty(Properties.COORDINATES, depKey);
+					result.setProperty(Properties.GROUP, artifact.getGroupId());
+					result.setProperty(Properties.CLASSIFIER, artifact.getClassifier());
+					result.setProperty(Properties.VERSION, artifact.getVersion());
+					result.setProperty(Properties.PACKAGING, MavenResolverUtil.derivePackaging(artifact).toString());
+					result.setProperty(Properties.ARTIFACT, artifact.getArtifactId());
+					
+					//resolving last-modified from central
+			    	URL artifactURL = null;
+					try {
+						artifactURL = centralURI.resolve(layout.getPath(artifact)).toURL();
+				  		HttpURLConnection connexion = (HttpURLConnection) artifactURL.openConnection();
+				  		connexion.setRequestMethod("HEAD");
+				  		String modified = connexion.getHeaderField("Last-Modified");		  		
+				  		ZonedDateTime javaDate = sdf.parse(modified).toInstant().atZone(ZoneId.systemDefault());
+				  		result.setProperty(Properties.LAST_MODIFIED, javaDate);
+				      	} catch (MalformedURLException e) {
+				      		LOGGER.error("MalformedURL {}",artifactURL);
+				      		e.printStackTrace();
+				      	} catch (IOException e) {
+				      		e.printStackTrace();
+				      	} catch (ParseException e) {
+				      		LOGGER.error("MalformedURL {}",artifactURL);
+							e.printStackTrace();
+						}
+				} 
+				result.addLabel(getOrCreateLabel(artifact.getGroupId()));
+				tx.success();
+				return  result;
+			} catch  (Throwable ex)  {
+				 txEx = ex;
+			     if (!(ex instanceof DeadlockDetectedException)) {
+			         break;
+			     }
+			     if ( i < RETRIES-1 ) {
+				     try {
+				            Thread.sleep( BACKOFF );
+				     } catch ( InterruptedException e ) {
+				            throw new TransactionFailureException( "Trasaction failed due to thread interuption", e );
+				     }
+			     }
+	        }
 		}
-		return  result;
+		if ( txEx instanceof TransactionFailureException )
+		{
+		    throw ((TransactionFailureException) txEx);
+		}
+		else if ( txEx instanceof Error )
+		{
+		    throw ((Error) txEx);
+		}
+		else if ( txEx instanceof RuntimeException )
+		{
+		    throw ((RuntimeException) txEx);
+		}
+		else
+		{
+		    throw new TransactionFailureException( "Failed", txEx );
+		}
+		
 	}
 	/**
 	 * Registering the DB shutdown hook
@@ -197,16 +229,45 @@ public class Neo4jGraphDBWrapperEmbedded extends Neo4jGraphDBWrapper {
  	public void addDependency(Artifact sourceArtifact,  Artifact targetArtifact,Scope scope) {	
  		Node source = getNodeFromArtifactCoordinate(sourceArtifact);
 		Node target = getNodeFromArtifactCoordinate(targetArtifact);
-		
-		try ( Transaction tx = graphDB.beginTx() ) { 
-
-			if(!edgesIndex.get(Properties.SCOPE, scope.toString(), source, target).hasNext()) {
-				Relationship relation = source.createRelationshipTo(target, DependencyRelation.DEPENDS_ON);
-				relation.setProperty(Properties.SCOPE, scope.toString());
-				edgesIndex.add(relation, Properties.SCOPE, scope.toString());
-			}
-			tx.success();
-
+		for (int i = 0; i < RETRIES; i++) {
+			try ( Transaction tx = graphDB.beginTx() ) { 
+	
+				if(!edgesIndex.get(Properties.SCOPE, scope.toString(), source, target).hasNext()) {
+					Relationship relation = source.createRelationshipTo(target, DependencyRelation.DEPENDS_ON);
+					relation.setProperty(Properties.SCOPE, scope.toString());
+					edgesIndex.add(relation, Properties.SCOPE, scope.toString());
+				}
+				tx.success();
+				return;
+			} catch  (Throwable ex)  {
+				 txEx = ex;
+			     if (!(ex instanceof DeadlockDetectedException)) {
+			         break;
+			     }
+			     if ( i < RETRIES-1 ) {
+				     try {
+				            Thread.sleep( BACKOFF );
+				     } catch ( InterruptedException e ) {
+				            throw new TransactionFailureException( "Trasaction failed due to thread interuption", e );
+				     }
+			     }
+	        }
+		}
+		if ( txEx instanceof TransactionFailureException )
+		{
+		    throw ((TransactionFailureException) txEx);
+		}
+		else if ( txEx instanceof Error )
+		{
+		    throw ((Error) txEx);
+		}
+		else if ( txEx instanceof RuntimeException )
+		{
+		    throw ((RuntimeException) txEx);
+		}
+		else
+		{
+		    throw new TransactionFailureException( "Failed", txEx );
 		}	
 	}
  	
@@ -215,49 +276,75 @@ public class Neo4jGraphDBWrapperEmbedded extends Neo4jGraphDBWrapper {
 	 */
 	public void createPrecedenceShip() {
 		LOGGER.info("Creating plugins version's evolution ");
-
-		try (Transaction tx = graphDB.beginTx()) {
-			 graphDB.getAllLabelsInUse().stream()
-					.filter(label -> ! label.name().equals(Properties.EXCEPTION_LABEL) ||
-										! label.name().equals(Properties.EXCEPTION_LABEL))							
-					.forEach(label ->
-			{							
-				
-				List<Node> sortedNodes = graphDB.findNodes(label).stream().sorted(new Comparator<Node>() {
-					@Override
-					public int compare(Node n1, Node n2) {
-						//String p1 = n1.getProperty
-						String p1 = (String) n1.getProperty(Properties.ARTIFACT);
-						String p2 = (String) n2.getProperty(Properties.ARTIFACT);
-						Version v1 = null;
-						Version v2 = null;
-						if (p1.compareTo(p2) != 0) return p1.compareTo(p2);
-						final GenericVersionScheme versionScheme = new GenericVersionScheme();
-						try {
-							v1 = versionScheme.parseVersion((String)n1.getProperty(Properties.VERSION));
-							v2 = versionScheme.parseVersion((String)n2.getProperty(Properties.VERSION));
-						} catch (InvalidVersionSpecificationException e) {
-							LOGGER.error(e.getMessage());
-							e.printStackTrace();
-						}
-					    return v1.compareTo(v2); 		
-					}
-				}).collect(Collectors.toList());//end find nodes
-				
-				for (int i =0; i< sortedNodes.size() - 2; i++) {
-					Node firstNode = sortedNodes.get(i);
-					Node secondNode = sortedNodes.get(i+1);
+		for (int r = 0; r < RETRIES; r++) {
+			try (Transaction tx = graphDB.beginTx()) {
+				 graphDB.getAllLabelsInUse().stream()
+						.filter(label -> ! label.name().equals(Properties.EXCEPTION_LABEL) ||
+											! label.name().equals(Properties.EXCEPTION_LABEL))							
+						.forEach(label ->
+				{							
 					
-					if (isNextRelease(firstNode, secondNode)) {
-						firstNode.createRelationshipTo(secondNode, DependencyRelation.NEXT);
+					List<Node> sortedNodes = graphDB.findNodes(label).stream().sorted(new Comparator<Node>() {
+						@Override
+						public int compare(Node n1, Node n2) {
+							//String p1 = n1.getProperty
+							String p1 = (String) n1.getProperty(Properties.ARTIFACT);
+							String p2 = (String) n2.getProperty(Properties.ARTIFACT);
+							Version v1 = null;
+							Version v2 = null;
+							if (p1.compareTo(p2) != 0) return p1.compareTo(p2);
+							final GenericVersionScheme versionScheme = new GenericVersionScheme();
+							try {
+								v1 = versionScheme.parseVersion((String)n1.getProperty(Properties.VERSION));
+								v2 = versionScheme.parseVersion((String)n2.getProperty(Properties.VERSION));
+							} catch (InvalidVersionSpecificationException e) {
+								LOGGER.error(e.getMessage());
+								e.printStackTrace();
+							}
+						    return v1.compareTo(v2); 		
+						}
+					}).collect(Collectors.toList());//end find nodes
+					
+					for (int i =0; i< sortedNodes.size() - 2; i++) {
+						Node firstNode = sortedNodes.get(i);
+						Node secondNode = sortedNodes.get(i+1);
+						
+						if (isNextRelease(firstNode, secondNode)) {
+							firstNode.createRelationshipTo(secondNode, DependencyRelation.NEXT);
+						}
 					}
-				}
-			});//end foreach		
-			tx.success();
-		} catch (Exception e) {
-			LOGGER.error(e.getLocalizedMessage());
-			e.printStackTrace();
-			throw e;
+				});//end foreach		
+				tx.success();
+				return;
+			} catch  (Throwable ex)  {
+				 txEx = ex;
+			     if (!(ex instanceof DeadlockDetectedException)) {
+			         break;
+			     }
+			     if ( r < RETRIES-1 ) {
+				     try {
+				            Thread.sleep( BACKOFF );
+				     } catch ( InterruptedException e ) {
+				            throw new TransactionFailureException( "Trasaction failed due to thread interuption", e );
+				     }
+			     }
+			}
+		}
+		if ( txEx instanceof TransactionFailureException )
+		{
+		    throw ((TransactionFailureException) txEx);
+		}
+		else if ( txEx instanceof Error )
+		{
+		    throw ((Error) txEx);
+		}
+		else if ( txEx instanceof RuntimeException )
+		{
+		    throw ((RuntimeException) txEx);
+		}
+		else
+		{
+		    throw new TransactionFailureException( "Failed", txEx );
 		}
 		
 	}
@@ -271,17 +358,46 @@ public class Neo4jGraphDBWrapperEmbedded extends Neo4jGraphDBWrapper {
 	 * @param jarCounter {@link JarCounter}
 	 */
 	public void updateDependencyCounts(Artifact artifact, JarCounter jarCounter) {
-		
-		try (Transaction tx = graphDB.beginTx()) {
-			// retrieving the artifact's node
-			Node node = getNodeFromArtifactCoordinate(artifact);
-			// updating jar entries count
-			Arrays.asList(JarEntryType.values())
-			      .forEach(type -> node.setProperty(type.getName(), jarCounter.getValueForType(type)));
-			
-			tx.success();
+		for (int r = 0; r < RETRIES; r++) {
+			try (Transaction tx = graphDB.beginTx()) {
+				// retrieving the artifact's node
+				Node node = getNodeFromArtifactCoordinate(artifact);
+				// updating jar entries count
+				Arrays.asList(JarEntryType.values())
+				      .forEach(type -> node.setProperty(type.getName(), jarCounter.getValueForType(type)));
+				
+				tx.success();
+				return;
+			} catch  (Throwable ex)  {
+				 txEx = ex;
+			     if (!(ex instanceof DeadlockDetectedException)) {
+			         break;
+			     }
+			     if ( r < RETRIES-1 ) {
+				     try {
+				            Thread.sleep( BACKOFF );
+				     } catch ( InterruptedException e ) {
+				            throw new TransactionFailureException( "Trasaction failed due to thread interuption", e );
+				     }
+			     }
+			}
 		}
-		
+		if ( txEx instanceof TransactionFailureException )
+		{
+		    throw ((TransactionFailureException) txEx);
+		}
+		else if ( txEx instanceof Error )
+		{
+		    throw ((Error) txEx);
+		}
+		else if ( txEx instanceof RuntimeException )
+		{
+		    throw ((RuntimeException) txEx);
+		}
+		else
+		{
+		    throw new TransactionFailureException( "Failed", txEx );
+		}	
 	}
 	/**
 	 * 
@@ -289,25 +405,54 @@ public class Neo4jGraphDBWrapperEmbedded extends Neo4jGraphDBWrapper {
 	 * @param jarCounter
 	 */
 	public void updateDependencyCounts(Artifact artifact, JarCounter jarCounter, ExceptionCounter exCounter) {
-		
-		
-		try (Transaction tx = graphDB.beginTx()) {
-			// retrieving the artifact's node
-			Node node = getNodeFromArtifactCoordinate(artifact);
-			// updating jar entries count
-			Arrays.asList(JarEntryType.values())
-				  .forEach(type -> node.setProperty(type.getName(), jarCounter.getValueForType(type)));
-			
-			//Updating exceptions count
-			Arrays.asList(ExceptionType.values())
-				  .forEach(type -> {
-					  int value = exCounter.getValueForType(type); 
-					  if (value != 0) {
-						 createExceptionRelationship(node, type, value);
-					  }
-				  });
-			tx.success();
+		for (int r = 0; r < RETRIES; r++) {
+			try (Transaction tx = graphDB.beginTx()) {
+				// retrieving the artifact's node
+				Node node = getNodeFromArtifactCoordinate(artifact);
+				// updating jar entries count
+				Arrays.asList(JarEntryType.values())
+					  .forEach(type -> node.setProperty(type.getName(), jarCounter.getValueForType(type)));
+				
+				//Updating exceptions count
+				Arrays.asList(ExceptionType.values())
+					  .forEach(type -> {
+						  int value = exCounter.getValueForType(type); 
+						  if (value != 0) {
+							 createExceptionRelationship(node, type, value);
+						  }
+					  });
+				tx.success();
+				return;
+			} catch  (Throwable ex)  {
+				 txEx = ex;
+			     if (!(ex instanceof DeadlockDetectedException)) {
+			         break;
+			     }
+			     if ( r < RETRIES-1 ) {
+				     try {
+				            Thread.sleep( BACKOFF );
+				     } catch ( InterruptedException e ) {
+				            throw new TransactionFailureException( "Trasaction failed due to thread interuption", e );
+				     }
+			     }
+			}
 		}
+		if ( txEx instanceof TransactionFailureException )
+		{
+		    throw ((TransactionFailureException) txEx);
+		}
+		else if ( txEx instanceof Error )
+		{
+		    throw ((Error) txEx);
+		}
+		else if ( txEx instanceof RuntimeException )
+		{
+		    throw ((RuntimeException) txEx);
+		}
+		else
+		{
+		    throw new TransactionFailureException( "Failed", txEx );
+		}	
 		
 	}
 	/**
@@ -340,18 +485,49 @@ public class Neo4jGraphDBWrapperEmbedded extends Neo4jGraphDBWrapper {
 	public void updateClassCount(Artifact artifact, int classCount) {
 		
 		//String [] elements = MavenResolverUtil.coordinatesToElements(coordinates);
-		try (Transaction tx = graphDB.beginTx()) {
-			//Label label = getOrCreateLabel(groupeID);
-			Node node = getNodeFromArtifactCoordinate(artifact);
-			if (node == null) {
-				// Sth weird is happening here!
-				// This shouldn't occur!!Mhhh
-				tx.close();
-				return;
+		for (int r = 0; r < RETRIES; r++) {
+			try (Transaction tx = graphDB.beginTx()) {
+				//Label label = getOrCreateLabel(groupeID);
+				Node node = getNodeFromArtifactCoordinate(artifact);
+				if (node == null) {
+					// Sth weird is happening here!
+					// This shouldn't occur!!Mhhh
+					tx.close();
+					return;
+				}
+				node.setProperty(JarEntryType.CLASS.getName(), classCount);
+				tx.success();
+			
+			} catch  (Throwable ex)  {
+				 txEx = ex;
+			     if (!(ex instanceof DeadlockDetectedException)) {
+			         break;
+			     }
+			     if ( r < RETRIES-1 ) {
+				     try {
+				            Thread.sleep( BACKOFF );
+				     } catch ( InterruptedException e ) {
+				            throw new TransactionFailureException( "Trasaction failed due to thread interuption", e );
+				     }
+			     }
 			}
-			node.setProperty(JarEntryType.CLASS.getName(), classCount);
-			tx.success();
-		}	
+		}
+		if ( txEx instanceof TransactionFailureException )
+		{
+		    throw ((TransactionFailureException) txEx);
+		}
+		else if ( txEx instanceof Error )
+		{
+		    throw ((Error) txEx);
+		}
+		else if ( txEx instanceof RuntimeException )
+		{
+		    throw ((RuntimeException) txEx);
+		}
+		else
+		{
+		    throw new TransactionFailureException( "Failed", txEx );
+		}
 	}
 	/**
 	 * Creating a resolution relationship

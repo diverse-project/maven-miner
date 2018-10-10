@@ -5,6 +5,8 @@ import org.neo4j.driver.v1.Driver;
 import org.neo4j.driver.v1.GraphDatabase;
 import org.neo4j.driver.v1.Session;
 import org.neo4j.driver.v1.StatementResult;
+import org.neo4j.graphdb.TransactionFailureException;
+import org.neo4j.kernel.DeadlockDetectedException;
 import org.sonatype.aether.artifact.Artifact;
 import org.sonatype.aether.util.artifact.DefaultArtifact;
 import org.sonatype.aether.util.version.GenericVersionScheme;
@@ -54,7 +56,7 @@ public class Neo4jGraphDBWrapperServer extends Neo4jGraphDBWrapper implements Au
 //		}
 		// creating schema 
 		try ( Session session = driver.session() )
-        {
+        {	
             session.writeTransaction( tx ->
             {	
             	String query = String.format("CREATE CONSTRAINT ON (artf:%s) "
@@ -112,107 +114,187 @@ public class Neo4jGraphDBWrapperServer extends Neo4jGraphDBWrapper implements Au
 	public void createNodeFromArtifactCoordinate(Artifact artifact) {
 		
 		ZonedDateTime javaDate =getReleaseDateFromArtifact(artifact);
-		 try ( Session session = driver.session() )
-	        {
-	            session.writeTransaction( tx ->
-	            {
-	            	String query =String.format("MERGE (a:%s:`%s` { %s : $coordinatesValue }) "
-	            			+ "SET a+= {"
-							+ "%s : $artifactValue, "
-							+ "%s : $groupValue, "
-							+ "%s : $versionValue, "
-							+ "%s : $packagingValue, "
-							+ "%s : $classifierValue, "
-							+ "%s : $releaseValue } "
-							+ "RETURN a.%s",
-							Properties.ARTIFACT_LABEL,
-							artifact.getGroupId(),
-							Properties.COORDINATES,
-							Properties.ARTIFACT,
-							Properties.GROUP, 
-							Properties.VERSION,
-							Properties.PACKAGING,
-							Properties.CLASSIFIER,
-							Properties.LAST_MODIFIED,
-							Properties.COORDINATES);	
-	            	StatementResult result = tx.run( query,
-						                             parameters(
-						                            		 	"groupValue", artifact.getGroupId(),
-						                            		 	"artifactValue", artifact.getArtifactId(),
-						                            		 	"coordinatesValue", MavenResolverUtil.artifactToCoordinate(artifact),
-						                            		 	"versionValue", artifact.getVersion(),
-						                            		 	"packagingValue", MavenResolverUtil.derivePackaging(artifact).toString(),
-						                            		 	"classifierValue", artifact.getClassifier(),
-						                            		 	"releaseID", Properties.LAST_MODIFIED,
-						                            		 	"releaseValue",javaDate.toString()
-						                              ));
-	                result.single().get(0).asString();
-	                
-	                return null;
-	            } );
-	        } catch (Exception e) {
-				LOGGER.error(e.getMessage());
-				e.printStackTrace();
+		for (int i = 0; i < RETRIES; i++) {
+			 try ( Session session = driver.session() )
+		        {
+		            session.writeTransaction( tx ->
+		            {
+		            	String query =String.format("MERGE (a:%s:`%s` { %s : $coordinatesValue }) "
+		            			+ "SET a+= {"
+								+ "%s : $artifactValue, "
+								+ "%s : $groupValue, "
+								+ "%s : $versionValue, "
+								+ "%s : $packagingValue, "
+								+ "%s : $classifierValue, "
+								+ "%s : $releaseValue } "
+								+ "RETURN a.%s",
+								Properties.ARTIFACT_LABEL,
+								artifact.getGroupId(),
+								Properties.COORDINATES,
+								Properties.ARTIFACT,
+								Properties.GROUP, 
+								Properties.VERSION,
+								Properties.PACKAGING,
+								Properties.CLASSIFIER,
+								Properties.LAST_MODIFIED,
+								Properties.COORDINATES);	
+		            	StatementResult result = tx.run( query,
+							                             parameters(
+							                                "groupValue", artifact.getGroupId(),
+							                            	"artifactValue", artifact.getArtifactId(),
+							                            	"coordinatesValue", MavenResolverUtil.artifactToCoordinate(artifact),
+							                            	"versionValue", artifact.getVersion(),
+							                            	"packagingValue", MavenResolverUtil.derivePackaging(artifact).toString(),
+							                            	"classifierValue", artifact.getClassifier(),
+							                            	"releaseID", Properties.LAST_MODIFIED,
+							                            	"releaseValue",javaDate.toString()
+							                              ));
+		                result.single().get(0).asString();
+		                
+		                return null;
+		            } );
+		        }  catch  (Throwable ex)  {
+					 txEx = ex;
+				     if (!(ex instanceof DeadlockDetectedException)) {
+				         break;
+				     }
+				     if ( i < RETRIES-1 ) {
+					     try {
+					            Thread.sleep( BACKOFF );
+					     } catch ( InterruptedException e ) {
+					            throw new TransactionFailureException( "Trasaction failed due to thread interuption", e );
+					     }
+				     }
+		        }
 			}
+		if ( txEx instanceof TransactionFailureException )
+		{
+		    throw ((TransactionFailureException) txEx);
+		}
+		else if ( txEx instanceof Error )
+		{
+		    throw ((Error) txEx);
+		}
+		else if ( txEx instanceof RuntimeException )
+		{
+		    throw ((RuntimeException) txEx);
+		}
+		else
+		{
+		    throw new TransactionFailureException( "Failed", txEx );
+		}
 	}
 	@Override
 	public void addDependency(Artifact sourceArtifact, Artifact targetArtifact, Scope scope) {
-		try ( Session session = driver.session() )
-        {
-            session.writeTransaction( tx ->  {		
-            	String query =  String.format("MATCH (source : `%s` { "
-            		+ "%s : $coordinatesValue1 }), "
-            		+ "(target : `%s` { %s : $coordinatesValue2 }) "
-            		+ "MERGE (source)-[r : DEPENDS_ON { %s : $scopeValue } ]->(target)"
-            		+ "RETURN source.%s",
-            		sourceArtifact.getGroupId(),
-            		Properties.COORDINATES,
-            		targetArtifact.getGroupId(),
-            		Properties.COORDINATES,
-            		Properties.SCOPE,
-            		Properties.COORDINATES);
-            	
-            	StatementResult result = tx.run(query, parameters("coordinatesValue1", MavenResolverUtil.artifactToCoordinate(sourceArtifact),
-							                            		  "coordinatesValue2", MavenResolverUtil.artifactToCoordinate(targetArtifact),
-							                            		  "scopeValue",scope.toString()
-				                            		 	       ));
-                result.single().get(0).asString();
-                return null;
-            } );
-        } catch  (Exception e)  {
-        	LOGGER.error("Ooohhh lala! An exception");
-			e.printStackTrace();
-        }
-
+		for (int i = 0; i < RETRIES; i++) {
+			try ( Session session = driver.session() )
+	        {
+	            session.writeTransaction( tx ->  {		
+	            	String query =  String.format("MATCH (source : `%s` { "
+	            		+ "%s : $coordinatesValue1 }), "
+	            		+ "(target : `%s` { %s : $coordinatesValue2 }) "
+	            		+ "MERGE (source)-[r : DEPENDS_ON { %s : $scopeValue } ]->(target)"
+	            		+ "RETURN source.%s",
+	            		sourceArtifact.getGroupId(),
+	            		Properties.COORDINATES,
+	            		targetArtifact.getGroupId(),
+	            		Properties.COORDINATES,
+	            		Properties.SCOPE,
+	            		Properties.COORDINATES);
+	            	
+	            	StatementResult result = tx.run(query, parameters("coordinatesValue1", MavenResolverUtil.artifactToCoordinate(sourceArtifact),
+								                            		  "coordinatesValue2", MavenResolverUtil.artifactToCoordinate(targetArtifact),
+								                            		  "scopeValue",scope.toString()
+					                            		 	       ));
+	                result.single().get(0).asString();
+	                return null;
+	            } );
+	        } catch  (Throwable ex)  {
+				 txEx = ex;
+			     if (!(ex instanceof DeadlockDetectedException)) {
+			         break;
+			     }
+			     if ( i < RETRIES-1 ) {
+				     try {
+				            Thread.sleep( BACKOFF );
+				     } catch ( InterruptedException e ) {
+				            throw new TransactionFailureException( "Trasaction failed due to thread interuption", e );
+				     }
+			     }
+	        }
+		}
+		if ( txEx instanceof TransactionFailureException )
+		{
+		    throw ((TransactionFailureException) txEx);
+		}
+		else if ( txEx instanceof Error )
+		{
+		    throw ((Error) txEx);
+		}
+		else if ( txEx instanceof RuntimeException )
+		{
+		    throw ((RuntimeException) txEx);
+		}
+		else
+		{
+		    throw new TransactionFailureException( "Failed", txEx );
+		}
 	}
 
 	@Override
 	public void updateDependencyCounts(Artifact artifact, JarCounter jarCounter) {
-		try ( Session session = driver.session() )
-        {
-            session.writeTransaction( tx ->
-            {		
-            		final StringBuilder query = new StringBuilder(String.format("MATCH (a:`%s` {%s:$coordinatesValue}) "
-            				+ "SET a+= {",artifact.getGroupId(),Properties.COORDINATES));
-            		
-            		Arrays.asList(JarEntryType.values())
-            			  .forEach(type -> query.append(String.format(" %s : %d, ", type.getName(), jarCounter.getValueForType(type))));           			                   
-            		query.delete(query.length()-2, query.length()-1);
-            		query.append('}');
-            		query.append(System.getProperty("line.separator"));
-            		query.append(String.format("RETURN a.%s",Properties.GROUP));
-            		StatementResult result = tx.run( query.toString(),
-                             parameters("groupValue", artifact.getGroupId(),
-                            		 	"coordinatesValue", MavenResolverUtil.artifactToCoordinate(artifact)
-                              )
-                           );
-            		result.single().get(0).asString();
-                    return null;
-            } );
-        } catch  (Exception e)  {
-        	LOGGER.error("Unable to update jar dependency count");
-			e.printStackTrace();
-        }
+		for (int i = 0; i < RETRIES; i++) {
+			try ( Session session = driver.session() )
+	        {
+	            session.writeTransaction( tx ->
+	            {		
+	            		final StringBuilder query = new StringBuilder(String.format("MATCH (a:`%s` {%s:$coordinatesValue}) "
+	            				+ "SET a+= {",artifact.getGroupId(),Properties.COORDINATES));
+	            		
+	            		Arrays.asList(JarEntryType.values())
+	            			  .forEach(type -> query.append(String.format(" %s : %d, ", type.getName(), jarCounter.getValueForType(type))));           			                   
+	            		query.delete(query.length()-2, query.length()-1);
+	            		query.append('}');
+	            		query.append(System.getProperty("line.separator"));
+	            		query.append(String.format("RETURN a.%s",Properties.GROUP));
+	            		StatementResult result = tx.run( query.toString(),
+	                             parameters("groupValue", artifact.getGroupId(),
+	                            		 	"coordinatesValue", MavenResolverUtil.artifactToCoordinate(artifact)
+	                              )
+	                           );
+	            		result.single().get(0).asString();
+	                    return null;
+	            } );
+	        } catch  (Throwable ex)  {
+				 txEx = ex;
+			     if (!(ex instanceof DeadlockDetectedException)) {
+			         break;
+			     }
+			     if ( i < RETRIES-1 ) {
+				     try {
+				            Thread.sleep( BACKOFF );
+				     } catch ( InterruptedException e ) {
+				            throw new TransactionFailureException( "Trasaction failed due to thread interuption", e );
+				     }
+			     }
+	        }
+		}
+		if ( txEx instanceof TransactionFailureException )
+		{
+		    throw ((TransactionFailureException) txEx);
+		}
+		else if ( txEx instanceof Error )
+		{
+		    throw ((Error) txEx);
+		}
+		else if ( txEx instanceof RuntimeException )
+		{
+		    throw ((RuntimeException) txEx);
+		}
+		else
+		{
+		    throw new TransactionFailureException( "Failed", txEx );
+		}
 	}
 	/**
 	 * @see Neo4jGraphDBWrapper#updateDependencyCounts(Artifact, JarCounter, ExceptionCounter)
@@ -226,33 +308,60 @@ public class Neo4jGraphDBWrapperServer extends Neo4jGraphDBWrapper implements Au
 	} 		
 	
 	private void updateExceptionCounter(Artifact artifact, ExceptionType type, ExceptionCounter exCounter) {
-		try ( Session session = driver.session() ) {
-			session.writeTransaction( tx -> {
-				final StringBuilder query = new StringBuilder(String.format("MATCH (a:`%s` {%s:$coordinatesValue})",artifact.getGroupId(), Properties.COORDINATES));
-				query.append(String.format("MERGE (e : %s { %s : $name})", 
-		 				Properties.EXCEPTION_LABEL,
-		 				Properties.EXCEPTION_NAME
-		 				));
-				query.append(System.getProperty("line.separator"));
-				query.append(String.format("CREATE UNIQUE (a)-[r : RAISES {%s:$value}]->(e)", 
-							Properties.EXCEPTION_OCCURENCE
+		for (int i = 0; i < RETRIES; i++) {
+			try ( Session session = driver.session() ) {
+				session.writeTransaction( tx -> {
+					final StringBuilder query = new StringBuilder(String.format("MATCH (a:`%s` {%s:$coordinatesValue})",artifact.getGroupId(), Properties.COORDINATES));
+					query.append(String.format("MERGE (e : %s { %s : $name})", 
+			 				Properties.EXCEPTION_LABEL,
+			 				Properties.EXCEPTION_NAME
 			 				));
-				query.append(System.getProperty("line.separator"));
-				query.append(String.format("RETURN e.%s",Properties.EXCEPTION_NAME));
-				
-				StatementResult result = tx.run( query.toString(),
-		                 						parameters( "coordinatesValue",MavenResolverUtil.artifactToCoordinate(artifact),
-		                 									"value",exCounter.getValueForType(type),
-		                 									"name",type.name()));
-		                 
-				result.single().get(0).asString();
-		        return null;
-	        } );
-		
-		} catch  (Exception e)  {
-        	LOGGER.error("Unable to update exception count for type %s", type.name());
-			e.printStackTrace();
-        }
+					query.append(System.getProperty("line.separator"));
+					query.append(String.format("CREATE UNIQUE (a)-[r : RAISES {%s:$value}]->(e)", 
+								Properties.EXCEPTION_OCCURENCE
+				 				));
+					query.append(System.getProperty("line.separator"));
+					query.append(String.format("RETURN e.%s",Properties.EXCEPTION_NAME));
+					
+					StatementResult result = tx.run( query.toString(),
+			                 						parameters( "coordinatesValue",MavenResolverUtil.artifactToCoordinate(artifact),
+			                 									"value",exCounter.getValueForType(type),
+			                 									"name",type.name()));
+			                 
+					result.single().get(0).asString();
+			        return null;
+		        } );
+			
+			} catch  (Throwable ex)  {
+				 txEx = ex;
+			     if (!(ex instanceof DeadlockDetectedException)) {
+			         break;
+			     }
+			     if ( i < RETRIES-1 ) {
+				     try {
+				            Thread.sleep( BACKOFF );
+				     } catch ( InterruptedException e ) {
+				            throw new TransactionFailureException( "Trasaction failed due to thread interuption", e );
+				     }
+			     }
+	        }
+		}
+		if ( txEx instanceof TransactionFailureException )
+		{
+		    throw ((TransactionFailureException) txEx);
+		}
+		else if ( txEx instanceof Error )
+		{
+		    throw ((Error) txEx);
+		}
+		else if ( txEx instanceof RuntimeException )
+		{
+		    throw ((RuntimeException) txEx);
+		}
+		else
+		{
+		    throw new TransactionFailureException( "Failed", txEx );
+		}
 	}
 
 
@@ -261,32 +370,58 @@ public class Neo4jGraphDBWrapperServer extends Neo4jGraphDBWrapper implements Au
 	 */
 	@Override
 	public void addResolutionExceptionRelationship(Artifact artifact) {
-		try ( Session session = driver.session() ) {
-			session.writeTransaction( tx -> {
-				final StringBuilder query = new StringBuilder(String.format("MERGE (a:`%s` {%s:$coordinatesValue})",artifact.getGroupId(), Properties.COORDINATES));
-				query.append(System.getProperty("line.separator"));
-				query.append(String.format("MERGE (e : %s { %s : '%s' })", 
-			 				Properties.EXCEPTION_LABEL,
-			 				Properties.EXCEPTION_NAME,
-			 				ExceptionType.RESOLUTION.name()
-			 				));
-				query.append(System.getProperty("line.separator"));
-				query.append("CREATE UNIQUE (a)-[r : RAISES]->(e)");
-				query.append(System.getProperty("line.separator"));
-				query.append(String.format("RETURN e.%s",Properties.EXCEPTION_NAME));
-				
-				StatementResult result = tx.run( query.toString(),
-		                 						parameters("coordinatesValue", 
-		                 							MavenResolverUtil.artifactToCoordinate(artifact)));
-		                 
-				result.single().get(0).asString();
-		        return null;
-	        } );
-		} catch  (Exception e)  {
-        	LOGGER.error("Ooohhh lala! An exception");
-			e.printStackTrace();
-        }
-		
+		for (int i = 0; i < RETRIES; i++) {
+			try ( Session session = driver.session() ) {
+				session.writeTransaction( tx -> {
+					final StringBuilder query = new StringBuilder(String.format("MERGE (a:`%s` {%s:$coordinatesValue})",artifact.getGroupId(), Properties.COORDINATES));
+					query.append(System.getProperty("line.separator"));
+					query.append(String.format("MERGE (e : %s { %s : '%s' })", 
+				 				Properties.EXCEPTION_LABEL,
+				 				Properties.EXCEPTION_NAME,
+				 				ExceptionType.RESOLUTION.name()
+				 				));
+					query.append(System.getProperty("line.separator"));
+					query.append("CREATE UNIQUE (a)-[r : RAISES]->(e)");
+					query.append(System.getProperty("line.separator"));
+					query.append(String.format("RETURN e.%s",Properties.EXCEPTION_NAME));
+					
+					StatementResult result = tx.run( query.toString(),
+			                 						parameters("coordinatesValue", 
+			                 							MavenResolverUtil.artifactToCoordinate(artifact)));
+			                 
+					result.single().get(0).asString();
+			        return null;
+		        } );
+			} catch  (Throwable ex)  {
+				 txEx = ex;
+			     if (!(ex instanceof DeadlockDetectedException)) {
+			         break;
+			     }
+			     if ( i < RETRIES-1 ) {
+				     try {
+				            Thread.sleep( BACKOFF );
+				     } catch ( InterruptedException e ) {
+				            throw new TransactionFailureException( "Trasaction failed due to thread interuption", e );
+				     }
+			     }
+	        }
+		}
+		if ( txEx instanceof TransactionFailureException )
+		{
+		    throw ((TransactionFailureException) txEx);
+		}
+		else if ( txEx instanceof Error )
+		{
+		    throw ((Error) txEx);
+		}
+		else if ( txEx instanceof RuntimeException )
+		{
+		    throw ((RuntimeException) txEx);
+		}
+		else
+		{
+		    throw new TransactionFailureException( "Failed", txEx );
+		}
 	
 	}
 	/**
@@ -376,33 +511,66 @@ public class Neo4jGraphDBWrapperServer extends Neo4jGraphDBWrapper implements Au
 	 * @param secondNode
 	 */
 	private void createNextRelationship(DefaultArtifact firstNode, DefaultArtifact secondNode) {
-		driver.session().writeTransaction(tx -> {
-			final String  query = String.format("MATCH (source : `%s` { %s : $coordinates1}), (target : `%s` {%s : $coordinates2}) "
-												+ " MERGE (source)-[r:%s]->(target) "
-												+ "RETURN target"
-												,firstNode.getGroupId()
-												,Properties.COORDINATES
-												,secondNode.getGroupId()
-												,Properties.COORDINATES
-												,"NEXT");
-			
-			final String coordinates1 = String.format("%s:%s:%s:%s"
+		for ( int i = 0; i < RETRIES; i++ ) {
+			try {
+				driver.session().writeTransaction(tx -> {
+					final String  query = String.format("MATCH (source : `%s` { %s : $coordinates1}), "
+														+ "(target : `%s` {%s : $coordinates2}) "
+														+ " MERGE (source)-[r:%s]->(target) "
+														+ "RETURN target"
 														,firstNode.getGroupId()
-														,firstNode.getArtifactId()
-														,firstNode.getProperties().get(Properties.PACKAGING)
-														,firstNode.getVersion());
-			
-			final String coordinates2 = String.format("%s:%s:%s:%s"
-					,secondNode.getGroupId()
-					,secondNode.getArtifactId()
-					,secondNode.getProperties().get(Properties.PACKAGING)
-					,secondNode.getVersion());
-
-			StatementResult result = tx.run(query, parameters("coordinates1",coordinates1,
-															  "coordinates2",coordinates2));
-			result.single().get(0).asNode();
-			return null;
-			});
+														,Properties.COORDINATES
+														,secondNode.getGroupId()
+														,Properties.COORDINATES
+														,"NEXT");
+					
+					final String coordinates1 = String.format("%s:%s:%s"
+																,firstNode.getGroupId()
+																,firstNode.getArtifactId()
+																//,firstNode.getProperties().get(Properties.PACKAGING)
+																,firstNode.getVersion());
+					
+					final String coordinates2 = String.format("%s:%s:%s"
+							,secondNode.getGroupId()
+							,secondNode.getArtifactId()
+							//,secondNode.getProperties().get(Properties.PACKAGING)
+							,secondNode.getVersion());
+		
+					StatementResult result = tx.run(query, parameters("coordinates1",coordinates1,
+																	  "coordinates2",coordinates2));
+					result.single().get(0).asNode();
+					return null;
+					});
+			 } catch (Throwable ex) {
+				txEx = ex;
+		        if (!(ex instanceof DeadlockDetectedException)) {
+		            break;
+		        }
+		        if ( i < RETRIES - 1 ) {
+			        try {
+			            Thread.sleep( BACKOFF );
+			        } catch ( InterruptedException e ) {
+			            throw new TransactionFailureException( "Trasaction failed due to thread interuption", e );
+			        }
+		        }  
+			}
+		}
+		if ( txEx instanceof TransactionFailureException )
+		{
+		    throw ((TransactionFailureException) txEx);
+		}
+		else if ( txEx instanceof Error )
+		{
+		    throw ((Error) txEx);
+		}
+		else if ( txEx instanceof RuntimeException )
+		{
+		    throw ((RuntimeException) txEx);
+		}
+		else
+		{
+		    throw new TransactionFailureException( "Failed", txEx );
+		}
 		
 	}
 	/**
@@ -424,7 +592,7 @@ public class Neo4jGraphDBWrapperServer extends Neo4jGraphDBWrapper implements Au
 	 */
 	@Override
 	public void createIndexes() {
-		// TODO Auto-generated method stub
+		
 	}
 }
 
