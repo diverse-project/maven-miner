@@ -3,6 +3,8 @@ package fr.inria.diverse.maven.resolver.launcher;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.TimeoutException;
 
 import org.apache.commons.cli.CommandLine;
@@ -11,21 +13,16 @@ import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import org.sonatype.aether.util.artifact.DefaultArtifact;
 
-import com.rabbitmq.client.ConnectionFactory;
-import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.AMQP;
 import com.rabbitmq.client.Channel;
+import com.rabbitmq.client.Connection;
+import com.rabbitmq.client.ConnectionFactory;
 import com.rabbitmq.client.DefaultConsumer;
 import com.rabbitmq.client.Envelope;
-import com.rabbitmq.client.Method;
-import com.rabbitmq.client.ShutdownListener;
-import com.rabbitmq.client.ShutdownSignalException;
 
 import fr.inria.diverse.maven.resolver.db.Neo4jGraphDBWrapper;
 import fr.inria.diverse.maven.resolver.db.Neo4jGraphDBWrapperServer;
@@ -40,6 +37,8 @@ import fr.inria.diverse.maven.resolver.tasks.Neo4jGraphDeepDependencyVisitorTask
 import fr.inria.diverse.maven.resolver.tasks.Neo4jGraphDependencyVisitorTask;
 
 public class ConsumerResolverApp {
+
+
 	/**
 	 * RabbitMQ fields
 	 */
@@ -155,32 +154,10 @@ public class ConsumerResolverApp {
 			   factory.setNetworkRecoveryInterval(1000);
 			   factory.setAutomaticRecoveryEnabled(true);
 			   connection = factory.newConnection();
-			   connection.addShutdownListener(new ShutdownListener() {
-				    public void shutdownCompleted(ShutdownSignalException cause)
-				    {
-			    	     LOGGER.info("Connection shutdown! ");
-				    	 if (cause.isHardError())
-				    	  {
-				    	    //Connection conn = (Connection)cause.getReference();
-				    	    if (!cause.isInitiatedByApplication())
-				    	    {
-				    	      Method reason = cause.getReason();
-				    	      LOGGER.error("The shutdown was caused by the server! ");
-				    	      LOGGER.error(reason.protocolMethodName());
-				    	    } else {
-					    	    Method reason = cause.getReason();
-				    	    	LOGGER.info("The shutdown was caused by the application! ");
-					    	    LOGGER.info("invoking {}",reason.protocolMethodName());
-				    	    }
-				    	  } else {
-				    	    //Channel ch = (Channel)cause.getReference();
-				    	    LOGGER.error("The shutdown was caused by the application! ");
-				    	    LOGGER.error(cause.getMessage());		    					      
-				    	  }
-				    }
-			   });
+			   connection.addShutdownListener(new ConnectionShutdownListener());			   
     	       channel = connection.createChannel();
     	       channel.basicQos(1);
+    	       channel.addShutdownListener(new ChannelShutdownListener(connection));
     	       Map<String, Object> lazyArg = new HashMap<String, Object>();
     	       lazyArg.put("x-queue-mode", "lazy");
 			   channel.queueDeclare(ARTIFACT_QUEUE_NAME, true, false, false, lazyArg);
@@ -194,7 +171,6 @@ public class ConsumerResolverApp {
 			   LOGGER.error("Error while trying to connect to the RabbitMQ server {}",e.getMessage());
 			   e.printStackTrace();
 		   }
-
 		   
 		   try {
 			  channel.basicConsume(ARTIFACT_QUEUE_NAME, false, new DefaultConsumer(channel) {
@@ -221,11 +197,12 @@ public class ConsumerResolverApp {
             	e.printStackTrace();
             }
 		  	  finally {
-//                myVisitor.getTaskSet().forEach(task -> {task.shutdown();});
-//                processor.report();
-            }    
+		  		//healthChecker.shutdownNow();
+		  	}    
 	}
-	
+	/**
+	 * Help formatter. Displays how to launch the application
+	 */
 	private static void help() {
 
 		  HelpFormatter formater = new HelpFormatter();
@@ -235,4 +212,5 @@ public class ConsumerResolverApp {
 		  System.exit(0);
 
 	}
+
 }
