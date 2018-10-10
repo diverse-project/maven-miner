@@ -22,7 +22,10 @@ public class ArtifactsRankingProc extends AbstractProcedureEnv {
 			@Name(value = "dependency scope. none by default", defaultValue = "any") String scope) {
 		return getTopArtifacts(Properties.ARTIFACT_LABEL, top, scope);
 	}
-
+	
+	
+	@Procedure(value="maven.miner.artifacts.group.top", mode = Mode.READ)
+	@Description("top X most used artifacts of a group")
 	public Stream<OutputNode> getTopArtifacts(
 			@Name("the groupName")String artifactLabel, 
 			@Name(value = "the number to limit the top too")long top,
@@ -54,7 +57,7 @@ public class ArtifactsRankingProc extends AbstractProcedureEnv {
 			tx.success();
 		} catch (Exception e) {
 			log.error(e.getMessage());
-			throw e;	
+			throw new RuntimeException(e.getCause());	
 		}
 		return result;
 	}
