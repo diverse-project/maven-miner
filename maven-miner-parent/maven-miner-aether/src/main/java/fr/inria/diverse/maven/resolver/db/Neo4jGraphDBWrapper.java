@@ -16,6 +16,7 @@ import javax.validation.constraints.NotNull;
 
 import org.neo4j.graphdb.Label;
 import org.neo4j.graphdb.Node;
+import org.neo4j.graphdb.TransactionFailureException;
 import org.neo4j.graphdb.index.RelationshipIndex;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -170,5 +171,26 @@ public abstract class Neo4jGraphDBWrapper {
 	 */
 
 	abstract public void addResolutionExceptionRelationship(Artifact artifact);
-
+	
+	/**
+	 * 
+	 */
+	protected void wrapException (Throwable txEx ) throws TransactionFailureException {
+		if ( txEx instanceof TransactionFailureException )
+		{
+		    throw ((TransactionFailureException) txEx);
+		}
+		else if ( txEx instanceof Error )
+		{
+		    throw ((Error) txEx);
+		}
+		else if ( txEx instanceof RuntimeException )
+		{
+		    throw ((RuntimeException) txEx);
+		}
+		else
+		{
+		    throw new TransactionFailureException( "Failed", txEx );
+		}
+	}
 }

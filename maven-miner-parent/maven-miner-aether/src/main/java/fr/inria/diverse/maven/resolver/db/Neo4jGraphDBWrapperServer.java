@@ -167,22 +167,8 @@ public class Neo4jGraphDBWrapperServer extends Neo4jGraphDBWrapper implements Au
 				     }
 		        }
 			}
-		if ( txEx instanceof TransactionFailureException )
-		{
-		    throw ((TransactionFailureException) txEx);
-		}
-		else if ( txEx instanceof Error )
-		{
-		    throw ((Error) txEx);
-		}
-		else if ( txEx instanceof RuntimeException )
-		{
-		    throw ((RuntimeException) txEx);
-		}
-		else
-		{
-		    throw new TransactionFailureException( "Failed", txEx );
-		}
+		// THEN
+	    wrapException(txEx);
 	}
 	@Override
 	public void addDependency(Artifact sourceArtifact, Artifact targetArtifact, Scope scope) {
@@ -223,22 +209,8 @@ public class Neo4jGraphDBWrapperServer extends Neo4jGraphDBWrapper implements Au
 			     }
 	        }
 		}
-		if ( txEx instanceof TransactionFailureException )
-		{
-		    throw ((TransactionFailureException) txEx);
-		}
-		else if ( txEx instanceof Error )
-		{
-		    throw ((Error) txEx);
-		}
-		else if ( txEx instanceof RuntimeException )
-		{
-		    throw ((RuntimeException) txEx);
-		}
-		else
-		{
-		    throw new TransactionFailureException( "Failed", txEx );
-		}
+		// THEN
+	    wrapException(txEx);
 	}
 
 	@Override
@@ -279,22 +251,8 @@ public class Neo4jGraphDBWrapperServer extends Neo4jGraphDBWrapper implements Au
 			     }
 	        }
 		}
-		if ( txEx instanceof TransactionFailureException )
-		{
-		    throw ((TransactionFailureException) txEx);
-		}
-		else if ( txEx instanceof Error )
-		{
-		    throw ((Error) txEx);
-		}
-		else if ( txEx instanceof RuntimeException )
-		{
-		    throw ((RuntimeException) txEx);
-		}
-		else
-		{
-		    throw new TransactionFailureException( "Failed", txEx );
-		}
+		// THEN
+	    wrapException(txEx);
 	}
 	/**
 	 * @see Neo4jGraphDBWrapper#updateDependencyCounts(Artifact, JarCounter, ExceptionCounter)
@@ -346,22 +304,8 @@ public class Neo4jGraphDBWrapperServer extends Neo4jGraphDBWrapper implements Au
 			     }
 	        }
 		}
-		if ( txEx instanceof TransactionFailureException )
-		{
-		    throw ((TransactionFailureException) txEx);
-		}
-		else if ( txEx instanceof Error )
-		{
-		    throw ((Error) txEx);
-		}
-		else if ( txEx instanceof RuntimeException )
-		{
-		    throw ((RuntimeException) txEx);
-		}
-		else
-		{
-		    throw new TransactionFailureException( "Failed", txEx );
-		}
+		// THEN
+	    wrapException(txEx);
 	}
 
 
@@ -406,22 +350,8 @@ public class Neo4jGraphDBWrapperServer extends Neo4jGraphDBWrapper implements Au
 			     }
 	        }
 		}
-		if ( txEx instanceof TransactionFailureException )
-		{
-		    throw ((TransactionFailureException) txEx);
-		}
-		else if ( txEx instanceof Error )
-		{
-		    throw ((Error) txEx);
-		}
-		else if ( txEx instanceof RuntimeException )
-		{
-		    throw ((RuntimeException) txEx);
-		}
-		else
-		{
-		    throw new TransactionFailureException( "Failed", txEx );
-		}
+		// THEN
+	    wrapException(txEx);
 	
 	}
 	/**
@@ -555,22 +485,8 @@ public class Neo4jGraphDBWrapperServer extends Neo4jGraphDBWrapper implements Au
 		        }  
 			}
 		}
-		if ( txEx instanceof TransactionFailureException )
-		{
-		    throw ((TransactionFailureException) txEx);
-		}
-		else if ( txEx instanceof Error )
-		{
-		    throw ((Error) txEx);
-		}
-		else if ( txEx instanceof RuntimeException )
-		{
-		    throw ((RuntimeException) txEx);
-		}
-		else
-		{
-		    throw new TransactionFailureException( "Failed", txEx );
-		}
+		// THEN
+	    wrapException(txEx);
 		
 	}
 	/**
