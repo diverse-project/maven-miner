@@ -11,14 +11,24 @@ import com.rabbitmq.client.ShutdownListener;
 import com.rabbitmq.client.ShutdownSignalException;
 
 public class ChannelShutdownListener implements ShutdownListener{
-	
+	/**
+	 * A rabbitMQ connection
+	 */
 	private Connection connection;
+	/**
+	 * A Logger
+	 */
 	private static final Logger LOGGER = LoggerFactory.getLogger(ConsumerResolverApp.class);
-	
+	/**
+	 * Public constructor
+	 * @param connection
+	 */
 	public ChannelShutdownListener(Connection connection) {
 		this.connection = connection;
 	}
-	
+	/**
+	 * @see ShutdownListener#shutdownCompleted(ShutdownSignalException)
+	 */
 	@Override
 	public void shutdownCompleted(ShutdownSignalException cause) {
     	     LOGGER.info("Connection shutdown! ");
@@ -42,8 +52,7 @@ public class ChannelShutdownListener implements ShutdownListener{
 	    	try {
 				connection.close();
 			} catch (IOException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
+				LOGGER.error("There has been some issues closing the RabbitMQ connection");
 			}
 	    	 
 	 }
