@@ -1,19 +1,5 @@
 package maven.miner.functions;
 
-import org.junit.Rule;
-import org.junit.Test;
-
-import org.neo4j.driver.v1.Config;
-import org.neo4j.driver.v1.Driver;
-import org.neo4j.driver.v1.GraphDatabase;
-import org.neo4j.driver.v1.Session;
-import org.neo4j.harness.junit.Neo4jRule;
-
-import maven.miner.functions.Join;
-
-import static org.hamcrest.CoreMatchers.equalTo;
-import static org.junit.Assert.*;
-
 public class JoinTest
 {
 //    // This rule starts a Neo4j instance

@@ -18,9 +18,15 @@
   	<validator.hibernate.version>6.0.2.Final</validator.hibernate.version>
   	<neo4j.version>3.4.0</neo4j.version>
   	<neo4j.driver.version>1.6.2</neo4j.driver.version>
+  	<string.sim.version>RELEASE</string.sim.version>
   </properties>
   <dependencyManagement>
     <dependencies>
+	    <dependency>
+		    <groupId>info.debatty</groupId>
+		    <artifactId>java-string-similarity</artifactId>
+		    <version>${string.sim.version}</version>
+		</dependency>
 	    <dependency>
 		  <groupId>org.apache.maven</groupId>
 	      <artifactId>maven-core</artifactId>

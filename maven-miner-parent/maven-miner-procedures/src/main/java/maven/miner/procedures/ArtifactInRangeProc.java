@@ -23,17 +23,17 @@ import maven.miner.output.OutputNode;
 
 public class ArtifactInRangeProc extends AbstractProcedureEnv {
 	
+	
 	/**
 	 * This procedure returns all latest artifacts
 	 */
 	@Procedure(value="maven.miner.artifacts.during", mode = Mode.READ)
 	@Description("retrieve all latest artifacts in a particular range")
-	public Stream<OutputNode> getArtifactsInRange(@Name("Deployment year") long year, 
-			  									  @Name(value= "Deployment month", defaultValue = "0") long month) 
+	public Stream<OutputNode> getArtifactsInRange(@Name("Deployment year") Long year, 
+			  									  @Name(value= "Deployment month", defaultValue = "0") Long month) 
 	{		
 		return getArtifactsInRange(Properties.ARTIFACT_LABEL, year, month);
 	}
-	
 	/**
 	 * 
 	 * This procedure returns all latest artifacts
@@ -41,8 +41,8 @@ public class ArtifactInRangeProc extends AbstractProcedureEnv {
 	@Procedure(value="maven.miner.artifacts.group.during", mode = Mode.READ)
 	@Description("retrieve all latest artifacts in a particular range")
 	public Stream<OutputNode> getArtifactsInRange(@Name(value = "Group name") String groupName,
-												  @Name("Deployment year") long year, 
-												  @Name(value= "Deployment month", defaultValue = "0") long month) 
+												  @Name("Deployment year") Long year, 
+												  @Name(value= "Deployment month", defaultValue = "0") Long month) 
 	{	
 		Stream<OutputNode> result = null;
 		try (Transaction tx = graphDB.beginTx()) {
@@ -59,11 +59,11 @@ public class ArtifactInRangeProc extends AbstractProcedureEnv {
 			} else {
 					query = String.format("match (m:%s {%s : %d})<-[:%s]-(n:`%s`)"
 												+ "-[c:%s]->(y:%s {%s : %d}) "
-											  	+ "return n", 
-												DependencyRelation.MONTH.toString(),
+											  	+ "return n", 					
 												Properties.CALENDAR_LABEL,
 												Properties.MONTH,
 												month,
+												DependencyRelation.MONTH.toString(),
 												groupName, 
 												DependencyRelation.YEAR.toString(),
 												Properties.CALENDAR_LABEL,
@@ -89,8 +89,8 @@ public class ArtifactInRangeProc extends AbstractProcedureEnv {
 	@Procedure(value="maven.miner.artifacts.between", mode = Mode.READ)
 	@Description("retrieve all latest artifacts in a particular range")
 	public Stream<OutputNode> getArtifactsInPeriod(
-			@Name("start date") LocalDate startDate, 
-			@Name(value= "end date", defaultValue = "9999-12-31") LocalDate endDate) 
+			@Name("start date") String startDate, 
+			@Name(value= "end date", defaultValue = "9999-12-31") String endDate) 
 	{
 		return getArtifactsInPeriod(Properties.ARTIFACT_LABEL, startDate, endDate);
 	}
@@ -98,11 +98,22 @@ public class ArtifactInRangeProc extends AbstractProcedureEnv {
 	 * This procedure returns all latest artifacts
 	 */
 	@Procedure(value="maven.miner.artifacts.group.between", mode = Mode.READ)
-	@Description("retrieve all latest artifacts in a particular range")
+	@Description("Retrieve all latest artifacts in a particular range")
 	public Stream<OutputNode> getArtifactsInPeriod(@Name(value = "Group name") String groupName,
-												   @Name("start date") LocalDate startDate, 
-												   @Name(value= "end date", defaultValue = "9999-12-31") LocalDate endDate) 
-	{
+												   @Name("start date with the format YYYY-MM-DD") String start, 
+												   @Name(value= "end date with the format YYYY-MM-DD", defaultValue = "9999-12-31") String end) 
+	{	
+		LocalDate startDate = null;
+		LocalDate endDate = null;
+		
+		try {
+			startDate = LocalDate.parse(start);
+			endDate = LocalDate.parse(end);
+		} catch (Throwable th) {
+			log.error("Couldn't parse date values");
+			throw new RuntimeException(th);
+		}
+		
 		int startYear = startDate.getYear();
 		int startMonth = startDate.getMonthValue();
 		
@@ -132,7 +143,7 @@ public class ArtifactInRangeProc extends AbstractProcedureEnv {
 			tx.success();
 		} catch (Exception e) {
 			log.error(e.getMessage());
-			throw e;	
+			throw new RuntimeException(e);	
 		}
 		return result;
 	}
@@ -149,21 +160,7 @@ public class ArtifactInRangeProc extends AbstractProcedureEnv {
 		}
 		
 	}
-
 }
 
-// The traversal API is supposed to be faster then CypHer QUERIES, HOWEVER, NOT BENIFITING FROM ACCESS TO INDEX MAY SLOW DOWN THE QUERY
-// Retrieving the calendar node corresponding to the appropriate year 
-//Node yearNode = graphDB.findNode(calendarLabel, Properties.YEAR, year);
 
-//if (yearNode == null) return Stream.empty();
-//result = graphDB .traversalDescription()
-//		.depthFirst()
-//		.evaluator(path -> { return Evaluation.of(path.endNode().hasLabel(Label.label(groupName)), false);})
-//		.relationships(DependencyRelation.YEAR, Direction.INCOMING)
-//		.uniqueness(Uniqueness.NODE_GLOBAL)
-//		.traverse(yearNode)
-//		.nodes()
-//		.stream()
-//
 

@@ -21,6 +21,10 @@
 
   <dependencies>
   	<dependency>
+	  <groupId>info.debatty</groupId>
+      <artifactId>java-string-similarity</artifactId>
+	</dependency>
+  	<dependency>
 	  <groupId>fr.inria.diverse</groupId>
 	   <artifactId>maven-miner-common</artifactId>
 	   <version>${project.version}</version>
@@ -59,6 +63,12 @@
       <artifactId>junit</artifactId>
       <scope>test</scope>
     </dependency>
+    <dependency>
+	    <groupId>org.neo4j.procedure</groupId>
+	    <artifactId>apoc</artifactId>
+	    <version>3.4.0.3</version>
+    	<scope>test</scope>
+</dependency>
   </dependencies>
 
   <build>
