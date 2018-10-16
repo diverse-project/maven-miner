@@ -30,7 +30,7 @@ mv -f $PROC_JAR $NEO4J/miner-proc.jar
 
 echo "Building maven-miner"
 cd $MAVEN_INDEXER
-mvn clean package
+mvn clean package -Dmaven.test.skip=true
 echo "Moving jars ..."
 rm -f $MAVEN_INDEXER_DIR/miner-indexer.jar
 mv -f $INDEXER_JAR $MAVEN_INDEXER_DIR/miner-indexer.jar

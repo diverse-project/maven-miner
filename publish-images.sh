@@ -15,6 +15,7 @@ function build_and_publish () {
   docker build -t amineben/$2:miner-$3 $1
   docker push amineben/$2:miner-$3
 }
+
 ALL=true
 PRODUCER=false
 CONSUMER=false
@@ -32,18 +33,26 @@ case $key in
     ;;
     --consumer)
     CONSUMER=true
+    ALL=false
     shift
     ;;
     --neo4j)
     NEO4J=true
+    ALL=false
     shift
     ;;
     --rabbit)
     RABBIT=true
+    ALL=false
     shift
     ;;
     --producer)
     PRODUCER=true
+    ALL=false
+    shift
+    ;;
+    --tag)
+    TAG=$1
     shift
     ;;
     *)
