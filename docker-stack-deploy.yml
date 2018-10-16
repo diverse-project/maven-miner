@@ -29,7 +29,7 @@ services:
 
   #neo4j service
   neo4j:
-    image: neo4j:3.0
+    image: amineben/neo3j:miner-$TAG
     volumes:
       - "$NEO4J_VAR/data:/data"
       - "$NEO4J_VAR/logs:/logs"

@@ -1,7 +1,7 @@
 version: '3'
 services:
   #publisher service
-  publisher:
+  producer:
     build: dockerize/
     volumes:
       - "$MINER/miner/maven-indexer:/dist"
@@ -23,7 +23,7 @@ services:
 
   #neo4j service
   neo4j:
-    image: neo4j:3.0
+    build: neo4j/
     volumes:
       - "$NEO4J_VAR/data:/data"
       - "$NEO4J_VAR/logs:/logs"
