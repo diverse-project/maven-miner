@@ -167,7 +167,7 @@ public class SimilartyFuncTest {
 					+ "['geronimo-spec:geronimo-spec-j2ee-jacc:1.0-rc4']) AS result")
         		  				 .single()
         		  				 .get("result")
-        		  				.asMap();
+        		  				 .asMap();
           // Then
          // assertThat( result, equalTo( 0.9629922474131865) );
       }
