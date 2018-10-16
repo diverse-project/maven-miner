@@ -32,7 +32,7 @@ services:
     image: amineben/neo3j:miner-$TAG
     volumes:
       - "$NEO4J_VAR/data:/data"
-      - "$NEO4J_VAR/logs:/logs"
+      #- "$NEO4J_VAR/logs:/logs"
     ports:
       - "7474:7474"
       - "7687:7687"
