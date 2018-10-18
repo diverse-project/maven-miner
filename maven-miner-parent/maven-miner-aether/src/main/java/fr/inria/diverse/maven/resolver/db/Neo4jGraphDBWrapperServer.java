@@ -26,8 +26,8 @@ import fr.inria.diverse.maven.model.Edge.Scope;
 import fr.inria.diverse.maven.model.ExceptionCounter;
 import fr.inria.diverse.maven.model.ExceptionCounter.ExceptionType;
 import fr.inria.diverse.maven.model.JarCounter.JarEntryType;
+import fr.inria.diverse.maven.util.MavenMinerUtil;
 import fr.inria.diverse.maven.model.JarCounter;
-import fr.inria.diverse.maven.resolver.util.MavenResolverUtil;
 
 public class Neo4jGraphDBWrapperServer extends Neo4jGraphDBWrapper implements AutoCloseable{
 
@@ -142,9 +142,9 @@ public class Neo4jGraphDBWrapperServer extends Neo4jGraphDBWrapper implements Au
 							                             parameters(
 							                                "groupValue", artifact.getGroupId(),
 							                            	"artifactValue", artifact.getArtifactId(),
-							                            	"coordinatesValue", MavenResolverUtil.artifactToCoordinate(artifact),
+							                            	"coordinatesValue", MavenMinerUtil.artifactToCoordinate(artifact),
 							                            	"versionValue", artifact.getVersion(),
-							                            	"packagingValue", MavenResolverUtil.derivePackaging(artifact).toString(),
+							                            	"packagingValue", MavenMinerUtil.derivePackaging(artifact).toString(),
 							                            	"classifierValue", artifact.getClassifier(),
 							                            	"releaseID", Properties.LAST_MODIFIED,
 							                            	"releaseValue",javaDate.toString()
@@ -188,8 +188,8 @@ public class Neo4jGraphDBWrapperServer extends Neo4jGraphDBWrapper implements Au
 	            		Properties.SCOPE,
 	            		Properties.COORDINATES);
 	            	
-	            	StatementResult result = tx.run(query, parameters("coordinatesValue1", MavenResolverUtil.artifactToCoordinate(sourceArtifact),
-								                            		  "coordinatesValue2", MavenResolverUtil.artifactToCoordinate(targetArtifact),
+	            	StatementResult result = tx.run(query, parameters("coordinatesValue1", MavenMinerUtil.artifactToCoordinate(sourceArtifact),
+								                            		  "coordinatesValue2", MavenMinerUtil.artifactToCoordinate(targetArtifact),
 								                            		  "scopeValue",scope.toString()
 					                            		 	       ));
 	                result.single().get(0).asString();
@@ -231,7 +231,7 @@ public class Neo4jGraphDBWrapperServer extends Neo4jGraphDBWrapper implements Au
 	            		query.append(String.format("RETURN a.%s",Properties.GROUP));
 	            		StatementResult result = tx.run( query.toString(),
 	                             parameters("groupValue", artifact.getGroupId(),
-	                            		 	"coordinatesValue", MavenResolverUtil.artifactToCoordinate(artifact)
+	                            		 	"coordinatesValue", MavenMinerUtil.artifactToCoordinate(artifact)
 	                              )
 	                           );
 	            		result.single().get(0).asString();
@@ -282,7 +282,7 @@ public class Neo4jGraphDBWrapperServer extends Neo4jGraphDBWrapper implements Au
 					query.append(String.format("RETURN e.%s",Properties.EXCEPTION_NAME));
 					
 					StatementResult result = tx.run( query.toString(),
-			                 						parameters( "coordinatesValue",MavenResolverUtil.artifactToCoordinate(artifact),
+			                 						parameters( "coordinatesValue",MavenMinerUtil.artifactToCoordinate(artifact),
 			                 									"value",exCounter.getValueForType(type),
 			                 									"name",type.name()));
 			                 
@@ -331,7 +331,7 @@ public class Neo4jGraphDBWrapperServer extends Neo4jGraphDBWrapper implements Au
 					
 					StatementResult result = tx.run( query.toString(),
 			                 						parameters("coordinatesValue", 
-			                 							MavenResolverUtil.artifactToCoordinate(artifact)));
+			                 							MavenMinerUtil.artifactToCoordinate(artifact)));
 			                 
 					result.single().get(0).asString();
 			        return null;

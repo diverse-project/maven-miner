@@ -19,9 +19,9 @@ import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ListMultimap;
 
 import fr.inria.diverse.maven.resolver.db.Neo4jGraphDBWrapper;
+import fr.inria.diverse.maven.util.MavenMinerUtil;
 import fr.inria.diverse.maven.model.ExceptionCounter;
 import fr.inria.diverse.maven.model.JarCounter;
-import fr.inria.diverse.maven.resolver.util.MavenResolverUtil;
 
 public class ClassScanCounter extends URLClassLoader {
 	/**
@@ -59,7 +59,7 @@ public class ClassScanCounter extends URLClassLoader {
 	}
 
 	public ClassScanCounter(){
-		super(new URL[] {MavenResolverUtil.dummyURL()});
+		super(new URL[] {MavenMinerUtil.dummyURL()});
 	}
 	
 	public void loadJarAndStoreCount(Artifact artifact) throws MalformedURLException, ZipException, IOException {

@@ -8,7 +8,7 @@ import fr.inria.diverse.maven.model.DependencyGraph;
 import fr.inria.diverse.maven.model.Edge.Scope;
 import fr.inria.diverse.maven.model.Vertex;
 import fr.inria.diverse.maven.resolver.processor.MultiTaskDependencyVisitor;
-import fr.inria.diverse.maven.resolver.util.MavenResolverUtil;
+import fr.inria.diverse.maven.util.MavenMinerUtil;
 
 public class GraphBuilderVisitorTask implements DependencyVisitorTask {
 
@@ -35,16 +35,16 @@ public class GraphBuilderVisitorTask implements DependencyVisitorTask {
 		 // registering the root dependency node
 		resolutionLevel += 1;
         if (resolutionLevel == 1) {      	
-            root = MavenResolverUtil.getVertexFromArtifactCoordinate(node.getDependency());
+            root = MavenMinerUtil.getVertexFromArtifactCoordinate(node.getDependency());
         }
         // get the nodes on the second level (the direct dependencies), and add these with the first node to the graph
         else if (resolutionLevel == 2) {
-            Vertex secondLevelVerteX = MavenResolverUtil.getVertexFromArtifactCoordinate(node.getDependency());
+            Vertex secondLevelVerteX = MavenMinerUtil.getVertexFromArtifactCoordinate(node.getDependency());
 
             LOGGER.info("   ----> Source artifact vertex and destination artifact vertex being added...");
             LOGGER.info("   ----> Adding dependency #" + (dependencyGraph.getEdges().size() + 1));
 
-            Scope scope = MavenResolverUtil.deriveScope(node.getDependency());
+            Scope scope = MavenMinerUtil.deriveScope(node.getDependency());
 
             dependencyGraph.addDependency(root, secondLevelVerteX, scope);
         } else {

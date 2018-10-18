@@ -1,4 +1,4 @@
-package fr.inria.diverse.maven.resolver.util;
+package fr.inria.diverse.maven.util;
 
 import java.net.URL;
 import java.text.ParseException;
@@ -17,9 +17,16 @@ import fr.inria.diverse.maven.model.Vertex;
 import fr.inria.diverse.maven.model.Edge.Scope;
 import fr.inria.diverse.maven.model.Vertex.Packaging;
 
-public  class MavenResolverUtil {
+public  class MavenMinerUtil {
+	
 	
 	protected static final SimpleDateFormat sdf = new SimpleDateFormat("EEE, dd MMM yyyy hh:mm:ss z");
+	
+	public static boolean versionIsGreater (String v1, String v2) {
+		
+		return false;
+	}
+	
 	/**
 	 * Creates a Vertex Object out of a {@link Dependency}
 	 * @param dependency

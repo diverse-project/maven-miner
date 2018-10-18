@@ -38,7 +38,7 @@ import fr.inria.diverse.maven.model.ExceptionCounter.ExceptionType;
 import fr.inria.diverse.maven.model.JarCounter;
 import fr.inria.diverse.maven.model.JarCounter.JarEntryType;
 import fr.inria.diverse.maven.resolver.tasks.Neo4jGraphDependencyVisitorTask;
-import fr.inria.diverse.maven.resolver.util.MavenResolverUtil;
+import fr.inria.diverse.maven.util.MavenMinerUtil;
 
 public class Neo4jGraphDBWrapperEmbedded extends Neo4jGraphDBWrapper {
 	/**
@@ -137,7 +137,7 @@ public class Neo4jGraphDBWrapperEmbedded extends Neo4jGraphDBWrapper {
 	 * @return {@link Node} result
 	 */
 	protected Node getNodeFromArtifactCoordinate(Artifact artifact) {
-		String depKey = MavenResolverUtil.artifactToCoordinate(artifact);
+		String depKey = MavenMinerUtil.artifactToCoordinate(artifact);
 		
 		Node result;
 		//Label label;
@@ -157,7 +157,7 @@ public class Neo4jGraphDBWrapperEmbedded extends Neo4jGraphDBWrapper {
 					result.setProperty(Properties.GROUP, artifact.getGroupId());
 					result.setProperty(Properties.CLASSIFIER, artifact.getClassifier());
 					result.setProperty(Properties.VERSION, artifact.getVersion());
-					result.setProperty(Properties.PACKAGING, MavenResolverUtil.derivePackaging(artifact).toString());
+					result.setProperty(Properties.PACKAGING, MavenMinerUtil.derivePackaging(artifact).toString());
 					result.setProperty(Properties.ARTIFACT, artifact.getArtifactId());
 					
 					//resolving last-modified from central

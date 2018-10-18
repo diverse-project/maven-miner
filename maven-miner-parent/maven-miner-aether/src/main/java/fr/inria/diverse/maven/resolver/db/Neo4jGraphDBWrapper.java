@@ -30,7 +30,7 @@ import fr.inria.diverse.maven.model.ExceptionCounter;
 import fr.inria.diverse.maven.model.JarCounter;
 import fr.inria.diverse.maven.resolver.Booter;
 import fr.inria.diverse.maven.resolver.processor.MultiTaskDependencyVisitor;
-import fr.inria.diverse.maven.resolver.util.MavenResolverUtil;
+import fr.inria.diverse.maven.util.MavenMinerUtil;
 
 public abstract class Neo4jGraphDBWrapper {
 	/**
@@ -91,7 +91,7 @@ public abstract class Neo4jGraphDBWrapper {
 	  		HttpURLConnection connexion = (HttpURLConnection) artifactURL.openConnection();
 	  		connexion.setRequestMethod("HEAD");
 	  		String modified = connexion.getHeaderField("Last-Modified");		  		
-	  		javaDate = MavenResolverUtil.toZonedTime(modified);
+	  		javaDate = MavenMinerUtil.toZonedTime(modified);
 	      	} catch (MalformedURLException e) {
 	      		LOGGER.error("MalformedURL {}",artifactURL);
 	      		e.printStackTrace();

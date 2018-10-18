@@ -4,8 +4,8 @@ import org.sonatype.aether.artifact.Artifact;
 import org.sonatype.aether.graph.DependencyNode;
 
 import fr.inria.diverse.maven.resolver.db.Neo4jGraphDBWrapper;
+import fr.inria.diverse.maven.util.MavenMinerUtil;
 import fr.inria.diverse.maven.model.Edge.Scope;
-import fr.inria.diverse.maven.resolver.util.MavenResolverUtil;
 
 public class Neo4jGraphDependencyVisitorTask extends  AbstractGraphBuilderVisitorTask {
 
@@ -49,7 +49,7 @@ public class Neo4jGraphDependencyVisitorTask extends  AbstractGraphBuilderVisito
         	Artifact secondLevelNode = node.getDependency().getArtifact();
         	dbWrapper.createNodeFromArtifactCoordinate(secondLevelNode);
         	// add dependency to graph
-            Scope scope = MavenResolverUtil.deriveScope(node.getDependency());      
+            Scope scope = MavenMinerUtil.deriveScope(node.getDependency());      
             dbWrapper.addDependency(root, secondLevelNode, scope);
             stack.push(secondLevelNode);
         }
