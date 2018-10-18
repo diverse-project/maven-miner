@@ -14,7 +14,7 @@ import org.neo4j.procedure.Procedure;
 
 import fr.inria.diverse.maven.common.DependencyRelation;
 import fr.inria.diverse.maven.common.Properties;
-import fr.inria.diverse.maven.resolver.util.MavenResolverUtil;
+import fr.inria.diverse.maven.util.MavenMinerUtil;
 import maven.miner.output.BooleanOutput;
 
 public class TemporalIndexProc extends AbstractProcedureEnv {
@@ -61,7 +61,7 @@ public class TemporalIndexProc extends AbstractProcedureEnv {
 			graphDB.findNodes(label).stream().forEach(node -> 
 			{
 				String date = (String) node.getProperty(Properties.LAST_MODIFIED);
-				ZonedDateTime zonedTime = MavenResolverUtil.fromZonedTime(date);
+				ZonedDateTime zonedTime = MavenMinerUtil.fromZonedTime(date);
 				createTemporalNodes (node, zonedTime);				
 			});
 			tx.success();

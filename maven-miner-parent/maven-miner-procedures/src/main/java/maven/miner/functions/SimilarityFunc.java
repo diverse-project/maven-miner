@@ -22,6 +22,8 @@ public class SimilarityFunc {
 		 Cosine similarity = new Cosine();
 		 return computeSimilarity(removedDependencies, newDependencies, similarity::similarity);
 	 }
+	 
+	 
 	 @UserFunction(name = "maven.miner.similarity.cosine.single")
 	 @Description("maven.miner.similarity.cosine.single(['d1','d2',...], ['d1','d2',...]) - Computes the similarity matrix.")
 	 public Number cosineSimilarity(@Name("first") String  first, 
@@ -29,6 +31,8 @@ public class SimilarityFunc {
 		 Cosine similarity = new Cosine();
 		 return similarity.similarity(first, second);
 	 }
+	 
+	 
 	 @UserFunction(name = "maven.miner.similarity.cosine.custom")
 	 @Description("maven.miner.similarity.cosine.custom(['d1','d2',...], ['d1','d2',...]) - Computes the similarity matrix.")
 	 public Map<String, Map<String,Number>> cosineCustomSimilarity(@Name("oldDependencies")List<String> removedDependencies, 
@@ -36,6 +40,8 @@ public class SimilarityFunc {
 		 CustomSimilarity similarity = new CustomSimilarity( new Cosine());
 		 return computeSimilarity(removedDependencies, newDependencies, similarity::similarity);
 	 }
+	 
+	 
 	 @UserFunction(name = "maven.miner.similarity.cosine.custom.single")
 	 @Description("maven.miner.similarity.cosine.custom.single(['d1','d2',...], ['d1','d2',...]) - Computes the similarity matrix.")
 	 public Number cosineCustomSimilarity(@Name("oldDependencies")String first, 
@@ -44,6 +50,7 @@ public class SimilarityFunc {
 		 return similarity.similarity(first, second);
 		 }
 	 
+	 
 	 @UserFunction(name = "maven.miner.similarity.jaroWinkler")
 	 @Description("maven.miner.similarity.jaroWinkler(['d1','d2',...], ['d1','d2',...]) - Computes the similarity matrix.")
 	 public Map<String, Map<String,Number>> jaroWinklerSimilarity(@Name("oldDependencies")List<String> removedDependencies, 
@@ -51,6 +58,8 @@ public class SimilarityFunc {
 		 JaroWinkler similarity = new JaroWinkler();
 		 return computeSimilarity(removedDependencies, newDependencies, similarity::similarity);
 	 }
+	 
+	 
 	 @UserFunction(name = "maven.miner.similarity.jaroWinkler.custom")
 	 @Description("maven.miner.similarity.jaroWinkler.custom(['d1','d2',...], ['d1','d2',...]) - Computes the similarity matrix.")
 	 public Map<String, Map<String,Number>> jaroWinklerCustomSimilarity(@Name("oldDependencies")List<String> removedDependencies, 
@@ -59,6 +68,7 @@ public class SimilarityFunc {
 		 return computeSimilarity(removedDependencies, newDependencies, similarity::similarity);
 	 }
 
+	 
 	 @UserFunction(name = "maven.miner.similarity.jaroWinkler.single")
 	 @Description("maven.miner.similarity.jaroWinkler.custom(['d1','d2',...], ['d1','d2',...]) - Computes the similarity matrix.")
 	 public Number jaroWinklerSimilarity(@Name("first")String  first, 
@@ -67,6 +77,8 @@ public class SimilarityFunc {
 		 return similarity.similarity(first, second);
 
 	 }
+	 
+	 
 	 @UserFunction(name = "maven.miner.similarity.jaroWinkler.custom.single")
 	 @Description("maven.miner.similarity.jaroWinkler.custom(['d1','d2',...], ['d1','d2',...]) - Computes the similarity matrix.")
 	 public Number jaroWinklerCustomSimilarity(@Name("first")String first, 

@@ -23,28 +23,86 @@ import maven.miner.output.OutputNode;
 
 public class ArtifactInRangeProc extends AbstractProcedureEnv {
 	
-	
 	/**
-	 * This procedure returns all latest artifacts
+	 * 
+	 * @param start
+	 * @param end
+	 * @param isInclusive
+	 * @return
 	 */
-	@Procedure(value="maven.miner.artifacts.during", mode = Mode.READ)
+	@Procedure (value = "maven.miner.version.between", mode = Mode.READ)
+	@Description ("Retrieving all artifacts with version belong to the provided range")
+	public Stream<OutputNode>  getArtifactsInVersionRange (@Name(value = "group name or artifact and group name in the form G:A") String coordinates,
+														   @Name(value = "Start version") String start,
+														   @Name(value = "End version", defaultValue = "None") String end, 
+														   @Name(value = "Are interval bound inclusive", defaultValue = "true") Boolean isInclusive) {
+		String [] ga = coordinates.split(":");
+		StringBuilder builder = new StringBuilder();
+		
+		if (ga.length > 2) {
+			throw new RuntimeException("Only the group ID and the ArtifactID Should be provided");
+		} else if (ga.length < 2) {
+			throw new RuntimeException("Missing entry. Both the group ID and the ArtifactID Should be provided");
+		}
+
+		builder.append(String.format(" MATCH (n:`%s` {%s:'%s'})", ga[0], Properties.ARTIFACT, ga[1]));
+		if (isInclusive ) {
+			builder.append(String.format(" WHERE maven.miner.version.isGreaterOrEqual(n, '%s')",start));
+			if (!end.equals("None")) {
+				builder.append(String.format(" AND maven.miner.version.isLowerOrEqual(n, '%s')",end));
+			}
+		} else {
+			builder.append(String.format(" WHERE maven.miner.version.isGreater(n, '%s')",start));
+			if (!end.equals("None")) {
+				builder.append(String.format(" AND maven.miner.version.isLower(n, '%s')",end));
+			}
+		}
+		builder.append(" RETURN n;");
+		
+		Stream<OutputNode> result = null;
+		try (Transaction tx = graphDB.beginTx()) {
+		
+			Result queryResult = graphDB.execute(builder.toString());
+			result = queryResult.columnAs("n")
+								.stream()
+								.map(node -> new OutputNode((Node)node));
+			tx.success();
+		} catch (Throwable e) {
+			log.error(e.getMessage());
+			throw new RuntimeException(e);	
+		}
+		return result;
+	}
+	
+
+	/**
+	 * 
+	 * @param year
+	 * @param month
+	 * @return 
+	 */
+	@Procedure(value="maven.miner.time.during", mode = Mode.READ)
 	@Description("retrieve all latest artifacts in a particular range")
-	public Stream<OutputNode> getArtifactsInRange(@Name("Deployment year") Long year, 
+	public Stream<OutputNode> getArtifactsInTimeRange(@Name("Deployment year") Long year, 
 			  									  @Name(value= "Deployment month", defaultValue = "0") Long month) 
 	{		
-		return getArtifactsInRange(Properties.ARTIFACT_LABEL, year, month);
+		return getArtifactsInTimeRange(Properties.ARTIFACT_LABEL, year, month);
 	}
 	/**
 	 * 
-	 * This procedure returns all latest artifacts
+	 * @param groupName
+	 * @param year
+	 * @param month
+	 * @return
 	 */
-	@Procedure(value="maven.miner.artifacts.group.during", mode = Mode.READ)
+	@Procedure(value="maven.miner.time.group.during", mode = Mode.READ)
 	@Description("retrieve all latest artifacts in a particular range")
-	public Stream<OutputNode> getArtifactsInRange(@Name(value = "Group name") String groupName,
-												  @Name("Deployment year") Long year, 
-												  @Name(value= "Deployment month", defaultValue = "0") Long month) 
+	public Stream<OutputNode> getArtifactsInTimeRange(@Name( value = "Group name") String groupName,
+													  @Name( value = "Deployment year") Long year, 
+													  @Name( value = "Deployment month", defaultValue = "0") Long month) 
 	{	
 		Stream<OutputNode> result = null;
+		
 		try (Transaction tx = graphDB.beginTx()) {
 			String query = "";
 			if (month == 0) {
@@ -75,18 +133,20 @@ public class ArtifactInRangeProc extends AbstractProcedureEnv {
 								.stream()
 								.map(node -> new OutputNode((Node)node));
 			tx.success();
-		} catch (Exception e) {
+		} catch (Throwable e) {
 			log.error(e.getMessage());
-			throw e;	
+			throw new RuntimeException(e);	
 		}
 		return result;
 	}
 	
 	/**
 	 * 
-	 * This procedure returns all latest artifacts
+	 * @param startDate
+	 * @param endDate
+	 * @return
 	 */
-	@Procedure(value="maven.miner.artifacts.between", mode = Mode.READ)
+	@Procedure(value="maven.miner.time.between", mode = Mode.READ)
 	@Description("retrieve all latest artifacts in a particular range")
 	public Stream<OutputNode> getArtifactsInPeriod(
 			@Name("start date") String startDate, 
@@ -94,10 +154,15 @@ public class ArtifactInRangeProc extends AbstractProcedureEnv {
 	{
 		return getArtifactsInPeriod(Properties.ARTIFACT_LABEL, startDate, endDate);
 	}
+	
 	/**
-	 * This procedure returns all latest artifacts
+	 * 
+	 * @param groupName
+	 * @param start
+	 * @param end
+	 * @return
 	 */
-	@Procedure(value="maven.miner.artifacts.group.between", mode = Mode.READ)
+	@Procedure(value="maven.miner.time.group.between", mode = Mode.READ)
 	@Description("Retrieve all latest artifacts in a particular range")
 	public Stream<OutputNode> getArtifactsInPeriod(@Name(value = "Group name") String groupName,
 												   @Name("start date with the format YYYY-MM-DD") String start, 
@@ -148,7 +213,11 @@ public class ArtifactInRangeProc extends AbstractProcedureEnv {
 		return result;
 	}
 	
-	
+	/**
+	 * 
+	 * @author Amine BENELALLAM
+	 * 
+	 */
 	@SuppressWarnings("unused")
 	private class YearMonthEvaluator implements Evaluator {
 
