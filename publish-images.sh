@@ -21,7 +21,7 @@ PRODUCER=false
 CONSUMER=false
 RABBIT=false
 NEO4J=false
-TAG=0.3.0
+TAG=0.3.1
 while [[ $# > 1 ]]
 do
 key="$1"
