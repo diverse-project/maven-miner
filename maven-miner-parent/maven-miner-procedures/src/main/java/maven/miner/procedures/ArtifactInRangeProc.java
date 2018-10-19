@@ -74,7 +74,6 @@ public class ArtifactInRangeProc extends AbstractProcedureEnv {
 		return result;
 	}
 	
-
 	/**
 	 * 
 	 * @param year
