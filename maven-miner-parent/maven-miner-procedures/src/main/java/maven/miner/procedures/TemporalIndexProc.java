@@ -16,6 +16,8 @@ import fr.inria.diverse.maven.common.DependencyRelation;
 import fr.inria.diverse.maven.common.Properties;
 import fr.inria.diverse.maven.util.MavenMinerUtil;
 import maven.miner.output.BooleanOutput;
+import maven.miner.output.OutputNode;
+import maven.miner.output.OutputNumber;
 
 public class TemporalIndexProc extends AbstractProcedureEnv {
 	/**
@@ -37,6 +39,13 @@ public class TemporalIndexProc extends AbstractProcedureEnv {
 	/**
 	 * 
 	 */
+	
+	@Procedure(value="maven.miner.time.between")
+	@Description ("The average duration between releases ")
+	public OutputNumber getAverageDuration (@Name(value = "group:artifact") String groupArtifact) {
+		String query = String.format("");
+		return null;
+	}
 	@Procedure(value="maven.miner.temporalIndex", mode = Mode.WRITE)
 	@Description("Creating a temporal index")
 	public Stream<BooleanOutput> createTemporalIndex() {	
