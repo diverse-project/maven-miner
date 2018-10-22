@@ -62,13 +62,13 @@
             <version>1.2.1</version>
         </dependency>
 		<!-- Maven core dependencies  -->
-  		 <dependency>
-			<groupId>org.apache.maven</groupId>
-			<artifactId>maven-core</artifactId>
-		  </dependency>
-		  <dependency>
-            <groupId>org.apache.maven</groupId>
-            <artifactId>maven-aether-provider</artifactId>
+  		<dependency>
+		   <groupId>org.apache.maven</groupId>
+		   <artifactId>maven-core</artifactId>
+		</dependency>
+		<dependency>
+           <groupId>org.apache.maven</groupId>
+           <artifactId>maven-aether-provider</artifactId>
         </dependency>
         <dependency>
             <groupId>org.apache.maven.wagon</groupId>
@@ -81,59 +81,59 @@
 		    <version>6.0.0</version>
         </dependency>
 		<!-- Neo4j database dependencies  -->
-		  <dependency>
+		 <dependency>
 		   	<groupId>org.neo4j</groupId>
 		   	<artifactId>neo4j</artifactId>
-		  </dependency>
-		  <dependency>
+		 </dependency>
+		 <dependency>
 		  	<groupId>org.neo4j.driver</groupId>
 			<artifactId>neo4j-java-driver</artifactId>
-		  </dependency>
+		 </dependency>
 		 <!-- Commons cli dependencies  -->
-		  <dependency>
+		 <dependency>
 			<groupId>commons-cli</groupId>
 			<artifactId>commons-cli</artifactId>
 			<version>1.4</version>
-		  </dependency>
+		 </dependency>
 		 <!-- Logging dependencies  -->
-		  <dependency>
+		 <dependency>
 		    <groupId>org.slf4j</groupId>
 		    <artifactId>slf4j-api</artifactId>
 		    <version>${slf4j.version}</version>
-		  </dependency>
-		  <dependency>
+		 </dependency>
+		 <dependency>
 		    <groupId>org.slf4j</groupId>
 		    <artifactId>slf4j-log4j12</artifactId>
 		    <version>${slf4j.version}</version>
 		 </dependency>
 		<!-- Bean validation dependencies-->		 
         <dependency>
-            <groupId>org.codehaus.plexus</groupId>
-            <artifactId>plexus-utils</artifactId>
+           <groupId>org.codehaus.plexus</groupId>
+           <artifactId>plexus-utils</artifactId>
         </dependency>
         <dependency>
 		    <groupId>javax.validation</groupId>
 		    <artifactId>validation-api</artifactId>
 		</dependency>
         <dependency>
-		    <groupId>org.hibernate.validator</groupId>
-		    <artifactId>hibernate-validator</artifactId>
+		   <groupId>org.hibernate.validator</groupId>
+		   <artifactId>hibernate-validator</artifactId>
 		</dependency>
 		<dependency>
-		    <groupId>org.hibernate.validator</groupId>
-		    <artifactId>hibernate-validator-annotation-processor</artifactId>
+		   <groupId>org.hibernate.validator</groupId>
+		   <artifactId>hibernate-validator-annotation-processor</artifactId>
 		</dependency>
 		<!-- AMQ: RabbitMQ -->
 		<dependency>
-		    <groupId>com.rabbitmq</groupId>
-		    <artifactId>amqp-client</artifactId>
-		    <version>5.3.0</version>
-		</dependency>
+	      <groupId>com.rabbitmq</groupId>
+	      <artifactId>amqp-client</artifactId>
+	      <version>[5.4.0,)</version>
+        </dependency>
         <!-- Test dependencies  -->
         <dependency>
-            <groupId>junit</groupId>
-            <artifactId>junit</artifactId>
-            <scope>test</scope>
+           <groupId>junit</groupId>
+           <artifactId>junit</artifactId>
+           <scope>test</scope>
         </dependency>
         
   </dependencies>

@@ -44,8 +44,6 @@
     </dependency>
     <!-- Test Dependencies -->
     <dependency>
-      <!-- This is used for a utility that lets us start Neo4j with
-           a specific Procedure, which is nice for writing tests. -->
       <groupId>org.neo4j.test</groupId>
       <artifactId>neo4j-harness</artifactId>
       <scope>test</scope>
