@@ -36,16 +36,6 @@ public class TemporalIndexProc extends AbstractProcedureEnv {
 	 * The calendar label node
 	 */
 	public static Label calendarLabel = Label.label(Properties.CALENDAR_LABEL);
-	/**
-	 * 
-	 */
-	
-	@Procedure(value="maven.miner.time.between")
-	@Description ("The average duration between releases ")
-	public OutputNumber getAverageDuration (@Name(value = "group:artifact") String groupArtifact) {
-		String query = String.format("");
-		return null;
-	}
 	@Procedure(value="maven.miner.temporalIndex", mode = Mode.WRITE)
 	@Description("Creating a temporal index")
 	public Stream<BooleanOutput> createTemporalIndex() {	
