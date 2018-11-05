@@ -1,0 +1,106 @@
+package fr.inria.diverse.maven.resolver.launcher;
+
+import java.io.BufferedReader;
+import java.io.FileReader;
+import java.io.IOException;
+
+import fr.inria.diverse.maven.resolver.processor.AbstractArtifactProcessor;
+import fr.inria.diverse.maven.resolver.processor.LibProcessor;
+import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.CommandLineParser;
+import org.apache.commons.cli.DefaultParser;
+import org.apache.commons.cli.HelpFormatter;
+import org.apache.commons.cli.Options;
+import org.apache.commons.cli.ParseException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import org.sonatype.aether.util.artifact.DefaultArtifact;
+import fr.inria.diverse.maven.resolver.processor.CollectAndResolveArtifactProcessor;
+import fr.inria.diverse.maven.resolver.processor.CollectArtifactProcessor;
+import fr.inria.diverse.maven.resolver.tasks.DependencyGraphPrettyPrinterTask;
+import fr.inria.diverse.maven.resolver.tasks.DependencyVisitorTask;
+import fr.inria.diverse.maven.resolver.tasks.Neo4jGraphDeepDependencyVisitorTask;
+import fr.inria.diverse.maven.resolver.tasks.Neo4jGraphDependencyVisitorTask;
+
+
+public class LibResolverApp {
+
+	/**
+	 * The resolver application logger
+	 */
+	private static final Logger LOGGER = LoggerFactory.getLogger(BatchResolverApp.class);
+	/**
+	 * Cli options
+	 */
+	private static final Options options = new Options();
+
+	@SuppressWarnings("null")
+	public static void main(String[] args) throws IOException {
+
+		//initialize arguments
+		String coordinatesPath = "src/main/resources/allUniqueArtifactsOnly-mini-100";
+
+		options.addOption("h", "help", false, "Show help");
+
+		options.addOption("f", "file", true, "File containing list of gav");
+		CommandLineParser parser = new DefaultParser();
+
+		CommandLine cmd = null;
+		AbstractArtifactProcessor processor = new LibProcessor();
+		try {
+			cmd = parser.parse(options, args);
+
+			if (cmd.hasOption("h")) {
+				help();
+			}
+
+			if (cmd.hasOption("f")) {
+				coordinatesPath = cmd.getOptionValue("f");
+			}
+		} catch (ParseException e) {
+			LOGGER.error("Failed to parse comand line properties", e);
+			help();
+		}
+		//open database
+		BufferedReader resultsReader = null;
+		try {
+			resultsReader = new BufferedReader(new FileReader(coordinatesPath));
+			String artifactCoordinate;
+			int lineCounter = 0;
+			int skippedCounter = 0;
+			while ((artifactCoordinate = resultsReader.readLine()) != null) {
+				try {
+					if (artifactCoordinate.startsWith("#")) continue;
+					++lineCounter;
+					DefaultArtifact artifact = new DefaultArtifact(artifactCoordinate);
+					processor.process(artifact);
+				} catch (Exception ee) {
+					--lineCounter;
+					++skippedCounter;
+					LOGGER.error("Could not resolve artifact: {} ",artifactCoordinate);
+					ee.printStackTrace();
+				}
+				LOGGER.debug("Resolving artifact {} number {} finished", artifactCoordinate, skippedCounter+lineCounter);
+			}
+
+		} catch (IOException ioe) {
+			LOGGER.error("Couldn't find file: " + coordinatesPath );
+			ioe.printStackTrace();
+			resultsReader.close();
+		} finally {
+			resultsReader.close();
+			processor.report();
+		}
+	}
+
+	private static void help() {
+
+		HelpFormatter formater = new HelpFormatter();
+
+		formater.printHelp("Maven-miner", options);
+
+		System.exit(0);
+
+	}
+}
