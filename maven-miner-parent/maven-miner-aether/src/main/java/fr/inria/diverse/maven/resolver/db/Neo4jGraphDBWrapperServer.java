@@ -41,19 +41,7 @@ public class Neo4jGraphDBWrapperServer extends Neo4jGraphDBWrapper implements Au
 	 * Initializes the database, including schema and indexes creation, and database cleaning
 	 */
 	private void initDB() {
-		//Cleaning the database
-//		try ( Session session = driver.session() )
-//        {
-//            session.writeTransaction( tx ->
-//            {
-//            	StatementResult result = tx.run("MATCH (n) DETACH DELETE n");   
-//            	LOGGER.info("All nodes were successfully removed");
-//                return null;
-//            });
-//        } catch (Exception e) {
-//			LOGGER.error("Not able to clean database");
-//			e.printStackTrace();
-//		}
+
 		// creating schema 
 		try ( Session session = driver.session() )
         {	
@@ -63,6 +51,11 @@ public class Neo4jGraphDBWrapperServer extends Neo4jGraphDBWrapper implements Au
             													+ "ASSERT artf.%s IS UNIQUE",
 																Properties.ARTIFACT_LABEL, 
 																Properties.COORDINATES);
+            	query+="\n";
+            	query+= String.format("CREATE CONSTRAINT ON (artf:%s) "
+						+ "ASSERT EXISTS(artf.%s)",
+						Properties.ARTIFACT_LABEL, 
+						Properties.COORDINATES);
             	tx.run(query);
             	
             	LOGGER.info("Schema was succesfully created");
@@ -80,6 +73,7 @@ public class Neo4jGraphDBWrapperServer extends Neo4jGraphDBWrapper implements Au
             								+ "ASSERT exp.%s IS UNIQUE",
 											Properties.EXCEPTION_LABEL, 
 											Properties.EXCEPTION_NAME);
+            	
             	tx.run(query);
                 return null;
             });
