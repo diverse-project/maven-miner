@@ -20,6 +20,11 @@
           <artifactId>jsoup</artifactId>
           <version>1.11.3</version>
       </dependency>
+      <dependency>
+            <groupId>org.mariadb.jdbc</groupId>
+            <artifactId>mariadb-java-client</artifactId>
+            <version>1.1.7</version>
+        </dependency>
   		<dependency>
 	  		<groupId>fr.inria.diverse</groupId>
 	    	<artifactId>maven-miner-common</artifactId>

@@ -36,6 +36,7 @@ public class CollectArtifactProcessor extends AbstractArtifactProcessor {
         collectRequest.addRepository(repo);
         CollectResult collectResult;
 		try {
+
 			collectResult = system.collectDependencies(session, collectRequest);
 			//collectResult.getRoot().getData();
 			collectResult.getRoot().accept(visitor);
