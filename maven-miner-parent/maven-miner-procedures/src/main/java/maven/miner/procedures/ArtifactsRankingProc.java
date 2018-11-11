@@ -32,7 +32,7 @@ public class ArtifactsRankingProc extends AbstractProcedureEnv {
 			@Name(value = "dependency scope. none by default", defaultValue = "any") String scope) {
 
 		Stream<OutputNode> result = null;
-		String scopeS = null;
+		String scopeS = "";
 		if (scope.equals("Runtime")
 				|| scope.equals("Compile")
 				|| scope.equals("Test")
@@ -43,8 +43,8 @@ public class ArtifactsRankingProc extends AbstractProcedureEnv {
 										+ "and Test. To refer  to all scopes use 'any'!");
 		}
 		try (Transaction tx = graphDB.beginTx()) {
-			String query = String.format("match (n:`%s`) \n" + 
-										 "with n, size(()-[:DEPENDS_ON %s]->(n)) as sizes\n" + 
+			String query = String.format("match (n:`%s`) " + 
+										 "with n, size(()-[:DEPENDS_ON %s]->(n)) as sizes " + 
 										 "return n order by sizes DESC limit %d",
 										 artifactLabel,
 										 scopeS,
