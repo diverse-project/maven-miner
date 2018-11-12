@@ -18,10 +18,12 @@ public class ClientDependencies {
 			"VALUES (?, ?, NULL, NULL); ";
 
 	public static void main(String[] args) throws SQLException {
-		File clientDependencies = new File("/home/nharrand/Documents/depusageminer/data/top100_used_artifacts.csv");
+		//File clientDependencies = new File("/home/nharrand/Documents/depusageminer/data/top100_used_artifacts.csv");
+		File clientDependencies = new File(args[0]);
 		MariaDBWrapper db = new MariaDBWrapper();
 		try(BufferedReader br = new BufferedReader(new FileReader(clientDependencies))) {
 			br.readLine();
+			//Skip jusqu a javax.inject:javax.inject:1
 			for(String line; (line = br.readLine()) != null; ) {
 				try {
 					String raw[] = line.split("\\[");
