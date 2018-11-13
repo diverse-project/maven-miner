@@ -15,12 +15,25 @@ public class MariaDBWrapper {
 	String user;
 	String password;
 	String dbname;
+	File propFile;
 
 
 	public MariaDBWrapper() throws SQLException {
+		this.propFile = new File("./maven-miner-aether/src/main/resources/mariadb.properties");
+		init();
+	}
+
+
+	public MariaDBWrapper(File propFile) throws SQLException {
+		this.propFile = propFile;
+		init();
+	}
+
+	private void init() throws SQLException {
+
 		Properties properties = new Properties();
 		try {
-			properties.load(new FileInputStream(new File("./maven-miner-aether/src/main/resources/mariadb.properties")));
+			properties.load(new FileInputStream(propFile));
 			port = Integer.parseInt(properties.getProperty("port"));
 			domain = properties.getProperty("domain");
 			user = properties.getProperty("user");

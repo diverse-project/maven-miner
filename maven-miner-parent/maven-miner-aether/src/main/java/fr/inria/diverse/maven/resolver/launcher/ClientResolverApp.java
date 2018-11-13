@@ -1,5 +1,6 @@
 package fr.inria.diverse.maven.resolver.launcher;
 
+import java.io.File;
 import java.io.IOException;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -13,6 +14,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeoutException;
 
 import fr.inria.diverse.maven.resolver.db.sql.MariaDBWrapper;
+import fr.inria.diverse.maven.resolver.processor.*;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.DefaultParser;
@@ -32,11 +34,6 @@ import com.rabbitmq.client.Envelope;
 
 import fr.inria.diverse.maven.resolver.db.Neo4jGraphDBWrapper;
 import fr.inria.diverse.maven.resolver.db.Neo4jGraphDBWrapperServer;
-import fr.inria.diverse.maven.resolver.processor.AbstractArtifactProcessor;
-import fr.inria.diverse.maven.resolver.processor.ClassScanCounter;
-import fr.inria.diverse.maven.resolver.processor.CollectAndResolveArtifactProcessor;
-import fr.inria.diverse.maven.resolver.processor.CollectArtifactProcessor;
-import fr.inria.diverse.maven.resolver.processor.MultiTaskDependencyVisitor;
 import fr.inria.diverse.maven.resolver.tasks.DependencyGraphPrettyPrinterTask;
 import fr.inria.diverse.maven.resolver.tasks.DependencyVisitorTask;
 import fr.inria.diverse.maven.resolver.tasks.Neo4jGraphDeepDependencyVisitorTask;
@@ -78,6 +75,8 @@ public class ClientResolverApp {
 	 * Artifact processor
 	 */
 	private static AbstractArtifactProcessor processor;
+
+
 	/**
 	 * Neo4j Graph DBwrapper.
 	 * Contains common operations to store Maven dependencies and counts
@@ -96,6 +95,7 @@ public class ClientResolverApp {
 
 		options.addOption("h", "help", false, "Show help");
 		options.addOption("p", "pretty-printer", true, "Path to the output file stream. Optional");
+		options.addOption("d", "db-properties", true, "Path to database properties file. Mandatory");
 		options.addOption("q", "queue", true, "Hostname and port of the RabbitMQ broker. Note, URI comes in the form hostname:port");
 		options.addOption("u", "user", true, "User and password of the rabbitMQ. Note, it comes in the form user:password. By default user:user");
 
@@ -111,14 +111,22 @@ public class ClientResolverApp {
 				DependencyVisitorTask prettyPrinter = new DependencyGraphPrettyPrinterTask();
 				myVisitor.addTask(prettyPrinter);
 			}
+			if(cmd.hasOption("d")) {
+				dbwrapper = new MariaDBWrapper(new File(cmd.getOptionValue("d")));
+
+			} else {
+				LOGGER.error("Missing the properties for MariaDB");
+			}
 			if (cmd.hasOption("q")) {
 				String [] values = cmd.getOptionValue("q").split(":");
 				//check the presence of the port number
 				if (values.length!=2) {
-					LOGGER.error("Couldnt handle hostname \"{}\"",cmd.getOptionValue("q"));
+					LOGGER.error("Could not handle hostname \"{}\"",cmd.getOptionValue("q"));
 					help();
 				}
-				dbwrapper = new MariaDBWrapper();
+
+				processor = new DependencyUsageProcessor(dbwrapper.getConnection());
+
 				factory = new ConnectionFactory();
 
 				factory.setHost(values[0]);

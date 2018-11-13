@@ -1,7 +1,12 @@
 package fr.inria.diverse.maven.resolver.processor;
 
 import fr.inria.diverse.maven.resolver.MetaResolver;
+import fr.inria.diverse.maven.resolver.processor.dependencyanalyser.ClassAdapter;
+import fr.inria.diverse.maven.resolver.processor.dependencyanalyser.LibrariesUsage;
 import org.apache.commons.io.FileUtils;
+import org.objectweb.asm.ClassReader;
+import org.objectweb.asm.ClassVisitor;
+import org.objectweb.asm.ClassWriter;
 import org.sonatype.aether.artifact.Artifact;
 import org.sonatype.aether.collection.DependencyCollectionException;
 import org.sonatype.aether.resolution.ArtifactRequest;
@@ -10,11 +15,15 @@ import org.sonatype.aether.resolution.ArtifactResult;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.*;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 import java.util.stream.Collectors;
-import java.util.zip.ZipEntry;
 
 public class DependencyUsageProcessor extends CollectArtifactProcessor {
 
@@ -32,28 +41,17 @@ public class DependencyUsageProcessor extends CollectArtifactProcessor {
 	 * a class counter
 	 */
 	private ClassScanCounter counter;
+
+	private Connection db;
+
 	/**
 	 * default constructor
 	 */
-	public DependencyUsageProcessor() {
+	public DependencyUsageProcessor(Connection db) {
 		super();
+		this.db = db;
 	}
-	/**
-	 * Constructor
-	 * @param visitor
-	 */
-	public DependencyUsageProcessor(MultiTaskDependencyVisitor visitor) {
-		super(visitor);
-	}
-	/**
-	 * Constructor
-	 * @param visitor
-	 * @param counter
-	 */
-	public DependencyUsageProcessor (MultiTaskDependencyVisitor visitor, ClassScanCounter counter) {
-		super(visitor);
-		this.counter = counter;
-	}
+
 	/**
 	 * Collects the dependencies of a given artifact,
 	 * and resolves the jar in order to count the number of classes
@@ -87,20 +85,52 @@ public class DependencyUsageProcessor extends CollectArtifactProcessor {
 
 		} catch (SecurityException
 				| NullPointerException
-				| IOException e) {
+				| IOException
+				| SQLException e) {
 			LOGGER.error("Unable to read artifact {}", artifact);
-			//e.printStackTrace();
+			e.printStackTrace();
 			nonResolved++;
 		}
 		return artifact;
 	}
 
-	private void processJar(File jarFile, String gav) throws IOException {
-		Set<String> packages = new HashSet<>();
-		JarFile jar = new JarFile(jarFile);
+	static String getLibrariesPackages = "SELECT p.libraryid, p.package FROM client as c " +
+			"JOIN dependency as d ON c.id=d.clientid " +
+			"JOIN package as p ON d.libraryid=p.libraryid " +
+			"WHERE c.coordinates=?";
 
-		//TODO
+	private void processJar(File jar, String gav) throws IOException, SQLException {
+		PreparedStatement getLibrariesPackagesQuery = db.prepareStatement(getLibrariesPackages);
+		getLibrariesPackagesQuery.setString(1, gav);
 
+		ResultSet librariesPackagesResult = getLibrariesPackagesQuery.executeQuery();
+
+		Map<Integer, Set<String>> libs = new HashMap<>();
+		while(librariesPackagesResult.next()) {
+			Set<String> packages = libs.computeIfAbsent(librariesPackagesResult.getInt("libraryid"), i -> new HashSet<>());
+			packages.add(librariesPackagesResult.getString("package"));
+		}
+
+		JarFile jarFile = new JarFile(jar);
+		Enumeration<JarEntry> entries = jarFile.entries();
+
+		LibrariesUsage lu = new LibrariesUsage(libs);
+
+
+		while (entries.hasMoreElements()) {
+			JarEntry entry = entries.nextElement();
+			String entryName = entry.getName();
+			if (entryName.endsWith(".class")) {
+				try (InputStream classFileInputStream = jarFile.getInputStream(entry)) {
+					ClassReader cr = new ClassReader(classFileInputStream);
+					ClassWriter cw = new ClassWriter(ClassWriter.COMPUTE_MAXS);
+					ClassVisitor cv = new ClassAdapter(cw, lu);
+					cr.accept(cv, 0);
+				}
+			}
+		}
+
+		lu.pushToDB(db, gav);
 	}
 
 	@Override
