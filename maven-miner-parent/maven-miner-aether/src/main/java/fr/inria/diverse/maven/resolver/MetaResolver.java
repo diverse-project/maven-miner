@@ -57,7 +57,7 @@ public class MetaResolver {
 		} catch (ArtifactResolutionException
 				| SecurityException
 				| NullPointerException e) {
-			LOGGER.error("Unable to read artifact {}", request.getArtifact());
+			LOGGER.warn("Unable to read artifact from maven.central {}", request.getArtifact());
 		}
 		if(jarFile != null) return jarFile;
 

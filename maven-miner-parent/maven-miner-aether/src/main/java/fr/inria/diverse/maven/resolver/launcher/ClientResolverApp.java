@@ -32,18 +32,10 @@ import com.rabbitmq.client.ConnectionFactory;
 import com.rabbitmq.client.DefaultConsumer;
 import com.rabbitmq.client.Envelope;
 
-import fr.inria.diverse.maven.resolver.db.Neo4jGraphDBWrapper;
-import fr.inria.diverse.maven.resolver.db.Neo4jGraphDBWrapperServer;
 import fr.inria.diverse.maven.resolver.tasks.DependencyGraphPrettyPrinterTask;
 import fr.inria.diverse.maven.resolver.tasks.DependencyVisitorTask;
-import fr.inria.diverse.maven.resolver.tasks.Neo4jGraphDeepDependencyVisitorTask;
-import fr.inria.diverse.maven.resolver.tasks.Neo4jGraphDependencyVisitorTask;
 
 public class ClientResolverApp {
-
-	static String getLibrariesPackages = "SELECT p.libraryid, p.package FROM dependency as d " +
-			"JOIN client as c ON d.clientid=c.id " +
-			"JOIN package as p WHERE c.coordinates=? AND p.libraryid=d.libraryid ";
 
 	/**
 	 * RabbitMQ fields
@@ -94,6 +86,7 @@ public class ClientResolverApp {
 		String coordinatesPath = "src/main/resources/allUniqueArtifactsOnly-mini-100";
 
 		options.addOption("h", "help", false, "Show help");
+		options.addOption("f", "fill-queue", false, "Populate queue with client coordinates.");
 		options.addOption("p", "pretty-printer", true, "Path to the output file stream. Optional");
 		options.addOption("d", "db-properties", true, "Path to database properties file. Mandatory");
 		options.addOption("q", "queue", true, "Hostname and port of the RabbitMQ broker. Note, URI comes in the form hostname:port");
@@ -102,6 +95,7 @@ public class ClientResolverApp {
 		CommandLineParser parser = new DefaultParser();
 
 		CommandLine cmd = null;
+		boolean fillQueue = false;
 		try {
 			cmd = parser.parse(options, args);
 			if (cmd.hasOption("h")) {
@@ -110,6 +104,9 @@ public class ClientResolverApp {
 			if(cmd.hasOption("p")) {
 				DependencyVisitorTask prettyPrinter = new DependencyGraphPrettyPrinterTask();
 				myVisitor.addTask(prettyPrinter);
+			}
+			if(cmd.hasOption("f")) {
+				fillQueue = true;
 			}
 			if(cmd.hasOption("d")) {
 				dbwrapper = new MariaDBWrapper(new File(cmd.getOptionValue("d")));
@@ -165,42 +162,36 @@ public class ClientResolverApp {
 			e.printStackTrace();
 		}
 
-		try {
-			channel.basicConsume(ARTIFACT_QUEUE_NAME, false, new DefaultConsumer(channel) {
-				@Override
-				public void handleDelivery(String consumerTag, Envelope envelope, AMQP.BasicProperties properties, byte[] body)
-						throws IOException {
-					try {
-						channel.basicAck(envelope.getDeliveryTag(), false);
-						String artifactCoordinate = new String(body, "UTF-8");
-						DefaultArtifact artifact = new DefaultArtifact(artifactCoordinate);
+		if(fillQueue) {
+			populateQueue();
+		} else {
+			try {
+				channel.basicConsume(ARTIFACT_QUEUE_NAME, false, new DefaultConsumer(channel) {
+					@Override
+					public void handleDelivery(String consumerTag, Envelope envelope, AMQP.BasicProperties properties, byte[] body)
+							throws IOException {
+						try {
+							channel.basicAck(envelope.getDeliveryTag(), false);
+							String artifactCoordinate = new String(body, "UTF-8");
+							DefaultArtifact artifact = new DefaultArtifact(artifactCoordinate);
 
-						PreparedStatement getLibrariesPackagesQuery =  dbwrapper.getConnection().prepareStatement(getLibrariesPackages);
-						getLibrariesPackagesQuery.setString(1, artifactCoordinate);
-						ResultSet packagesResults = getLibrariesPackagesQuery.executeQuery();
-						Map<Integer,Set<String>> packages = new HashMap<>();
-						while (packagesResults.next()) {
-							Set<String> ps = packages.computeIfAbsent(packagesResults.getInt("libraryid"), i -> new HashSet<>());
-							ps.add(packagesResults.getString("package"));
+							processor.process(artifact);
+						} catch (Exception e) {
+							LOGGER.error("Handle deleviery Error {}", e.getMessage());
+						} finally {
+							//channel.basicAck(envelope.getDeliveryTag(), false);
 						}
-
-						processor.process(artifact);
-					} catch (Exception e) {
-						LOGGER.error("Handle deleviery Error {}", e.getMessage());
-					}  finally {
-						//channel.basicAck(envelope.getDeliveryTag(), false);
 					}
-				}
-			});
-		} catch (IOException ioe) {
-			LOGGER.error("Couldn't find arifact {}", coordinatesPath );
-			ioe.printStackTrace();
-		} catch (Exception e) {
-			LOGGER.error("unhandled error {}",e.getMessage());
-			e.printStackTrace();
-		}
-		finally {
-			//healthChecker.shutdownNow();
+				});
+			} catch (IOException ioe) {
+				LOGGER.error("Couldn't find arifact {}", coordinatesPath);
+				ioe.printStackTrace();
+			} catch (Exception e) {
+				LOGGER.error("unhandled error {}", e.getMessage());
+				e.printStackTrace();
+			} finally {
+				//healthChecker.shutdownNow();
+			}
 		}
 	}
 	/**
@@ -214,6 +205,28 @@ public class ClientResolverApp {
 
 		System.exit(0);
 
+	}
+
+	static String getClientsCoordinates = "SELECT coordinates FROM client;";
+
+	private static void populateQueue() throws IOException, SQLException {
+		Map<String, Object> lazyArg = new HashMap<>();
+		lazyArg.put("x-queue-mode", "lazy");
+		channel.queueDeclareNoWait(ARTIFACT_QUEUE_NAME, true, false, false, lazyArg);
+		channel.queuePurge(ARTIFACT_QUEUE_NAME);
+
+		PreparedStatement getClients = dbwrapper.getConnection().prepareStatement(getClientsCoordinates);
+		ResultSet resultSet = getClients.executeQuery();
+		while(resultSet.next()) {
+			String message = resultSet.getString("coordinates");
+			channel.basicPublish("", ARTIFACT_QUEUE_NAME, null, message.getBytes("UTF-8"));
+		}
+		try {
+			channel.close();
+		} catch (TimeoutException e) {
+			e.printStackTrace();
+		}
+		connection.close();
 	}
 
 }

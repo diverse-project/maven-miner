@@ -34,6 +34,7 @@ public class LibrariesUsage {
 				Map<String,Integer> membersUsage = packagesMembersUsage.get(targetPackageName);
 				Integer usage = membersUsage.computeIfAbsent(apiMember, m -> 0);
 				usage++;
+				membersUsage.put(apiMember,usage);
 			}
 		}
 
@@ -57,29 +58,33 @@ public class LibrariesUsage {
 			throw new SQLException("Client not found");
 		}
 
-		String query = "INSERT INTO api_usage (clientid, apimemberid, nb)\n";
+		String query = insertUsage;
 		for(Integer libraryId: librariesPackagesMembersUsage.keySet()) {
 			Map<String,Map<String, Integer>> packagesMembersUsage = librariesPackagesMembersUsage.get(libraryId);
 			for(String packageName: packagesMembersUsage.keySet()) {
 				Map<String,Integer> membersUsage = packagesMembersUsage.get(packageName);
 				for(String member: membersUsage.keySet()) {
 					Integer usage = membersUsage.get(member);
-					String clazz = member;
-					String memberName = "NULL";
-					if(member.contains(".")) {
-						clazz = member.split("\\.")[0];
-						memberName = member.split("\\.")[1];
+					if(usage != 0) {
+						String clazz = member;
+						String memberName = "NULL";
+						if (member.contains(".")) {
+							clazz = member.split("\\.")[0];
+							memberName = member.split("\\.")[1];
+						}
+						//get memberID and insert if necessary
+						query += "(" + clientID +
+								", funcApiMemberID('" + packageName + "', '" + clazz + "', '" + memberName + "', " + libraryId + "), " +
+								usage + "),";
 					}
-					//get memberID and insert if necessary
-					query += "(" + clientID +
-							", funcApiMemberID('" + packageName + "', '" + clazz + "', '" + memberName + "', " + libraryId + "), " +
-							usage + "),";
 				}
 			}
 		}
-		query = query.substring(0,query.length()-1);
-		if(!db.prepareStatement(query).execute()) {
-			throw new SQLException("Result push failed");
+		if(query.length() > insertUsage.length()) {
+			query = query.substring(0, query.length() - 1);
+			db.prepareStatement(query).execute();
+		} else {
+			System.out.println("Nothing to push for client " + clientGAV + " (" + clientID + ").");
 		}
 	}
 }

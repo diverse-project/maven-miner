@@ -1,6 +1,7 @@
 package fr.inria.diverse.maven.resolver.processor;
 
 import fr.inria.diverse.maven.resolver.MetaResolver;
+import fr.inria.diverse.maven.resolver.db.sql.MariaDBWrapper;
 import fr.inria.diverse.maven.resolver.processor.dependencyanalyser.ClassAdapter;
 import fr.inria.diverse.maven.resolver.processor.dependencyanalyser.LibrariesUsage;
 import org.apache.commons.io.FileUtils;
@@ -12,6 +13,7 @@ import org.sonatype.aether.collection.DependencyCollectionException;
 import org.sonatype.aether.resolution.ArtifactRequest;
 import org.sonatype.aether.resolution.ArtifactResolutionException;
 import org.sonatype.aether.resolution.ArtifactResult;
+import org.sonatype.aether.util.artifact.DefaultArtifact;
 
 import java.io.File;
 import java.io.IOException;
@@ -148,5 +150,17 @@ public class DependencyUsageProcessor extends CollectArtifactProcessor {
 		LOGGER.info("{} artifacts jar have been resolved", resolved);
 		LOGGER.info("{} artifacts jar gave failed resolution", nonResolved);
 		//Report
+	}
+
+
+	public static void main(String[] args) throws Exception {
+		String artifactCoordinate = "com.bbossgroups:bboss-persistent:5.0.7.5";
+		MariaDBWrapper db = new MariaDBWrapper();
+		DependencyUsageProcessor processor = new DependencyUsageProcessor(db.getConnection());
+
+		DefaultArtifact artifact = new DefaultArtifact(artifactCoordinate);
+
+		processor.process(artifact);
+		System.out.println("Done");
 	}
 }
