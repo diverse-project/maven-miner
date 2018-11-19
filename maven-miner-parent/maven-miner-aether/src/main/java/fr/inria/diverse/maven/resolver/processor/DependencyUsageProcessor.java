@@ -95,7 +95,7 @@ public class DependencyUsageProcessor extends CollectArtifactProcessor {
 			LOGGER.error("Unable to read artifact {}", artifact);
 			e.printStackTrace();
 			try {
-				FileUtils.write(unresolvedArtifact, coordinates + " | " + e.getClass().getName(),true);
+				FileUtils.write(unresolvedArtifact, coordinates + " | " + e.getClass().getName() + "\n",true);
 			} catch (IOException e1) {
 				LOGGER.error("Could not log error for artifact {}", artifact);
 				e1.printStackTrace();
@@ -144,7 +144,7 @@ public class DependencyUsageProcessor extends CollectArtifactProcessor {
 			}
 
 			if(!lu.pushToDB(db, gav)) {
-				FileUtils.write(emptyDepUsageArtifact, gav + " | No dep usage", true);
+				FileUtils.write(emptyDepUsageArtifact, gav + " | No dep usage\n", true);
 
 			}
 	}
