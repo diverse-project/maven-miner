@@ -45,7 +45,7 @@ public class LibrariesUsage {
 	static String insertUsage = "INSERT INTO api_usage (clientid, apimemberid, nb)\n" +
 			"VALUES\n";
 
-	public void pushToDB(Connection db, String clientGAV) throws SQLException {
+	public boolean pushToDB(Connection db, String clientGAV) throws SQLException {
 		int clientID = 0;
 		PreparedStatement getLibIdQueryStmt = db.prepareStatement(getClientID);
 		getLibIdQueryStmt.setString(1, clientGAV);
@@ -83,8 +83,10 @@ public class LibrariesUsage {
 		if(query.length() > insertUsage.length()) {
 			query = query.substring(0, query.length() - 1);
 			db.prepareStatement(query).execute();
+			return true;
 		} else {
 			System.out.println("Nothing to push for client " + clientGAV + " (" + clientID + ").");
+			return false;
 		}
 	}
 }

@@ -31,6 +31,8 @@ public class DependencyUsageProcessor extends CollectArtifactProcessor {
 
 	private Map<String, Set<String>> libs = new HashMap<>();
 	private File outputDir = new File("./output");
+	private File unresolvedArtifact = new File("./unresolvedArtifacts.log");
+	private File emptyDepUsageArtifact = new File("./emptyDepUsageArtifact.log");
 	/**
 	 * used for reporting
 	 */
@@ -73,6 +75,7 @@ public class DependencyUsageProcessor extends CollectArtifactProcessor {
 		artifactRequest.addRepository(repo);
 		ArtifactResult artifactResult=null;
 		File jarFile=null;
+		String coordinates = artifact.getGroupId() + ":" + artifact.getArtifactId() + ":" + artifact.getVersion();
 		try {
 
 			//artifactResult = system.resolveArtifact(session, artifactRequest);
@@ -81,7 +84,7 @@ public class DependencyUsageProcessor extends CollectArtifactProcessor {
 			if (jarFile == null) {
 				throw new NullPointerException();
 			}
-			processJar(jarFile, artifact.getGroupId() + ":" + artifact.getArtifactId() + ":" + artifact.getVersion());
+			processJar(jarFile, coordinates);
 			//doStuff
 			resolved++;
 
@@ -91,48 +94,59 @@ public class DependencyUsageProcessor extends CollectArtifactProcessor {
 				| SQLException e) {
 			LOGGER.error("Unable to read artifact {}", artifact);
 			e.printStackTrace();
+			try {
+				FileUtils.write(unresolvedArtifact, coordinates + " | " + e.getClass().getName());
+			} catch (IOException e1) {
+				LOGGER.error("COuld not log error for artifact {}", artifact);
+				e1.printStackTrace();
+			}
 			nonResolved++;
 		}
 		return artifact;
 	}
+
+
 
 	static String getLibrariesPackages = "SELECT p.libraryid, p.package FROM client as c " +
 			"JOIN dependency as d ON c.id=d.clientid " +
 			"JOIN package as p ON d.libraryid=p.libraryid " +
 			"WHERE c.coordinates=?";
 
-	private void processJar(File jar, String gav) throws IOException, SQLException {
-		PreparedStatement getLibrariesPackagesQuery = db.prepareStatement(getLibrariesPackages);
-		getLibrariesPackagesQuery.setString(1, gav);
+	private void processJar(File jar, String gav) throws SQLException, IOException {
+			PreparedStatement getLibrariesPackagesQuery = db.prepareStatement(getLibrariesPackages);
+			getLibrariesPackagesQuery.setString(1, gav);
 
-		ResultSet librariesPackagesResult = getLibrariesPackagesQuery.executeQuery();
+			ResultSet librariesPackagesResult = getLibrariesPackagesQuery.executeQuery();
 
-		Map<Integer, Set<String>> libs = new HashMap<>();
-		while(librariesPackagesResult.next()) {
-			Set<String> packages = libs.computeIfAbsent(librariesPackagesResult.getInt("libraryid"), i -> new HashSet<>());
-			packages.add(librariesPackagesResult.getString("package"));
-		}
+			Map<Integer, Set<String>> libs = new HashMap<>();
+			while (librariesPackagesResult.next()) {
+				Set<String> packages = libs.computeIfAbsent(librariesPackagesResult.getInt("libraryid"), i -> new HashSet<>());
+				packages.add(librariesPackagesResult.getString("package"));
+			}
 
-		JarFile jarFile = new JarFile(jar);
-		Enumeration<JarEntry> entries = jarFile.entries();
+			JarFile jarFile = new JarFile(jar);
+			Enumeration<JarEntry> entries = jarFile.entries();
 
-		LibrariesUsage lu = new LibrariesUsage(libs);
+			LibrariesUsage lu = new LibrariesUsage(libs);
 
 
-		while (entries.hasMoreElements()) {
-			JarEntry entry = entries.nextElement();
-			String entryName = entry.getName();
-			if (entryName.endsWith(".class")) {
-				try (InputStream classFileInputStream = jarFile.getInputStream(entry)) {
-					ClassReader cr = new ClassReader(classFileInputStream);
-					ClassWriter cw = new ClassWriter(ClassWriter.COMPUTE_MAXS);
-					ClassVisitor cv = new ClassAdapter(cw, lu);
-					cr.accept(cv, 0);
+			while (entries.hasMoreElements()) {
+				JarEntry entry = entries.nextElement();
+				String entryName = entry.getName();
+				if (entryName.endsWith(".class")) {
+					try (InputStream classFileInputStream = jarFile.getInputStream(entry)) {
+						ClassReader cr = new ClassReader(classFileInputStream);
+						ClassWriter cw = new ClassWriter(ClassWriter.COMPUTE_MAXS);
+						ClassVisitor cv = new ClassAdapter(cw, lu);
+						cr.accept(cv, 0);
+					}
 				}
 			}
-		}
 
-		lu.pushToDB(db, gav);
+			if(!lu.pushToDB(db, gav)) {
+				FileUtils.write(emptyDepUsageArtifact, gav + " | No dep usage");
+
+			}
 	}
 
 	@Override
