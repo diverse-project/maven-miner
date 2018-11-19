@@ -208,15 +208,19 @@ public class ClientResolverApp {
 	}
 
 	static String getClientsCoordinates = "SELECT coordinates FROM client;";
+	static String getUnresolvedClientsCoordinates = "SELECT c.coordinates FROM client as c WHERE c.id NOT IN (SELECT DISTINCT(clientid) FROM api_usage);";
 
 	private static void populateQueue() throws IOException, SQLException {
+
+		//PreparedStatement getClients = dbwrapper.getConnection().prepareStatement(getClientsCoordinates);
+		PreparedStatement getClients = dbwrapper.getConnection().prepareStatement(getUnresolvedClientsCoordinates);
+		ResultSet resultSet = getClients.executeQuery();
+
 		Map<String, Object> lazyArg = new HashMap<>();
 		lazyArg.put("x-queue-mode", "lazy");
 		channel.queueDeclareNoWait(ARTIFACT_QUEUE_NAME, true, false, false, lazyArg);
 		channel.queuePurge(ARTIFACT_QUEUE_NAME);
 
-		PreparedStatement getClients = dbwrapper.getConnection().prepareStatement(getClientsCoordinates);
-		ResultSet resultSet = getClients.executeQuery();
 		while(resultSet.next()) {
 			String message = resultSet.getString("coordinates");
 			channel.basicPublish("", ARTIFACT_QUEUE_NAME, null, message.getBytes("UTF-8"));
