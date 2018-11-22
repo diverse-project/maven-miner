@@ -1,11 +1,8 @@
 # Maven-Miner
 
 Maven miner is a set of java tools aiming at, programmatically, resolving all Maven dependencies hosted in the Maven central repository, then, storing them into a graph database. First, the maven central index is resolved and transformed into a flat file, containing all the hosted dependencies using the maven-indexer tool. Note, this tool is inspired by the [aether-examples](https://github.com/eclipse/aether-demo) project. Later, this file can be passed to the maven-miner tool in order to collect dependency requests for each artifact available in the file. Each artifact is then visited and persisted in a graph database. We rely on Neo4j, a well-known graph database, to persist the maven dependency graph.
-![alt text](https://github.com/diverse-project/maven-miner/blob/master/images/screenshot.png)
-## Schema
-We rely on a simple schema to represent the maven dependency graph. Artifacts are represented using neo4j nodes. Every node holds common information about Maven artifacts, namely, the *groupId*, *artifactId*, *version*, *packaging*, and *last_modified*, which refers to the artifact deployment date. In addition, to be able to identify nodes uniquely, we use the property *coordinates* (groupId:artifact:version). Finally, *exception* nodes capture all the raised exceptions while resolving a given artifact. The relationship type "**RAISES**" had a property *count*, to indicate how many times an exception was raised. The "**NEXT**" relationship id used to refer to next version. Note this relationship is resolved only on the standalone version.
 
-![alt text](https://github.com/diverse-project/maven-miner/blob/master/images/schema.png)
+
 
 ## User guide
 ### General Prerequisites
@@ -92,5 +89,3 @@ user@ubuntu/path/to/repository$./run-swarm.sh
   --n-consumer            Number of consumers to be deployed
   --neo4j-dump            Local path to dump neo4j data and logs
 ```
-## Developer guide
-TBD
