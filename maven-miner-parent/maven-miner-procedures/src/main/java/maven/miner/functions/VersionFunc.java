@@ -14,7 +14,7 @@ public class VersionFunc {
 	 public static final GenericVersionScheme versionScheme = new GenericVersionScheme();
 	
 	 @UserFunction(name = "maven.miner.version.isGreater")
-	 @Description("maven.miner.version.isGreater(n, 'v') - returns true if the the version of a node 'n' is Greater than teh provided one")
+	 @Description("maven.miner.version.isGreater(Node n, String 'v') - Returns true if the the version of a node 'n' is Greater than the provided version value")
 	 public Boolean isVersionGreater(@Name("node") Node node, 
 			 									@Name("version") String version) {
 		
@@ -22,7 +22,7 @@ public class VersionFunc {
 	 }
 	 
 	 @UserFunction(name = "maven.miner.version.isGreaterOrEqual")
-	 @Description("maven.miner.version.isGreater(n, 'v') - returns true if the the version of a node 'n' is Greater or equat to the provided one")
+	 @Description("maven.miner.version.isGreater(Node n, 'v') - returns true if the the version of a node 'n' is Greater or equal the provided version value")
 	 public Boolean isVersionGreaterOrEqual(@Name("node") Node node, 
 			 									@Name("version") String version) {
 		
@@ -30,7 +30,7 @@ public class VersionFunc {
 	 }
 	 
 	 @UserFunction(name = "maven.miner.version.isLower")
-	 @Description("maven.miner.version.isGreater(n, 'v') - returns true if the the version of a node 'n' is Greater than teh provided one")
+	 @Description("maven.miner.version.isGreater(Node n, 'v') - returns true if the the version of a node 'n' is lower than the provided version value")
 	 public Boolean isVersionLower(@Name("node") Node node, 
 			 									@Name("version") String version) {
 		
@@ -38,7 +38,7 @@ public class VersionFunc {
 	 }
 	 
 	 @UserFunction(name = "maven.miner.version.isLowerOrEqual")
-	 @Description("maven.miner.version.isGreater(n, 'v') - returns true if the the version of a node 'n' is Greater than teh provided one")
+	 @Description("maven.miner.version.isGreater(Node n, 'v') - returns true if the the version of a node 'n' is lower of equal than the provided version value")
 	 public Boolean isVersionLowerOrEqual(@Name("node") Node node, 
 			 									@Name("version") String version) {
 		
