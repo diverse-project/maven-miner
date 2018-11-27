@@ -27,6 +27,7 @@ mv -f $AETHER_JAR $MAVEN_MINER_DIR/miner-aether.jar
 
 rm -f $NEO4J/miner-proc.jar
 mv -f $PROC_JAR $NEO4J/miner-proc.jar
+cp -f $NEO4J/miner-proc.jar $NEO4J_HOME/plugins/miner-proc.jar
 
 echo "Building maven-miner"
 cd $MAVEN_INDEXER
