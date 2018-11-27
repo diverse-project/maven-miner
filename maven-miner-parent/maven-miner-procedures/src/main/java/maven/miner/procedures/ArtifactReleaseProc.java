@@ -9,6 +9,7 @@ import org.neo4j.procedure.Procedure;
 
 import maven.miner.output.OutputNumber;
 import maven.miner.output.ReleaseDurationOutput;
+import maven.miner.output.TimeToReleaseOutput;
 
 public class ArtifactReleaseProc extends AbstractProcedureEnv {
 
@@ -17,8 +18,9 @@ public class ArtifactReleaseProc extends AbstractProcedureEnv {
 	 * @param coordinates
 	 * @return
 	 */
-	@Procedure(value="maven.miner.time.release.average")
-	@Description ("The average duration between releases ")
+	@Procedure(value="maven.miner.upgrade.group.average")
+	@Description ("maven.miner.time.upgrade.average('group:artifact')"
+			+ " - The average upgrade time between two successive versions of a given library ('group:artifact') in DAYS ")
 	public Stream<OutputNumber> getAverageDuration (@Name(value = "group:artifact") String coordinates) {
 		String [] ga = coordinates.split(":");
 		if (ga.length > 2) {
@@ -27,11 +29,10 @@ public class ArtifactReleaseProc extends AbstractProcedureEnv {
 			throw new RuntimeException("Missing entry. Both the group ID and the ArtifactID Should be provided");
 		}
 		StringBuilder query = new StringBuilder("");
-		query.append(String.format("match p=(n:`%s`{ artifact : '%s' })-[:NEXT]->(m) ",
-									ga[0],
-									ga[1]));
-		query.append("with maven.miner.duration.between(n.release_date,m.release_date) as durations ");
-		query.append("return avg(durations) as average");
+		query.append(String.format("call maven.miner.upgrade.group('%s') YIELD durations  ",
+				coordinates));
+		query.append("UNWIND durations as duration ");
+		query.append("return avg(duration) as average");
 		Stream<OutputNumber> result = null;
 		
 		try (Transaction tx = graphDB.beginTx()) {
@@ -54,8 +55,9 @@ public class ArtifactReleaseProc extends AbstractProcedureEnv {
 	 * @param coordinates
 	 * @return
 	 */
-	@Procedure(value="maven.miner.time.release.max")
-	@Description ("The maximum duration between releases ")
+	@Procedure(value="maven.miner.upgrade.group.max")
+	@Description ("maven.miner.time.upgrade.average('group:artifact')"
+			+ " - The maximum upgrade time between two successive versions of a given library ('group:artifact') in DAYS ")
 	public Stream<OutputNumber> getMaxDuration (@Name(value = "group:artifact") String coordinates) {
 		String [] ga = coordinates.split(":");
 		if (ga.length > 2) {
@@ -63,12 +65,12 @@ public class ArtifactReleaseProc extends AbstractProcedureEnv {
 		} else if (ga.length < 2) {
 			throw new RuntimeException("Missing entry. Both the group ID and the ArtifactID Should be provided");
 		}
+		
 		StringBuilder query = new StringBuilder("");
-		query.append(String.format("match p=(n:`%s`{ artifact : '%s' })-[:NEXT]->(m) ",
-									ga[0],
-									ga[1]));
-		query.append("with maven.miner.duration.between(n.release_date,m.release_date) as durations ");
-		query.append("return max(durations) as maximum");
+		query.append(String.format("call maven.miner.upgrade.group('%s') YIELD durations  ",
+				coordinates));
+		query.append("UNWIND durations as duration ");
+		query.append("return max(duration) as maximum");
 		Stream<OutputNumber> result = null;
 		
 		try (Transaction tx = graphDB.beginTx()) {
@@ -91,8 +93,10 @@ public class ArtifactReleaseProc extends AbstractProcedureEnv {
 	 * @param coordinates
 	 * @return
 	 */
-	@Procedure(value="maven.miner.time.release.min")
-	@Description ("The minimum duration between releases ")
+	@Procedure(value="maven.miner.upgrade.group.min")
+	@Description ("maven.miner.time.upgrade.min('group:artifact')"
+			+ " - The minimum upgrade time between two successive versions of a given library ('group:artifact') in DAYS ")
+	
 	public Stream<OutputNumber> getMinDuration (@Name(value = "group:artifact") String coordinates) {
 		String [] ga = coordinates.split(":");
 		if (ga.length > 2) {
@@ -101,11 +105,10 @@ public class ArtifactReleaseProc extends AbstractProcedureEnv {
 			throw new RuntimeException("Missing entry. Both the group ID and the ArtifactID Should be provided");
 		}
 		StringBuilder query = new StringBuilder("");
-		query.append(String.format("match p=(n:`%s`{ artifact : '%s' })-[:NEXT]->(m) ",
-									ga[0],
-									ga[1]));
-		query.append("with maven.miner.duration.between(n.release_date,m.release_date) as durations ");
-		query.append("return min(durations) as minimum");
+		query.append(String.format("call maven.miner.upgrade.group('%s') YIELD durations  ",
+				coordinates));
+		query.append("UNWIND durations as duration ");
+		query.append("return min(duration) as minimum");
 		Stream<OutputNumber> result = null;
 		
 		try (Transaction tx = graphDB.beginTx()) {
@@ -128,8 +131,10 @@ public class ArtifactReleaseProc extends AbstractProcedureEnv {
 	 * @param coordinates
 	 * @return
 	 */
-	@Procedure(value="maven.miner.time.release.median")
-	@Description ("The median duration between releases ")
+	@Procedure(value="maven.miner.upgrade.group.median")
+	@Description ("maven.miner.time.upgrade.median('group:artifact')"
+			+ " - The median upgrade time between two successive versions of a given library ('group:artifact') in DAYS ")
+	
 	public Stream<OutputNumber> getMeanDuration (@Name(value = "group:artifact") String coordinates) {
 		
 		String [] ga = coordinates.split(":");
@@ -140,10 +145,9 @@ public class ArtifactReleaseProc extends AbstractProcedureEnv {
 		}
 		
 		StringBuilder query = new StringBuilder("");
-		query.append(String.format("match p=(n:`%s`{ artifact : '%s' })-[:NEXT]->(m) ",
-									ga[0],
-									ga[1]));
-		query.append("with maven.miner.duration.between(n.release_date,m.release_date) as duration ");
+		query.append(String.format("call maven.miner.upgrade.group('%s') YIELD durations  ",
+									coordinates));
+		query.append("UNWIND durations as duration ");
 		query.append("return apoc.agg.median(duration) as median");
 		
 		Stream<OutputNumber> result = null;
@@ -167,9 +171,9 @@ public class ArtifactReleaseProc extends AbstractProcedureEnv {
 	 * @param coordinates
 	 * @return
 	 */
-	@Procedure(value="maven.miner.time.release.all")
-	@Description ("The all duration between releases ")
-	public Stream<ReleaseDurationOutput> getAllDurations (@Name(value = "group:artifact") String coordinates) {
+	@Procedure(value="maven.miner.upgrade.group")
+	@Description ("maven.miner.upgrade.group ('g:a')- All th duration between upgrades for a given library")
+	public Stream<TimeToReleaseOutput> getUpgrades (@Name(value = "group:artifact") String coordinates) {
 		
 		String [] ga = coordinates.split(":");
 		if (ga.length > 2) {
@@ -179,19 +183,20 @@ public class ArtifactReleaseProc extends AbstractProcedureEnv {
 		}
 		
 		StringBuilder query = new StringBuilder("");
-		query.append(String.format("match p=(n:`%s`{ artifact : '%s' })-[:NEXT]->(m) ",
+		
+		query.append(String.format(" match (n:`%s`{ artifact : '%s' }) where not (n)<-[:NEXT]-() ",
 									ga[0],
 									ga[1]));
-		query.append(" with maven.miner.duration.between(n.release_date, m.release_date) as duration, n, m");
-		query.append(" return n.coordinates as sourceCoordinates, m.coordinates as targetCoordinates, duration");
+		query.append(" with n match (n)-[:NEXT*]->(m) with n.release_date as baseDate, n, m ");
+		query.append(" return collect(maven.miner.duration.between(baseDate, m.release_date)) as timeToRelease, n.groupID as groupId, n.artifact as artifactId ");
 		
-		Stream<ReleaseDurationOutput> result = null;
+		Stream<TimeToReleaseOutput> result = null;
 		
 		try (Transaction tx = graphDB.beginTx()) {
 			
 			result = graphDB.execute(query.toString())
 							.stream()
-							.map(ReleaseDurationOutput::new);															
+							.map(TimeToReleaseOutput::new);															
 			tx.success();
 			
 		} catch (Throwable e) {
@@ -200,5 +205,72 @@ public class ArtifactReleaseProc extends AbstractProcedureEnv {
 		}
 		return result;
 	}
-	
+	/**
+	 * 
+	 * @param coordinates
+	 * @return
+	 */
+	@Procedure(value="maven.miner.upgrade.group.count")
+	@Description ("maven.miner.upgrade.group.count ('g:a')- The number of upgrapdes per library")
+	public Stream<OutputNumber> getUpgradesCount (@Name(value = "group:artifact") String coordinates) {
+		
+		String [] ga = coordinates.split(":");
+		if (ga.length > 2) {
+			throw new RuntimeException("Only the group ID and the ArtifactID Should be provided");
+		} else if (ga.length < 2) {
+			throw new RuntimeException("Missing entry. Both the group ID and the ArtifactID Should be provided");
+		}
+		
+		StringBuilder query = new StringBuilder("");
+		query.append(String.format("call maven.miner.upgrade.group('%s') YIELD durations  ",
+				coordinates));
+		query.append("UNWIND durations as duration ");
+		query.append("return count(duration) as counts");
+		Stream<OutputNumber> result = null;
+		
+		try (Transaction tx = graphDB.beginTx()) {
+			
+			result = graphDB.execute(query.toString())
+							.columnAs("counts")
+							.stream()
+							.map(Number.class::cast)
+							.map(OutputNumber::new);			
+			
+		} catch (Throwable e) {
+			log.error(e.getMessage());
+			throw new RuntimeException(e);	
+		}
+		return result;
+	}
+
+	/**
+	 * 
+	 * @param coordinates
+	 * @return
+	 */
+	@Procedure(value="maven.miner.upgrade.all")
+	@Description ("All the durations between upgrades for all libraries with more than one upgrade")
+	public Stream<TimeToReleaseOutput> getAllUpgrades () {
+		
+		StringBuilder query = new StringBuilder("");
+		
+		query.append(" match (n:Artifact) where not (n)<-[:NEXT]-() ");
+		query.append(" with n match (n)-[:NEXT*]->(m) with n.release_date as baseDate, n, m ");
+		query.append(" return collect(maven.miner.duration.between(baseDate, m.release_date)) as timeToRelease, n.groupID as groupId, n.artifact as artifactId ");
+		
+		Stream<TimeToReleaseOutput> result = null;
+		
+		try (Transaction tx = graphDB.beginTx()) {
+			
+			result = graphDB.execute(query.toString())
+							.stream()
+							.map(TimeToReleaseOutput::new);															
+			tx.success();
+			
+		} catch (Throwable e) {
+			log.error(e.getMessage());
+			throw new RuntimeException(e);	
+		}
+		return result;
+	}
 }
