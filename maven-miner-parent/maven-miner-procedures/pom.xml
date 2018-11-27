@@ -61,12 +61,6 @@
       <artifactId>junit</artifactId>
       <scope>test</scope>
     </dependency>
-    <dependency>
-	    <groupId>org.neo4j.procedure</groupId>
-	    <artifactId>apoc</artifactId>
-	    <version>3.4.0.3</version>
-    	<scope>test</scope>
-	</dependency>
 	<dependency>
 	    <groupId>org.hamcrest</groupId>
 	    <artifactId>hamcrest-all</artifactId>
