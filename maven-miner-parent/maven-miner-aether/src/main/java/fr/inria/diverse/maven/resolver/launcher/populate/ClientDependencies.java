@@ -10,7 +10,7 @@ import java.sql.SQLException;
 public class ClientDependencies {
 
 	static String getLibIdQuery = "SELECT id FROM library WHERE coordinates=?;";
-	static String getCLientIdQuery = "SELECT id FROM client WHERE coordinates=?;";
+	static String getClientIdQuery = "SELECT id FROM client WHERE coordinates=?;";
 
 	static String insertClientQuery = "INSERT INTO client (id, coordinates, groupid, artifactid, version)\n" +
 			"VALUES (NULL, ?, ?, ?, ?); ";
@@ -43,7 +43,7 @@ public class ClientDependencies {
 							try {
 								//Is client there?
 								int clientID;
-								PreparedStatement getClientIdQueryStmt = db.getConnection().prepareStatement(getCLientIdQuery);
+								PreparedStatement getClientIdQueryStmt = db.getConnection().prepareStatement(getClientIdQuery);
 								getClientIdQueryStmt.setString(1, dep);
 								ResultSet resultCli = getClientIdQueryStmt.executeQuery();
 								if (resultCli.next()) {

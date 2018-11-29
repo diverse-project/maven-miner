@@ -16,12 +16,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import org.sonatype.aether.util.artifact.DefaultArtifact;
-import fr.inria.diverse.maven.resolver.processor.CollectAndResolveArtifactProcessor;
-import fr.inria.diverse.maven.resolver.processor.CollectArtifactProcessor;
-import fr.inria.diverse.maven.resolver.tasks.DependencyGraphPrettyPrinterTask;
-import fr.inria.diverse.maven.resolver.tasks.DependencyVisitorTask;
-import fr.inria.diverse.maven.resolver.tasks.Neo4jGraphDeepDependencyVisitorTask;
-import fr.inria.diverse.maven.resolver.tasks.Neo4jGraphDependencyVisitorTask;
 
 
 public class LibResolverApp {
