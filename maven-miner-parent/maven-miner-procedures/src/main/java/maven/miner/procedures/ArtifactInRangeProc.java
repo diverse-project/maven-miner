@@ -99,7 +99,7 @@ public class ArtifactInRangeProc extends AbstractProcedureEnv {
 	 */
 	@Procedure(value="maven.miner.time.group.during", mode = Mode.READ)
 	@Description ("maven.miner.time.group.during('g', year[, month=0]?) "
-		+ "- Retrieving all artifacts duringna period of time. This periood is charactezed using the the Long values, year and month")
+		+ "- Retrieving all artifacts duringn a period of time. This periood is characterized using the the Long values, year and month")
 	
 	public Stream<OutputNode> getArtifactsInTimeRange(@Name( value = "Group name") String groupName,
 													  @Name( value = "Deployment year") Long year, 
@@ -218,6 +218,65 @@ public class ArtifactInRangeProc extends AbstractProcedureEnv {
 		}
 		return result;
 	}
+	
+//	/**
+//	 * 
+//	 * @param groupName
+//	 * @param start
+//	 * @param end
+//	 * @return
+//	 */
+//	@Procedure(value="maven.miner.time.group.between", mode = Mode.READ)
+//	@Description ("maven.miner.time.group.between('groupName','start (YYYY-MM-DD)'[,end = '9999-12-31']?) "
+//			+ "- Retrieving all artifacts  of the given groupName during a period of time. This periood is charactezed using the the date values in the form YYYY-MM-DD")
+//			public Stream<OutputNode> getArtifactsInPeriod(@Name(value = "Group name") String groupName,
+//												   @Name("start date with the format YYYY-MM-DD") String start, 
+//												   @Name(value= "end date with the format YYYY-MM-DD", defaultValue = "9999-12-31") String end) 
+//	{	
+//		LocalDate startDate = null;
+//		LocalDate endDate = null;
+//		
+//		try {
+//			startDate = LocalDate.parse(start);
+//			endDate = LocalDate.parse(end);
+//		} catch (Throwable th) {
+//			log.error("Couldn't parse date values");
+//			throw new RuntimeException(th);
+//		}
+//		
+//		int startYear = startDate.getYear();
+//		int startMonth = startDate.getMonthValue();
+//		
+//		int endYear = endDate.getYear();
+//		int endMonth = endDate.getMonthValue();
+//		
+//		Stream<OutputNode> result = null;
+//		try (Transaction tx = graphDB.beginTx()) {
+//			String query = String.format("match (m)<-[:MONTH]-(n:`%s`)-[:YEAR]->(y) \n" + 
+//											"where (y.year = %d and m.month > %d) \n" + 
+//											"or y.year> %d\n" + 
+//											"or y.year< %d \n" + 
+//											"or (y.year = %d and m.month < %d)\n" + 
+//											"return n",
+//											groupName,
+//											startYear,
+//											startMonth,
+//											startYear,
+//											endYear,
+//											endYear,
+//											endMonth);
+//			
+//			Result queryResult = graphDB.execute(query);
+//			result = queryResult.columnAs("n")
+//								.stream()
+//								.map(node -> new OutputNode((Node)node));
+//			tx.success();
+//		} catch (Exception e) {
+//			log.error(e.getMessage());
+//			throw new RuntimeException(e);	
+//		}
+//		return result;
+//	}
 	
 	/**
 	 * 

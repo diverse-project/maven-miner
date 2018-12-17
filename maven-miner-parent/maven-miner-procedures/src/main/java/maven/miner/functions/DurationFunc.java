@@ -28,9 +28,9 @@ public class DurationFunc {
 			 endTime =MavenMinerUtil.fromZonedTime(end);
 			 unit = unit.trim();
 			 switch (unit) {
-				 case "D" : return Math.abs(ChronoUnit.DAYS.between(startTime, endTime));
-				 case "H" : return Math.abs(ChronoUnit.HOURS.between(startTime, endTime));
-				 case "M" : return Math.abs(ChronoUnit.MONTHS.between(startTime, endTime));
+				 case "D" : return ChronoUnit.DAYS.between(startTime, endTime);
+				 case "H" : return ChronoUnit.HOURS.between(startTime, endTime);
+				 case "M" : return ChronoUnit.MONTHS.between(startTime, endTime);
 			 }
 
 		 } catch (Throwable th) {

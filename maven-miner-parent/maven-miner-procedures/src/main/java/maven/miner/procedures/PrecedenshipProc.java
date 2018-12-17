@@ -32,7 +32,7 @@ public class PrecedenshipProc extends AbstractProcedureEnv {
 	@Procedure(value="maven.miner.artifacts.latest", mode = Mode.READ)
 	@Description("maven.miner.artifacts.latest(['groupName']) "
 			+ "- Retrieves all latest artifacts of a given group name."
-			+ " By defaultit returns all the latests artifacts in the graph." )
+			+ " By defaultit returns all the latests artifacts in the graph" )
 	public Stream<OutputNode> getLatestArtifacts(@Name(value = "group name", defaultValue = Properties.ARTIFACT_LABEL) String groupName) {
 		Stream<OutputNode> result = null;
 		try (Transaction tx = graphDB.beginTx()) {

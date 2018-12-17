@@ -8,6 +8,7 @@ import org.sonatype.aether.util.version.GenericVersionScheme;
 import org.sonatype.aether.version.Version;
 
 import fr.inria.diverse.maven.common.Properties;
+import fr.inria.diverse.maven.util.VersionInformation;
 
 public class VersionFunc {
 	 
@@ -24,6 +25,7 @@ public class VersionFunc {
 	 public Boolean isVersionGreater(@Name("node") Node node, 
 			 									@Name("version") String version) {
 		
+	
 		 return compareVersion(node, version) == 1;
 	 }
 	 
@@ -150,6 +152,30 @@ public class VersionFunc {
 		}
 		return false;
 	 }
+	 
+	 /**
+	  * 
+	  * @param version1
+	  * @param version2
+	  * @return
+	  */
+	 @UserFunction(name = "maven.miner.version.isSameMajor")
+	 @Description("maven.miner.version.isSameMajor(version1'', 'version2') - returns true if the the two versions share the same major version number")
+	 public String information(@Name("version1") String version1, 
+			 									@Name("version2") String version2) {
+		
+		 if (compareVersion(version1, version2)> 0 ) 
+			 throw new RuntimeException("Invalid versions order! the second version number in parameter "
+		 		+ "should be strictly greater than the first one!");
+		 VersionInformation v1Info = new VersionInformation(version1);
+		 VersionInformation v2Info = new VersionInformation(version2);
+		 
+		if (v2Info.getMajor()>v1Info.getMajor()) 
+			return UpgradeType.MAJOR.name();
+		else if (v2Info.getMinor() > v1Info.getMinor())
+			return UpgradeType.MINOR.name();
+		return UpgradeType.PATCH.name();
+	 }
 	 /**
 	  * 
 	  * @param node
@@ -157,18 +183,30 @@ public class VersionFunc {
 	  * @return
 	  */
 	 private int compareVersion (Node node , String version) {
+		return  compareVersion((String)node.getProperty(Properties.VERSION), version);
+	 }
+	 
+	 /**
+	  * 
+	  * @param node
+	  * @param version
+	  * @return
+	  */
+	 private int compareVersion (String version1 , String version2) {
 		 Version v1 = null;
 		 Version v2 = null;
 		 try {
-				v1 = versionScheme.parseVersion((String)node.getProperty(Properties.VERSION));
-				v2 = versionScheme.parseVersion(version);
+				v1 = versionScheme.parseVersion(version1);
+				v2 = versionScheme.parseVersion(version2);
 				
 			 } catch (Throwable e) {
 				throw new RuntimeException("Unable to compare node version", e);
 			 }
 		 return v1.compareTo(v2);
+	 } 
+	 public enum UpgradeType {
+		 MAJOR, MINOR, PATCH, NO_UPGRADE
 	 }
-	 
 	
 }
 

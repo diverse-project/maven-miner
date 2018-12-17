@@ -11,7 +11,6 @@ import org.neo4j.driver.v1.GraphDatabase;
 import org.neo4j.driver.v1.Session;
 import org.neo4j.driver.v1.StatementResult;
 import org.neo4j.harness.junit.Neo4jRule;
-import apoc.coll.Coll;
 
 public class SimilarityProcTest {
 

@@ -2,13 +2,13 @@ package maven.miner.procedures;
 
 import java.util.stream.Stream;
 
+import org.neo4j.driver.v1.types.Node;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.procedure.Description;
 import org.neo4j.procedure.Name;
 import org.neo4j.procedure.Procedure;
 
 import maven.miner.output.OutputNumber;
-import maven.miner.output.ReleaseDurationOutput;
 import maven.miner.output.TimeToReleaseOutput;
 
 public class ArtifactReleaseProc extends AbstractProcedureEnv {
@@ -188,7 +188,48 @@ public class ArtifactReleaseProc extends AbstractProcedureEnv {
 									ga[0],
 									ga[1]));
 		query.append(" with n match (n)-[:NEXT*]->(m) with n.release_date as baseDate, n, m ");
-		query.append(" return collect(maven.miner.duration.between(baseDate, m.release_date)) as timeToRelease, n.groupID as groupId, n.artifact as artifactId ");
+		query.append(" return collect(maven.miner.duration.between(baseDate, m.release_date)) "
+				+ "as timeToRelease, n.groupID as groupId, n.artifact as artifactId ");
+		
+		Stream<TimeToReleaseOutput> result = null;
+		
+		try (Transaction tx = graphDB.beginTx()) {
+			
+			result = graphDB.execute(query.toString())
+							.stream()
+							.map(TimeToReleaseOutput::new);															
+			tx.success();
+			
+		} catch (Throwable e) {
+			log.error(e.getMessage());
+			throw new RuntimeException(e);	
+		}
+		return result;
+	}
+	/**
+	 * 
+	 * @param coordinates
+	 * @return
+	 */
+	@Procedure(value="maven.miner.ttr.group")
+	@Description ("maven.miner.ttr.group ('g:a')- return the time to of each artifact version given a 'g:a' ")
+	public Stream<TimeToReleaseOutput> getTimeToRelease (@Name(value = "group:artifact") String coordinates) {
+		
+		String [] ga = coordinates.split(":");
+		if (ga.length > 2) {
+			throw new RuntimeException("Only the group ID and the ArtifactID Should be provided");
+		} else if (ga.length < 2) {
+			throw new RuntimeException("Missing entry. Both the group ID and the ArtifactID Should be provided");
+		}
+		
+		StringBuilder query = new StringBuilder("");
+		
+		query.append(String.format(" match (n:`%s`{ artifact : '%s' }) where not (n)<-[:NEXT]-() ",
+									ga[0],
+									ga[1]));
+		query.append(" with n match (n)-[:NEXT*]->(m) with n.release_date as baseDate, n, m ");
+		query.append(" return collect(maven.miner.duration.between(baseDate, m.release_date)) "
+				+ "as timeToRelease, n.groupID as groupId, n.artifact as artifactId ");
 		
 		Stream<TimeToReleaseOutput> result = null;
 		
@@ -256,7 +297,8 @@ public class ArtifactReleaseProc extends AbstractProcedureEnv {
 		
 		query.append(" match (n:Artifact) where not (n)<-[:NEXT]-() ");
 		query.append(" with n match (n)-[:NEXT*]->(m) with n.release_date as baseDate, n, m ");
-		query.append(" return collect(maven.miner.duration.between(baseDate, m.release_date)) as timeToRelease, n.groupID as groupId, n.artifact as artifactId ");
+		query.append(" return collect(maven.miner.duration.between(baseDate, m.release_date)) "
+				+ "as timeToRelease, n.groupID as groupId, n.artifact as artifactId ");
 		
 		Stream<TimeToReleaseOutput> result = null;
 		
@@ -272,5 +314,11 @@ public class ArtifactReleaseProc extends AbstractProcedureEnv {
 			throw new RuntimeException(e);	
 		}
 		return result;
+	}
+	
+	private Node getMostRecentVersion(Node node) {
+		
+		return null;
+		
 	}
 }
