@@ -24,6 +24,7 @@ public class LibrariesUsage {
 	static String separator = ".";
 	public void insertIfPartOfPackages(String owner, String targetMember) {
 		int separatorIndex = owner.lastIndexOf('/');
+		if(separatorIndex < 0) return;
 		String targetPackageName = owner.substring(0, separatorIndex);
 		String apiMember = owner.substring(separatorIndex+1) + (targetMember.equals("") ? "" : (separator + targetMember));
 		for(Integer libraryId: librariesPackagesMembersUsage.keySet()) {

@@ -28,6 +28,7 @@ public class LibApiResolverApp {
 		@SuppressWarnings("null")
 		public static void main(String[] args) throws IOException, SQLException {
 
+
 			//initialize arguments
 			String coordinatesPath = "./libraries";
 
