@@ -15,3 +15,4 @@ files/**/*.jar
 !/.mvn/wrapper/maven-wrapper.jar
 logs/
 miner-proc.jar
+/hs_err_pid7328.log

@@ -83,38 +83,18 @@ public class VersionFunc {
 	 public Boolean isVersionSameMinor(@Name("version1") String version1, 
 			 									@Name("version2") String version2) {
 
-		 String [] version1_items = new String[5];
-		 String [] version2_items = new String[5];
-		 if (version1.contains(".")) {
-			version1_items = version1.split("\\."); 
-		 } else {
-			 version1_items [0] = version1;
-			 version1_items [1] = "0";
-		 }
-		 
-		 if (version2.contains(".")) {
-				version2_items = version2.split("\\."); 
-		 } else {
-				 version2_items [0] = version1;
-				 version2_items [1] = "0";
-		 }
-		 try {
-			 if (! version1_items[0].equals(version2_items[0])) {
-				 return false;
-			 } else  {
-				 //trimming qualifiers if 
-				 String item1 = version1_items[1];
-				 if (item1.contains("-")) item1 = item1.substring(0, item1.indexOf('-'));
-				 
-				 String item2 = version2_items[1];//.substring(0, version2_items[1].indexOf('-'));
-				 if (item2.contains("-")) item2 = item2.substring(0, item1.indexOf('-'));
-				 if (item1.equals(item2))
-				 return true;
-			 }
-		} catch (IndexOutOfBoundsException e) {
-			return false;
-		}
-		return false;
+			try {
+				VersionInformation v1Info = new VersionInformation(version1);
+				VersionInformation v2Info = new VersionInformation(version2);
+				if (v2Info.getMajor() != v1Info.getMajor() && 
+						v2Info.getMinor() != v1Info.getMinor()) 
+					return true;
+				return false;
+			} catch (Exception e) {
+				
+				throw new RuntimeException(String.format("Unable to parse Versions %s, %s. "
+						+ "\n See full stack below %s", version1, version2, e.getLocalizedMessage()));
+			}
 	 }
 	 
 	 /**
@@ -128,29 +108,20 @@ public class VersionFunc {
 	 public Boolean isVersionSameMajor(@Name("version1") String version1, 
 			 									@Name("version2") String version2) {
 		
-		 String [] version1_items = new String[5];
-		 String [] version2_items = new String[5];
-		 if (version1.contains(".")) {
-			version1_items = version1.split("\\."); 
-		 } else {
-			 version1_items [0] = version1;
-			 version1_items [1] = "0";
-		 }
-		 
-		 if (version2.contains(".")) {
-				version2_items = version2.split("\\."); 
-		 } else {
-				 version2_items [0] = version1;
-				 version2_items [1] = "0";
-		 }
-		 try {
-			 if ( version1_items[0].equals(version2_items[0])) {
-				 return true;
-			 } 
-		} catch (IndexOutOfBoundsException e) {
+		 if (compareVersion(version1, version2)> 0 ) 
+			 throw new RuntimeException("Invalid versions order! the second version number in parameter "
+		 		+ "should be strictly greater than the first one!");
+		try {
+			VersionInformation v1Info = new VersionInformation(version1);
+			VersionInformation v2Info = new VersionInformation(version2);
+			if (v2Info.getMajor() == v1Info.getMajor()) 
+				return true;
 			return false;
+		} catch (Exception e) {
+			
+			throw new RuntimeException(String.format("Unable to parse Versions %s, %s. "
+					+ "\n See full stack below %s", version1, version2, e.getLocalizedMessage()));
 		}
-		return false;
 	 }
 	 
 	 /**
@@ -164,17 +135,23 @@ public class VersionFunc {
 	 public String information(@Name("version1") String version1, 
 			 									@Name("version2") String version2) {
 		
-		 if (compareVersion(version1, version2)> 0 ) 
+		if (compareVersion(version1, version2)> 0 ) 
 			 throw new RuntimeException("Invalid versions order! the second version number in parameter "
 		 		+ "should be strictly greater than the first one!");
-		 VersionInformation v1Info = new VersionInformation(version1);
-		 VersionInformation v2Info = new VersionInformation(version2);
-		 
-		if (v2Info.getMajor()>v1Info.getMajor()) 
-			return UpgradeType.MAJOR.name();
-		else if (v2Info.getMinor() > v1Info.getMinor())
-			return UpgradeType.MINOR.name();
-		return UpgradeType.PATCH.name();
+		try {
+			VersionInformation v1Info = new VersionInformation(version1);
+			VersionInformation v2Info = new VersionInformation(version2);
+			if (v2Info.getMajor()>v1Info.getMajor()) 
+				return UpgradeType.MAJOR.name();
+			else if (v2Info.getMinor() > v1Info.getMinor())
+				return UpgradeType.MINOR.name();
+			return UpgradeType.PATCH.name();
+		} catch (Exception e) {
+			return UpgradeType.UNKNOWN.name();
+//			throw new RuntimeException(String.format("Unable to parse Versions %s, %s. "
+//					+ "\n See full stack below %s", version1, version2, e.getLocalizedMessage()));
+		}
+		
 	 }
 	 /**
 	  * 
@@ -205,7 +182,7 @@ public class VersionFunc {
 		 return v1.compareTo(v2);
 	 } 
 	 public enum UpgradeType {
-		 MAJOR, MINOR, PATCH, NO_UPGRADE
+		 MAJOR, MINOR, PATCH, UNKNOWN
 	 }
 	
 }

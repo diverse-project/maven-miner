@@ -2,7 +2,6 @@ package maven.miner.procedures;
 
 import java.util.stream.Stream;
 
-import org.neo4j.driver.v1.types.Node;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.procedure.Description;
 import org.neo4j.procedure.Name;
@@ -315,10 +314,5 @@ public class ArtifactReleaseProc extends AbstractProcedureEnv {
 		}
 		return result;
 	}
-	
-	private Node getMostRecentVersion(Node node) {
-		
-		return null;
-		
-	}
+
 }
