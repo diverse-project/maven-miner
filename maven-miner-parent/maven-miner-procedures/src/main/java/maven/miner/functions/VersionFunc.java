@@ -159,8 +159,8 @@ public class VersionFunc {
 	  * @param version2
 	  * @return
 	  */
-	 @UserFunction(name = "maven.miner.version.isSameMajor")
-	 @Description("maven.miner.version.isSameMajor(version1'', 'version2') - returns true if the the two versions share the same major version number")
+	 @UserFunction(name = "maven.miner.version.upgradeType")
+	 @Description("maven.miner.version.upgradeType(version1'', 'version2') - returns upgrade information between two consecutive versions (MAJOR, MINOR, PATCH)")
 	 public String information(@Name("version1") String version1, 
 			 									@Name("version2") String version2) {
 		
