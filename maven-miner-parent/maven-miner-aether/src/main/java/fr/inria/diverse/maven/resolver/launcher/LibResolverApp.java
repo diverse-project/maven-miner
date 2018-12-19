@@ -37,7 +37,7 @@ public class LibResolverApp {
 
 		//initialize arguments
 		//String coordinatesPath = "src/main/resources/allUniqueArtifactsOnly-mini-100";
-		String coordinatesPath = "maven-miner-aether/src/main/resources/top-100-libs-versions";
+		String coordinatesPath = args[0];
 
 		options.addOption("h", "help", false, "Show help");
 
