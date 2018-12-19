@@ -107,7 +107,7 @@ public class DependencyUsageProcessor extends CollectArtifactProcessor {
 
 
 
-	static String getLibrariesPackages = "SELECT p.libraryid, p.package FROM client as c " +
+	static String getLibrariesPackages = "SELECT p.libraryid, p.package, p.id FROM client as c " +
 			"JOIN dependency as d ON c.id=d.clientid " +
 			"JOIN package as p ON d.libraryid=p.libraryid " +
 			"WHERE c.coordinates=?";
@@ -118,10 +118,10 @@ public class DependencyUsageProcessor extends CollectArtifactProcessor {
 
 			ResultSet librariesPackagesResult = getLibrariesPackagesQuery.executeQuery();
 
-			Map<Integer, Set<String>> libs = new HashMap<>();
+			Map<Integer, Map<Integer, String>> libs = new HashMap<>();
 			while (librariesPackagesResult.next()) {
-				Set<String> packages = libs.computeIfAbsent(librariesPackagesResult.getInt("libraryid"), i -> new HashSet<>());
-				packages.add(librariesPackagesResult.getString("package"));
+				Map<Integer, String> packages = libs.computeIfAbsent(librariesPackagesResult.getInt("libraryid"), i -> new HashMap<>());
+				packages.put(librariesPackagesResult.getInt("id"), librariesPackagesResult.getString("package"));
 			}
 
 			JarFile jarFile = new JarFile(jar);

@@ -21,9 +21,9 @@ public class ClassAdapterTest {
 	@Ignore
 	@Test
 	public void test() throws IOException {
-		Map<Integer, Set<String>> libs = new HashMap<>();
-		Set<String> packages = new HashSet<>();
-		packages.add("se/kth/castor/types");
+		Map<Integer, Map<Integer, String>> libs = new HashMap<>();
+		Map<Integer, String> packages = new HashMap<>();
+		packages.put(0, "se/kth/castor/types");
 		libs.put(0,packages);
 		String jar = "/home/nharrand/Documents/tmp/dep-analyzer/src/test/resources/uselib/target/uselib-1.0-SNAPSHOT.jar";
 

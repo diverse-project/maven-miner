@@ -177,7 +177,7 @@ public class ClientResolverApp {
 
 							processor.process(artifact);
 						} catch (Exception e) {
-							LOGGER.error("Handle deleviery Error {}", e.getMessage());
+							LOGGER.error("Handle delivery Error {}", e.getMessage());
 						} finally {
 							//channel.basicAck(envelope.getDeliveryTag(), false);
 						}

@@ -13,8 +13,8 @@ public class LibraryPackages {
 
 	static String insertLibraryQuery = "INSERT INTO library (id, coordinates, groupid, artifactid, version, api_size)\n" +
 			"VALUES (NULL, ?, ?, ?, ?, NULL); ";
-	static String insertPackageQuery = "INSERT INTO package (libraryid, package)\n" +
-			"VALUES (?, ?); ";
+	static String insertPackageQuery = "INSERT INTO package (id, libraryid, package)\n" +
+			"VALUES (NULL, ?, ?); ";
 
 	public static void main(String[] args) throws SQLException {
 		MariaDBWrapper db = new MariaDBWrapper();

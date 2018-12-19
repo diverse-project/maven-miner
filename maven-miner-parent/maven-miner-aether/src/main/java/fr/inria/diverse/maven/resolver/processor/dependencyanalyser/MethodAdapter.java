@@ -11,15 +11,17 @@ import org.objectweb.asm.signature.SignatureVisitor;
 class MethodAdapter extends MethodVisitor implements Opcodes {
 
     LibrariesUsage lu;
+    String className;
 
-    public MethodAdapter(final MethodVisitor mv, LibrariesUsage lu) {
+    public MethodAdapter(final MethodVisitor mv, LibrariesUsage lu, String className) {
         super(ASM5, mv);
         this.lu = lu;
+        this.className = className;
     }
 
     public void processUsage( final String owner, final String name, final String descriptor) {
         String sig = getSignature(name,descriptor);
-        lu.insertIfPartOfPackages(owner, sig);
+        lu.insertIfPartOfPackages(owner, sig, className);
     }
 
     @Override
@@ -58,7 +60,7 @@ class MethodAdapter extends MethodVisitor implements Opcodes {
         }
     }
     public void readSig(String sig) {
-        SignatureVisitor sv = new SignatureAdapter(lu);
+        SignatureVisitor sv = new SignatureAdapter(lu, className);
         SignatureReader r = new SignatureReader(sig);
         r.accept(sv);
     }

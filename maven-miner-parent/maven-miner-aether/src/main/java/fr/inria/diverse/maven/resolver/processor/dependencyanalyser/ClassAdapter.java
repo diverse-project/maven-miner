@@ -24,6 +24,7 @@ import java.util.jar.JarFile;
 public class ClassAdapter extends ClassVisitor implements Opcodes {
 
     LibrariesUsage lu;
+    String className;
 
     public ClassAdapter(final ClassVisitor cv, LibrariesUsage lu) {
         super(ASM5, cv);
@@ -39,22 +40,23 @@ public class ClassAdapter extends ClassVisitor implements Opcodes {
             final String superName,
             final String[] interfaces) {
         super.visit(version,access,name,signature,superName,interfaces);
-        lu.insertIfPartOfPackages(superName,"");
+        className = name;
+        lu.insertIfPartOfPackages(superName,"", name);
         for(String interfaceName: interfaces) {
-            lu.insertIfPartOfPackages(interfaceName, "");
+            lu.insertIfPartOfPackages(interfaceName, "", name);
         }
     }
 
     @Override
     public AnnotationVisitor visitAnnotation(String desc, boolean visible) {
-        lu.insertIfPartOfPackages(extractByteCodeTypeDesc(desc),"");
+        lu.insertIfPartOfPackages(extractByteCodeTypeDesc(desc),"", className);
 
         return super.visitAnnotation(desc, visible);
     }
 
     @Override
     public AnnotationVisitor visitTypeAnnotation(int typeRef, TypePath typePath, String desc, boolean visible) {
-        lu.insertIfPartOfPackages(extractByteCodeTypeDesc(desc),"");
+        lu.insertIfPartOfPackages(extractByteCodeTypeDesc(desc),"", className);
 
         return super.visitTypeAnnotation(typeRef, typePath, desc, visible);
     }
@@ -65,13 +67,13 @@ public class ClassAdapter extends ClassVisitor implements Opcodes {
         FieldVisitor fv = cv.visitField(access, name, desc, signature, value);
 
         if(signature != null) {
-            SignatureVisitor sv = new SignatureAdapter(lu);
+            SignatureVisitor sv = new SignatureAdapter(lu, className);
             SignatureReader r = new SignatureReader(signature);
             r.accept(sv);
         }
 
-        lu.insertIfPartOfPackages(extractByteCodeTypeDesc(desc),"");
-        return fv == null ? null : new FieldAdapter(fv, lu);
+        lu.insertIfPartOfPackages(extractByteCodeTypeDesc(desc),"", className);
+        return fv == null ? null : new FieldAdapter(fv, lu, className);
     }
 
 
@@ -79,7 +81,7 @@ public class ClassAdapter extends ClassVisitor implements Opcodes {
     public MethodVisitor visitMethod(final int access, final String name,
                                      final String desc, final String signature, final String[] exceptions) {
         MethodVisitor mv = cv.visitMethod(access, name, desc, signature, exceptions);
-        return mv == null ? null : new MethodAdapter(mv, lu);
+        return mv == null ? null : new MethodAdapter(mv, lu, className);
     }
 
     public static String extractByteCodeTypeDesc(String raw) {
