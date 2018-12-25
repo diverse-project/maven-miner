@@ -8,6 +8,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 
 public class ClientDependencies {
+	static boolean dryRun = true;
 
 	static String getLibIdQuery = "SELECT id FROM library WHERE coordinates=?;";
 	static String getClientIdQuery = "SELECT id FROM client WHERE coordinates=?;";
@@ -31,6 +32,9 @@ public class ClientDependencies {
 					System.out.println("Processing lib: " + library);
 					String[] dependencies = raw[1].split("]")[0].split(",");
 
+					if(dryRun) {
+						System.out.println("[DryRun] Read: " + library + " (" + dependencies.length + ")");
+					}
 					//Is library there?
 
 					PreparedStatement getLibIdQueryStmt = db.getConnection().prepareStatement(getLibIdQuery);
@@ -39,55 +43,61 @@ public class ClientDependencies {
 					if (result.next()) {
 						int libID = result.getInt("id");
 						result.close();
-						for (String dep : dependencies) {
-							try {
-								//Is client there?
-								int clientID;
-								PreparedStatement getClientIdQueryStmt = db.getConnection().prepareStatement(getClientIdQuery);
-								getClientIdQueryStmt.setString(1, dep);
-								ResultSet resultCli = getClientIdQueryStmt.executeQuery();
-								if (resultCli.next()) {
-									clientID = resultCli.getInt("id");
-									resultCli.close();
-								} else {
-									resultCli.close();
-									PreparedStatement insertClientStmt = db.getConnection().prepareStatement(insertClientQuery);
-									insertClientStmt.setString(1, dep);
-									insertClientStmt.setString(2, dep.split(":")[0]);
-									insertClientStmt.setString(3, dep.split(":")[1]);
-									insertClientStmt.setString(4, dep.split(":")[2]);
 
-									int affectedRows = insertClientStmt.executeUpdate();
-									if (affectedRows != 1) {
-										throw new SQLException("Creating client failed, no rows affected.");
+						if(dryRun) {
+							System.out.println("[DryRun] Library id: " + libID);
+						} else {
+
+							for (String dep : dependencies) {
+								try {
+									//Is client there?
+									int clientID;
+									PreparedStatement getClientIdQueryStmt = db.getConnection().prepareStatement(getClientIdQuery);
+									getClientIdQueryStmt.setString(1, dep);
+									ResultSet resultCli = getClientIdQueryStmt.executeQuery();
+									if (resultCli.next()) {
+										clientID = resultCli.getInt("id");
+										resultCli.close();
 									} else {
-										ResultSet r = insertClientStmt.getGeneratedKeys();
-										r.next();
-										clientID = r.getInt(1);
-										r.close();
+										resultCli.close();
+										PreparedStatement insertClientStmt = db.getConnection().prepareStatement(insertClientQuery);
+										insertClientStmt.setString(1, dep);
+										insertClientStmt.setString(2, dep.split(":")[0]);
+										insertClientStmt.setString(3, dep.split(":")[1]);
+										insertClientStmt.setString(4, dep.split(":")[2]);
+
+										int affectedRows = insertClientStmt.executeUpdate();
+										if (affectedRows != 1) {
+											throw new SQLException("Creating client failed, no rows affected.");
+										} else {
+											ResultSet r = insertClientStmt.getGeneratedKeys();
+											r.next();
+											clientID = r.getInt(1);
+											r.close();
+										}
+
 									}
 
+									//insert dep relationship
+									PreparedStatement insertDependencyStmt = db.getConnection().prepareStatement(insertDependencyQuery);
+									insertDependencyStmt.setInt(1, clientID);
+									insertDependencyStmt.setInt(2, libID);
+									int affectedRows = insertDependencyStmt.executeUpdate();
+									if (affectedRows != 1) {
+										throw new SQLException("Creating dependency failed, no rows affected.");
+									}
+								} catch (Exception e) {
+									System.err.println("Failed to process dep: " + dep + ": <" + e.getMessage() + ">");
 								}
-
-								//insert dep relationship
-								PreparedStatement insertDependencyStmt = db.getConnection().prepareStatement(insertDependencyQuery);
-								insertDependencyStmt.setInt(1, clientID);
-								insertDependencyStmt.setInt(2, libID);
-								int affectedRows = insertDependencyStmt.executeUpdate();
-								if (affectedRows != 1) {
-									throw new SQLException("Creating dependency failed, no rows affected.");
-								}
-							} catch (Exception e) {
-								System.err.println("Failed to process dep: " + dep);
 							}
 						}
 					} else {
 						result.close();
-						throw new SQLException("Library not found.");
+						throw new SQLException("Library \"" + library + "\"not found.");
 					}
 					System.out.println("Done");
 				} catch (Exception e) {
-					System.err.println("Failed to read or process line.");
+					System.err.println("Failed to read or process line:<" + e.getMessage() + ">");
 				}
 			}
 		} catch (FileNotFoundException e) {

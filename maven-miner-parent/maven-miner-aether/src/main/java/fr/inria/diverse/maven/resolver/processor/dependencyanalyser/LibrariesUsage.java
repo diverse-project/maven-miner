@@ -49,7 +49,6 @@ public class LibrariesUsage {
 				membersUsage.put(apiMember,usage);
 			}
 		}
-
 	}
 
 	static String getClientID = "SELECT id FROM client WHERE coordinates=?";

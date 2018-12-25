@@ -50,7 +50,7 @@ public class LibApiResolverApp {
 					coordinatesPath = cmd.getOptionValue("f");
 				}
 			} catch (ParseException e) {
-				LOGGER.error("Failed to parse comand line properties", e);
+				LOGGER.error("Failed to parse command line properties", e);
 				help();
 			}
 			//open database

@@ -12,11 +12,13 @@ import java.util.Set;
 public class LibraryApi {
 	//Package -> Class -> member
 	public Map<String,Map<String,Set<Map.Entry<String,Boolean>>>> apiMembers;
+	public Map<String, Integer> packageIds;
 
 	int libraryId;
 
 	public LibraryApi(int libraryId) {
 		apiMembers = new HashMap<>();
+		packageIds = new HashMap<>();
 		this.libraryId = libraryId;
 	}
 
@@ -39,18 +41,32 @@ public class LibraryApi {
 	}
 
 
+	static String getPackageIds = "SELECT package, id FROM package WHERE libraryid=?";
+	public void getPackageIds(Connection db) throws SQLException {
+		PreparedStatement getPackageIdsStmt = db.prepareStatement(getPackageIds);
+		getPackageIdsStmt.setInt(1, libraryId);
+		ResultSet result = getPackageIdsStmt.executeQuery();
+		while(result.next()) {
+			String packageName = result.getString("package");
+			int packageId = result.getInt("id");
+			packageIds.put(packageName,packageId);
+		}
+	}
 	static String insertUsage = "INSERT INTO api_member_full (id, package, class, member, isPublic, libraryid)\n" +
 			"VALUES\n";
 
 	public boolean pushToDB(Connection db) throws SQLException {
+		getPackageIds(db);
 		String query = insertUsage;
 		for(String packageName : apiMembers.keySet()) {
+			if(!packageIds.containsKey(packageName)) System.err.println("Package: (lib " + libraryId + "): " + packageName + " is not in DB");
+			int packageId = packageIds.get(packageName);
 			Map<String,Set<Map.Entry<String,Boolean>>> packagesMembers = apiMembers.get(packageName);
 			for(String className : packagesMembers.keySet()) {
 				Set<Map.Entry<String,Boolean>> classMembers = packagesMembers.get(className);
 				for(Map.Entry<String,Boolean> member: classMembers) {
 					//get memberID and insert if necessary
-					query += "(NULL, '" + packageName + "', '" + className + "', '" + member.getKey() + "', " + (member.getValue() ? 1 : 0) + ", " + libraryId + "),";
+					query += "(NULL, '" + packageId + "', '" + className + "', '" + member.getKey() + "', " + (member.getValue() ? 1 : 0) + ", " + libraryId + "),";
 				}
 			}
 		}
