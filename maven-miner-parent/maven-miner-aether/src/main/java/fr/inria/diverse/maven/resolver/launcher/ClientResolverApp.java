@@ -92,6 +92,8 @@ public class ClientResolverApp {
 		options.addOption("q", "queue", true, "Hostname and port of the RabbitMQ broker. Note, URI comes in the form hostname:port");
 		options.addOption("u", "user", true, "User and password of the rabbitMQ. Note, it comes in the form user:password. By default user:user");
 
+		options.addOption("b", "debug", true, "Debug a specific artifact");
+
 		CommandLineParser parser = new DefaultParser();
 
 		CommandLine cmd = null;
@@ -165,32 +167,43 @@ public class ClientResolverApp {
 		if(fillQueue) {
 			populateQueue();
 		} else {
-			try {
-				channel.basicConsume(ARTIFACT_QUEUE_NAME, false, new DefaultConsumer(channel) {
-					@Override
-					public void handleDelivery(String consumerTag, Envelope envelope, AMQP.BasicProperties properties, byte[] body)
-							throws IOException {
-						try {
-							channel.basicAck(envelope.getDeliveryTag(), false);
-							String artifactCoordinate = new String(body, "UTF-8");
-							DefaultArtifact artifact = new DefaultArtifact(artifactCoordinate);
+			if(!cmd.hasOption("b")) {
+				try {
+					channel.basicConsume(ARTIFACT_QUEUE_NAME, false, new DefaultConsumer(channel) {
+						@Override
+						public void handleDelivery(String consumerTag, Envelope envelope, AMQP.BasicProperties properties, byte[] body)
+								throws IOException {
+							try {
+								channel.basicAck(envelope.getDeliveryTag(), false);
+								String artifactCoordinate = new String(body, "UTF-8");
+								DefaultArtifact artifact = new DefaultArtifact(artifactCoordinate);
 
-							processor.process(artifact);
-						} catch (Exception e) {
-							LOGGER.error("Handle delivery Error {}", e.getMessage());
-						} finally {
-							//channel.basicAck(envelope.getDeliveryTag(), false);
+								processor.process(artifact);
+							} catch (Exception e) {
+								LOGGER.error("Handle delivery Error {}", e.getMessage());
+							} finally {
+								//channel.basicAck(envelope.getDeliveryTag(), false);
+							}
 						}
-					}
-				});
-			} catch (IOException ioe) {
-				LOGGER.error("Couldn't find arifact {}", coordinatesPath);
-				ioe.printStackTrace();
-			} catch (Exception e) {
-				LOGGER.error("unhandled error {}", e.getMessage());
-				e.printStackTrace();
-			} finally {
-				//healthChecker.shutdownNow();
+					});
+				} catch (IOException ioe) {
+					LOGGER.error("Couldn't find arifact {}", coordinatesPath);
+					ioe.printStackTrace();
+				} catch (Exception e) {
+					LOGGER.error("unhandled error {}", e.getMessage());
+					e.printStackTrace();
+				} finally {
+					//healthChecker.shutdownNow();
+				}
+			} else {
+				try {
+					DefaultArtifact artifact = new DefaultArtifact(cmd.getOptionValue("b"));
+
+					processor.process(artifact);
+					channel.close();
+				} catch (Exception e) {
+					LOGGER.error("Handle delivery Error {}", e.getMessage());
+				}
 			}
 		}
 	}
@@ -215,6 +228,7 @@ public class ClientResolverApp {
 		//PreparedStatement getClients = dbwrapper.getConnection().prepareStatement(getClientsCoordinates);
 		PreparedStatement getClients = dbwrapper.getConnection().prepareStatement(getUnresolvedClientsCoordinates);
 		ResultSet resultSet = getClients.executeQuery();
+		getClients.close();
 
 		Map<String, Object> lazyArg = new HashMap<>();
 		lazyArg.put("x-queue-mode", "lazy");

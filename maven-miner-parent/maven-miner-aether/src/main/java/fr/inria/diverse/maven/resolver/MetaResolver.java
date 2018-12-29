@@ -2,7 +2,9 @@ package fr.inria.diverse.maven.resolver;
 
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
+import org.jsoup.nodes.Element;
 import org.jsoup.nodes.Node;
+import org.jsoup.select.Elements;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.sonatype.aether.RepositorySystem;
@@ -35,7 +37,9 @@ public class MetaResolver {
 		try {
 			doc = Jsoup.connect(url).get();
 
-			for(Node node :doc.getElementsContainingText(": this artifact it located at").last().childNodes()) {
+			Elements search = doc.getElementsContainingText(": this artifact it located at");
+			if(search.size() == 0) return null;
+			for(Node node : search.last().childNodes()) {
 				if(!node.toString().contains("repository (")) continue;
 				repoUrl = node.toString().split("\\(")[1].split("\\)")[0];
 			}

@@ -96,7 +96,9 @@ public class LibrariesUsage {
 		}
 		if(query.length() > insertUsage.length()) {
 			query = query.substring(0, query.length() - 1);
-			db.prepareStatement(query).execute();
+			PreparedStatement statement = db.prepareStatement(query);
+			statement.execute();
+			statement.close();
 			return true;
 		} else {
 			System.out.println("Nothing to push for client " + clientGAV + " (" + clientID + ").");

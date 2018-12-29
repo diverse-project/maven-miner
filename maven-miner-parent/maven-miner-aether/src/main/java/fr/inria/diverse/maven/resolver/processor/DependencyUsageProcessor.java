@@ -117,6 +117,7 @@ public class DependencyUsageProcessor extends CollectArtifactProcessor {
 			getLibrariesPackagesQuery.setString(1, gav);
 
 			ResultSet librariesPackagesResult = getLibrariesPackagesQuery.executeQuery();
+			getLibrariesPackagesQuery.close();
 
 			Map<Integer, Map<Integer, String>> libs = new HashMap<>();
 			while (librariesPackagesResult.next()) {
