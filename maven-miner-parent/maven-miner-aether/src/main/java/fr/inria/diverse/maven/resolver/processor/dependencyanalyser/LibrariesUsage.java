@@ -53,6 +53,9 @@ public class LibrariesUsage {
 
 	static String getClientID = "SELECT id FROM client WHERE coordinates=?";
 
+	static String lockBegin = "BEGIN TRANSACTION;";
+	static String lockEnd = "COMMIT TRANSACTION;";
+
 	static String insertUsage = "INSERT INTO api_usage (clientid, apimemberid, nb, diversity)\n" +
 			"VALUES\n";
 
@@ -96,7 +99,8 @@ public class LibrariesUsage {
 		}
 		if(query.length() > insertUsage.length()) {
 			query = query.substring(0, query.length() - 1);
-			PreparedStatement statement = db.prepareStatement(query);
+			//PreparedStatement statement = db.prepareStatement(query);
+			PreparedStatement statement = db.prepareStatement(lockBegin + query + ";" + lockEnd);
 			statement.execute();
 			statement.close();
 			return true;
