@@ -99,8 +99,8 @@ public class LibrariesUsage {
 		}
 		if(query.length() > insertUsage.length()) {
 			query = query.substring(0, query.length() - 1);
-			//PreparedStatement statement = db.prepareStatement(query);
-			PreparedStatement statement = db.prepareStatement(lockBegin + query + ";" + lockEnd);
+			PreparedStatement statement = db.prepareStatement(query);
+			//PreparedStatement statement = db.prepareStatement(lockBegin + query + ";" + lockEnd);
 			statement.execute();
 			statement.close();
 			return true;
