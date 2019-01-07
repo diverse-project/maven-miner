@@ -1,5 +1,6 @@
 package fr.inria.diverse.maven.resolver.processor;
 
+import com.rabbitmq.client.Channel;
 import fr.inria.diverse.maven.resolver.MetaResolver;
 import fr.inria.diverse.maven.resolver.db.sql.MariaDBWrapper;
 import fr.inria.diverse.maven.resolver.processor.dependencyanalyser.ClassAdapter;
@@ -51,6 +52,9 @@ public class DependencyUsageProcessor extends CollectArtifactProcessor {
 
 	private Connection db;
 
+	private boolean publishResultOnQueue;
+	private Channel channel;
+
 	private SimpleDateFormat formatter;
 
 	/**
@@ -59,6 +63,14 @@ public class DependencyUsageProcessor extends CollectArtifactProcessor {
 	public DependencyUsageProcessor(Connection db) {
 		super();
 		this.db = db;
+		formatter = new SimpleDateFormat("dd/MM/yyyy HH:mm:ss");
+		publishResultOnQueue = false;
+	}
+	public DependencyUsageProcessor(Connection db, Channel channel) {
+		super();
+		this.db = db;
+		this.channel = channel;
+		this.publishResultOnQueue = true;
 		formatter = new SimpleDateFormat("dd/MM/yyyy HH:mm:ss");
 	}
 
@@ -160,9 +172,14 @@ public class DependencyUsageProcessor extends CollectArtifactProcessor {
 		}
 		FileUtils.write(timeLog, formatter.format(new Date()) + " | " + gav + " | Push data\n",true);
 
-		if(!lu.pushToDB(db, gav)) {
+		boolean notEmpty = false;
+		if(publishResultOnQueue) {
+			notEmpty = lu.pushToQueue(db,channel,gav);
+		} else {
+			notEmpty = lu.pushToDB(db, gav);
+		}
+		if(!notEmpty) {
 			FileUtils.write(emptyDepUsageArtifact, gav + " | No dep usage\n", true);
-
 		}
 		FileUtils.write(timeLog, formatter.format(new Date()) + " | " + gav + " | " + lu.getQuerySize() + " Done\n",true);
 	}

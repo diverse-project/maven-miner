@@ -1,5 +1,9 @@
 package fr.inria.diverse.maven.resolver.processor.dependencyanalyser;
 
+import com.rabbitmq.client.Channel;
+
+import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -10,6 +14,7 @@ import java.util.Map;
 import java.util.Set;
 
 public class LibrariesUsage {
+	private static final String USAGE_QUEUE_NAME = "usagesQueue";
 	int nbElements = 0;
 	//Lib id -> package -> Member -> <Usages, From class>
 	public Map<Integer, Map<String, Map<String, Usage>>> librariesPackagesMembersUsage = new HashMap<>();
@@ -105,6 +110,54 @@ public class LibrariesUsage {
 			//PreparedStatement statement = db.prepareStatement(lockBegin + query + ";" + lockEnd);
 			statement.execute();
 			statement.close();
+			return true;
+		} else {
+			System.out.println("Nothing to push for client " + clientGAV + " (" + clientID + ").");
+			return false;
+		}
+	}
+
+	public boolean pushToQueue(Connection db, Channel queue, String clientGAV) throws SQLException, IOException {
+		int clientID = 0;
+		PreparedStatement getLibIdQueryStmt = db.prepareStatement(getClientID);
+		getLibIdQueryStmt.setString(1, clientGAV);
+		ResultSet result = getLibIdQueryStmt.executeQuery();
+		if (result.next()) {
+			clientID = result.getInt("id");
+			result.close();
+		} else {
+			result.close();
+			throw new SQLException("Client not found");
+		}
+		boolean empty = true;
+		for(Integer libraryId: librariesPackagesMembersUsage.keySet()) {
+			Map<String,Map<String, Usage>> packagesMembersUsage = librariesPackagesMembersUsage.get(libraryId);
+			Map<String, Integer> packageIds = libraryPackagesId.get(libraryId);
+			for(String packageName: packagesMembersUsage.keySet()) {
+				Map<String, Usage> membersUsage = packagesMembersUsage.get(packageName);
+				int packageId = packageIds.get(packageName);
+				for(String member: membersUsage.keySet()) {
+					Usage usage = membersUsage.get(member);
+					if(usage.nb != 0) {
+						nbElements++;
+						String clazz = member;
+						String memberName = "NULL";
+						if (member.contains(".")) {
+							clazz = member.split("\\.")[0];
+							memberName = member.split("\\.")[1];
+						}
+						empty = false;
+
+						//get memberID and insert if necessary
+						String message = "(" + clientID +
+								", funcApiMemberID('" + packageId + "', '" + clazz + "', '" + memberName + "', " + libraryId + "), " +
+								usage.nb + ", " + usage.from.size() + ")";
+						queue.basicPublish("", USAGE_QUEUE_NAME, null, message.getBytes("UTF-8"));
+					}
+				}
+			}
+		}
+		if(!empty) {
 			return true;
 		} else {
 			System.out.println("Nothing to push for client " + clientGAV + " (" + clientID + ").");

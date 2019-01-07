@@ -48,6 +48,9 @@ public class ClientResolverApp {
 
 	private static final String ARTIFACT_QUEUE_NAME = "clientsQueue";
 
+	private static final String USAGE_QUEUE_NAME = "usagesQueue";
+	private static Channel usageChannel;
+
 	private static final String DEFAULT_USERNAME = "user";
 
 	/**
@@ -93,6 +96,7 @@ public class ClientResolverApp {
 		options.addOption("u", "user", true, "User and password of the rabbitMQ. Note, it comes in the form user:password. By default user:user");
 
 		options.addOption("b", "debug", true, "Debug a specific artifact");
+		options.addOption("w", "delegate-writing", false, "Publish results on queue instead of on the DB");
 
 		CommandLineParser parser = new DefaultParser();
 
@@ -124,8 +128,6 @@ public class ClientResolverApp {
 					help();
 				}
 
-				processor = new DependencyUsageProcessor(dbwrapper.getConnection());
-
 				factory = new ConnectionFactory();
 
 				factory.setHost(values[0]);
@@ -153,6 +155,13 @@ public class ClientResolverApp {
 				Map<String, Object> lazyArg = new HashMap<String, Object>();
 				lazyArg.put("x-queue-mode", "lazy");
 				channel.queueDeclare(ARTIFACT_QUEUE_NAME, true, false, false, lazyArg);
+
+				if(cmd.hasOption("w")) {
+					initQueue();
+					processor = new DependencyUsageProcessor(dbwrapper.getConnection(), usageChannel);
+				} else {
+					processor = new DependencyUsageProcessor(dbwrapper.getConnection());
+				}
 			} else {
 				LOGGER.error("Missing the hostname and port of rabbitMQ");
 			}
@@ -246,5 +255,24 @@ public class ClientResolverApp {
 		}
 		connection.close();
 	}
+
+	private static void initQueue() throws IOException {
+		usageChannel = connection.createChannel();
+		usageChannel.basicQos(1);
+		usageChannel.addShutdownListener(new ChannelShutdownListener(connection));
+		Map<String, Object> lazyArg = new HashMap<String, Object>();
+		lazyArg.put("x-queue-mode", "lazy");
+		usageChannel.queueDeclare(USAGE_QUEUE_NAME, true, false, false, lazyArg);
+	}
+
+	private static void closeQueue() {
+		try {
+			usageChannel.close();
+		} catch (IOException | TimeoutException e) {
+			e.printStackTrace();
+		}
+	}
+
+
 
 }
