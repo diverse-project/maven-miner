@@ -10,6 +10,7 @@ import java.util.Map;
 import java.util.Set;
 
 public class LibrariesUsage {
+	int nbElements = 0;
 	//Lib id -> package -> Member -> <Usages, From class>
 	public Map<Integer, Map<String, Map<String, Usage>>> librariesPackagesMembersUsage = new HashMap<>();
 	public Map<Integer, Map<String, Integer>> libraryPackagesId = new HashMap<>();
@@ -82,6 +83,7 @@ public class LibrariesUsage {
 				for(String member: membersUsage.keySet()) {
 					Usage usage = membersUsage.get(member);
 					if(usage.nb != 0) {
+						nbElements++;
 						String clazz = member;
 						String memberName = "NULL";
 						if (member.contains(".")) {
@@ -108,6 +110,10 @@ public class LibrariesUsage {
 			System.out.println("Nothing to push for client " + clientGAV + " (" + clientID + ").");
 			return false;
 		}
+	}
+
+	public int getQuerySize() {
+		return nbElements;
 	}
 
 	public class Usage {
