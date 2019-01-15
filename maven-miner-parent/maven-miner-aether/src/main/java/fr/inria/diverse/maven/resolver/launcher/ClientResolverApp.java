@@ -158,9 +158,9 @@ public class ClientResolverApp {
 
 				if(cmd.hasOption("w")) {
 					initQueue();
-					processor = new DependencyUsageProcessor(dbwrapper.getConnection(), usageChannel);
+					processor = new DependencyUsageProcessor(dbwrapper, usageChannel);
 				} else {
-					processor = new DependencyUsageProcessor(dbwrapper.getConnection());
+					processor = new DependencyUsageProcessor(dbwrapper);
 				}
 			} else {
 				LOGGER.error("Missing the hostname and port of rabbitMQ");
@@ -249,8 +249,11 @@ public class ClientResolverApp {
 			channel.basicPublish("", ARTIFACT_QUEUE_NAME, null, message.getBytes("UTF-8"));
 		}
 		try {
+			Thread.sleep(60000);
 			channel.close();
 		} catch (TimeoutException e) {
+			e.printStackTrace();
+		} catch (InterruptedException e) {
 			e.printStackTrace();
 		}
 		connection.close();
@@ -272,7 +275,4 @@ public class ClientResolverApp {
 			e.printStackTrace();
 		}
 	}
-
-
-
 }

@@ -51,6 +51,12 @@ public class MariaDBWrapper {
 		}
 	}
 
+	public void reset() throws SQLException, InterruptedException {
+		connection.close();
+		Thread.sleep(10000);
+		init();
+	}
+
 	public Connection getConnection() {
 		return connection;
 	}

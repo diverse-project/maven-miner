@@ -8,7 +8,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 
 public class ClientDependencies {
-	static boolean dryRun = true;
+	static boolean dryRun = false;
 
 	static String getLibIdQuery = "SELECT id FROM library WHERE coordinates=?;";
 	static String getClientIdQuery = "SELECT id FROM client WHERE coordinates=?;";

@@ -11,6 +11,7 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipException;
 
 import fr.inria.diverse.maven.resolver.MetaResolver;
+import net.lingala.zip4j.core.ZipFile;
 import org.apache.commons.io.FileUtils;
 import org.sonatype.aether.artifact.Artifact;
 import org.sonatype.aether.collection.DependencyCollectionException;
@@ -122,6 +123,20 @@ public class LibProcessor extends CollectArtifactProcessor {
 		}
 		libs.put(gav, packages);
 
+	}
+
+	private void processAar(File jarFile, String gav) throws IOException, net.lingala.zip4j.exception.ZipException {
+		JarFile aar = new JarFile(jarFile);
+		ZipFile zip = new ZipFile(jarFile);
+
+		zip.extractFile("classes.jar",gav + "-classes");
+		processJar(new File(gav + "-classes/classes.jar"), gav);
+	}
+
+	public static void main(String[] args) throws IOException, net.lingala.zip4j.exception.ZipException {
+		File aar = new File("/home/nharrand/Downloads/appcompat-v7-18.0.0.aar");
+		LibProcessor p = new LibProcessor();
+		p.processAar(aar, "com.android.support:appcompat-v7:18.0.0");
 	}
 
 	@Override

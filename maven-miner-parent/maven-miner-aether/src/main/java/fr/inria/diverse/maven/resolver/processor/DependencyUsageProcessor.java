@@ -37,6 +37,7 @@ public class DependencyUsageProcessor extends CollectArtifactProcessor {
 	private File unresolvedArtifact = new File("./unresolvedArtifacts.log");
 	private File emptyDepUsageArtifact = new File("./emptyDepUsageArtifact.log");
 	private File timeLog = new File("./DepUsage-time.log");
+	private File networkError = new File("./network.error");
 	/**
 	 * used for reporting
 	 */
@@ -50,7 +51,7 @@ public class DependencyUsageProcessor extends CollectArtifactProcessor {
 	 */
 	private ClassScanCounter counter;
 
-	private Connection db;
+	private MariaDBWrapper db;
 
 	private boolean publishResultOnQueue;
 	private Channel channel;
@@ -60,13 +61,13 @@ public class DependencyUsageProcessor extends CollectArtifactProcessor {
 	/**
 	 * default constructor
 	 */
-	public DependencyUsageProcessor(Connection db) {
+	public DependencyUsageProcessor(MariaDBWrapper db) {
 		super();
 		this.db = db;
 		formatter = new SimpleDateFormat("dd/MM/yyyy HH:mm:ss");
 		publishResultOnQueue = false;
 	}
-	public DependencyUsageProcessor(Connection db, Channel channel) {
+	public DependencyUsageProcessor(MariaDBWrapper db, Channel channel) {
 		super();
 		this.db = db;
 		this.channel = channel;
@@ -111,9 +112,9 @@ public class DependencyUsageProcessor extends CollectArtifactProcessor {
 
 		} catch (SecurityException
 				| NullPointerException
-				| IOException
-				| SQLException e) {
+				| IOException e) {
 			LOGGER.error("Unable to read artifact {}", artifact);
+
 			e.printStackTrace();
 			try {
 				FileUtils.write(unresolvedArtifact, coordinates + " | " + e.getClass().getName() + "\n",true);
@@ -123,6 +124,25 @@ public class DependencyUsageProcessor extends CollectArtifactProcessor {
 				e1.printStackTrace();
 			}
 			nonResolved++;
+		} catch (SQLException e) {
+			LOGGER.error("Unable to read artifact {}", artifact);
+
+			e.printStackTrace();
+			try {
+				FileUtils.write(unresolvedArtifact, coordinates + " | " + e.getClass().getName() + "\n",true);
+				FileUtils.write(timeLog, formatter.format(new Date()) + " | " + coordinates + " | Error | " + e.getClass().getName() + "\n",true);
+			} catch (IOException e1) {
+				LOGGER.error("Could not log error for artifact {}", artifact);
+				e1.printStackTrace();
+			}
+			try {
+				db.reset();
+				FileUtils.write(networkError, formatter.format(new Date()) + " | Connection reset failed" + "\n",true);
+			} catch (SQLException | IOException | InterruptedException e1) {
+				e1.printStackTrace();
+				System.exit(-1);
+			}
+
 		}
 		return artifact;
 	}
@@ -139,7 +159,7 @@ public class DependencyUsageProcessor extends CollectArtifactProcessor {
 
 
 
-		PreparedStatement getLibrariesPackagesQuery = db.prepareStatement(getLibrariesPackages);
+		PreparedStatement getLibrariesPackagesQuery = db.getConnection().prepareStatement(getLibrariesPackages);
 		getLibrariesPackagesQuery.setString(1, gav);
 
 		ResultSet librariesPackagesResult = getLibrariesPackagesQuery.executeQuery();
@@ -174,9 +194,9 @@ public class DependencyUsageProcessor extends CollectArtifactProcessor {
 
 		boolean notEmpty = false;
 		if(publishResultOnQueue) {
-			notEmpty = lu.pushToQueue(db,channel,gav);
+			notEmpty = lu.pushToQueue(db.getConnection(),channel,gav);
 		} else {
-			notEmpty = lu.pushToDB(db, gav);
+			notEmpty = lu.pushToDB(db.getConnection(), gav);
 		}
 		if(!notEmpty) {
 			FileUtils.write(emptyDepUsageArtifact, gav + " | No dep usage\n", true);
@@ -205,7 +225,7 @@ public class DependencyUsageProcessor extends CollectArtifactProcessor {
 	public static void main(String[] args) throws Exception {
 		String artifactCoordinate = "com.bbossgroups:bboss-persistent:5.0.7.5";
 		MariaDBWrapper db = new MariaDBWrapper();
-		DependencyUsageProcessor processor = new DependencyUsageProcessor(db.getConnection());
+		DependencyUsageProcessor processor = new DependencyUsageProcessor(db);
 
 		DefaultArtifact artifact = new DefaultArtifact(artifactCoordinate);
 
