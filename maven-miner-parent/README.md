@@ -5,6 +5,7 @@
 ```
 
 **Input**: a simple list of coordinates separated with new lines
+
 **Result**: output dir containing a file per library conatining the list of packages
 
 ## Upload libraries and their packages in db
@@ -14,6 +15,7 @@
 ```
 
 **Input**: output dir
+
 **Result**: Db tables `library` and `package` are populated
 
 ## Upload clients and their dependencies
@@ -23,6 +25,7 @@
 ```
 
 **Input**: file containing `Library coordinates,[client,...]`
+
 **Result**: Db tables `client` and `dependency` are populated
 
 ## Populate Queue
