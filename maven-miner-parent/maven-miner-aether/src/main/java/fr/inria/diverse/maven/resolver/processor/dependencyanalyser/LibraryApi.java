@@ -10,6 +10,15 @@ import java.util.Map;
 import java.util.Set;
 
 public class LibraryApi {
+
+	static String getLibExistingInfo = "SELECT l.id, l.coordinates, p.id as packageid, p.package, m.class, m.member, m.id as memberid " +
+			"FROM library as l JOIN package as p ON p.libraryid=l.id JOIN api_member as m ON m.packageid=p.id WHERE l.id=?";
+	//insertType
+	//insertMethod
+	//insertField
+
+
+
 	//Package -> Class -> member
 	public Map<String,Map<String,Set<Map.Entry<String,Boolean>>>> apiMembers;
 	public Map<String, Integer> packageIds;
@@ -39,7 +48,6 @@ public class LibraryApi {
 		packageMembers.put(className,classMembers);
 		apiMembers.put(packageName,packageMembers);
 	}
-
 
 	static String getPackageIds = "SELECT package, id FROM package WHERE libraryid=?";
 	public void getPackageIds(Connection db) throws SQLException {

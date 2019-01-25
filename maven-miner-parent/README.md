@@ -58,7 +58,7 @@ Beware of writting queue
 ## Full api resolution
 
 ```bash
-fr.inria.diverse.maven.resolver.launcher.LibApiResolverApp -f libraries.list
+	java -cp maven-miner.jar fr.inria.diverse.maven.resolver.launcher.LibApiResolverApp -f libraries.list
 ```
 **Result**: Db table `api_member_full` is populated
 

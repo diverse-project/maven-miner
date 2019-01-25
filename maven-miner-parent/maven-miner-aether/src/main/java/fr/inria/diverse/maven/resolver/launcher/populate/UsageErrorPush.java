@@ -27,7 +27,7 @@ public class UsageErrorPush {
 
 	private static Connection connection;
 
-	private static final String USAGE_QUEUE_NAME = "usagesQueue";
+	private static String USAGE_QUEUE_NAME = "usagesQueue";
 	private static Channel usageChannel;
 
 	private static final String DEFAULT_USERNAME = "user";
@@ -38,6 +38,7 @@ public class UsageErrorPush {
 	public static void main(String[] args) throws IOException, SQLException {
 
 		options.addOption("q", "queue", true, "Hostname and port of the RabbitMQ broker. Note, URI comes in the form hostname:port");
+		options.addOption("n", "queue-name", true, "Name of the queue into which dump messages");
 		options.addOption("u", "user", true, "User and password of the rabbitMQ. Note, it comes in the form user:password. By default user:user");
 		options.addOption("f", "file", true, "List of message to push separated by \\n");
 
@@ -72,25 +73,33 @@ public class UsageErrorPush {
 				usageChannel.addShutdownListener(new ChannelShutdownListener(connection));
 				Map<String, Object> lazyArg = new HashMap<String, Object>();
 				lazyArg.put("x-queue-mode", "lazy");
+
+				if (cmd.hasOption("n")) {
+					USAGE_QUEUE_NAME = cmd.getOptionValue("n");
+				}
+
+
 				usageChannel.queueDeclare(USAGE_QUEUE_NAME, true, false, false, lazyArg);
 
 				if (cmd.hasOption("f")) {
 					File toPush = new File(cmd.getOptionValue("f"));
 
 					try (BufferedReader br = new BufferedReader(new FileReader(toPush))) {
-						br.readLine();
-						//Skip jusqu a javax.inject:javax.inject:1
 						for (String line; (line = br.readLine()) != null; ) {
 							usageChannel.basicPublish("", USAGE_QUEUE_NAME, null, line.getBytes("UTF-8"));
 						}
 					}
 
 					try {
+						usageChannel.waitForConfirms();
 						usageChannel.close();
 					} catch (TimeoutException e) {
 						e.printStackTrace();
+					} catch (InterruptedException e) {
+						e.printStackTrace();
 					}
-					connection.close();
+					if(connection.isOpen())
+						connection.close();
 				}
 
 

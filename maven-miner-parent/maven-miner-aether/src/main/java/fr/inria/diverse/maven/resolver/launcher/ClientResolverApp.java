@@ -162,7 +162,7 @@ public class ClientResolverApp {
 				} else {
 					processor = new DependencyUsageProcessor(dbwrapper);
 				}
-			} else {
+			} else if (!cmd.hasOption("b")) {
 				LOGGER.error("Missing the hostname and port of rabbitMQ");
 			}
 		} catch (ParseException e) {
@@ -207,7 +207,7 @@ public class ClientResolverApp {
 			} else {
 				try {
 					DefaultArtifact artifact = new DefaultArtifact(cmd.getOptionValue("b"));
-
+					processor = new DependencyUsageProcessor(dbwrapper, true);
 					processor.process(artifact);
 					channel.close();
 				} catch (Exception e) {

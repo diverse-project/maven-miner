@@ -1,6 +1,7 @@
 package fr.inria.diverse.maven.resolver.processor;
 
 import fr.inria.diverse.maven.resolver.MetaResolver;
+import fr.inria.diverse.maven.resolver.processor.dependencyanalyser.API;
 import fr.inria.diverse.maven.resolver.processor.dependencyanalyser.ClassAPIVisitor;
 import fr.inria.diverse.maven.resolver.processor.dependencyanalyser.LibraryApi;
 import org.apache.commons.io.FileUtils;
@@ -109,7 +110,7 @@ public class LibApiProcessor extends CollectArtifactProcessor {
 	}
 
 	private void processJar(File jarFileFile, int id) throws IOException, SQLException {
-		LibraryApi api = new LibraryApi(id);
+		API api = new API(id,db);
 
 		JarFile jarFile = new JarFile(jarFileFile);
 		Enumeration<JarEntry> entries = jarFile.entries();

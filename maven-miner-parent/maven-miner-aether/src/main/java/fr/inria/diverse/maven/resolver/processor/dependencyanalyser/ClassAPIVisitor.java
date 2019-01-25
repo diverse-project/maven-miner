@@ -1,25 +1,31 @@
 package fr.inria.diverse.maven.resolver.processor.dependencyanalyser;
 
+import fr.inria.diverse.maven.resolver.db.sql.MariaDBWrapper;
+import org.apache.commons.lang3.ArrayUtils;
 import org.objectweb.asm.*;
 
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.reflect.Modifier;
+import java.sql.SQLException;
 import java.util.Enumeration;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 
 public class ClassAPIVisitor extends ClassVisitor implements Opcodes {
 
-	public LibraryApi api;
+	public API api;
 
-	public ClassAPIVisitor(ClassVisitor cv, LibraryApi api) {
+	public ClassAPIVisitor(ClassVisitor cv, API api) {
 		super(ASM5, cv);
 		this.api = api;
 	}
 
-	String owner;
+	boolean partOfApi = false;
+
+	String packageName;
+	String className;
 
 	@Override
 	public void visit(
@@ -30,19 +36,32 @@ public class ClassAPIVisitor extends ClassVisitor implements Opcodes {
 			final String superName,
 			final String[] interfaces) {
 		super.visit(version,access,name,signature,superName,interfaces);
+		int separatorIndex = name.lastIndexOf('/');
+		packageName = name.substring(0, separatorIndex);
+		className = name.substring(separatorIndex+1);
 		if(Modifier.isPublic(access)) {
-			api.insert(name,"", true);
-			//System.out.println("[C] " + getSignature(name, "NULL"));
+			partOfApi = true;
+			boolean isInterface = Modifier.isInterface(access);
+			boolean isAnnotation = ArrayUtils.contains(interfaces,"java/lang/annotation/Annotation");
+			boolean isAbstract = Modifier.isAbstract(access);
+			api.insertType(packageName, className,true,isInterface,isAnnotation,isAbstract);
 		}
-		owner = name;
+	}
+
+	@Override
+	public AnnotationVisitor visitTypeAnnotation(int typeRef,
+	                                             TypePath typePath, String desc, boolean visible) {
+		System.out.println("Annotation: " + desc);
+		return cv.visitTypeAnnotation(typeRef,typePath,desc,visible);
 	}
 
 	@Override
 	public MethodVisitor visitMethod(final int access, final String name,
 	                                 final String desc, final String signature, final String[] exceptions) {
-		if(Modifier.isPublic(access) || Modifier.isProtected(access)) {
-			api.insert(owner, getSignature(name, desc), Modifier.isPublic(access));
+		if(partOfApi && (Modifier.isPublic(access) || Modifier.isProtected(access))) {
 			//System.out.println("[M] " + getSignature(name, desc));
+			api.insertElement(packageName, className, getSignature(name, desc),
+					Modifier.isStatic(access),Modifier.isPublic(access), false);
 		}
 		return cv.visitMethod(access, name, desc, signature, exceptions);
 	}
@@ -50,9 +69,9 @@ public class ClassAPIVisitor extends ClassVisitor implements Opcodes {
 	@Override
 	public FieldVisitor visitField(int access, String name, String desc,
 	                               String signature, Object value) {
-		if(Modifier.isPublic(access) || Modifier.isProtected(access)) {
-			api.insert(owner, getSignature(name, desc), Modifier.isPublic(access));
-			//System.out.println("[F] " + getSignature(name, desc));
+		if(partOfApi && (Modifier.isPublic(access) || Modifier.isProtected(access))) {
+			api.insertElement(packageName, className, getSignature(name, desc),
+					Modifier.isStatic(access),Modifier.isPublic(access), true);
 		}
 		return cv.visitField(access, name, desc, signature, value);
 	}
@@ -61,10 +80,10 @@ public class ClassAPIVisitor extends ClassVisitor implements Opcodes {
 		return name + desc;
 	}
 
-	public static void main(String[] args) throws IOException {
-		String pathToJar = "/home/nharrand/Documents/tmp/dep-analyzer/src/test/resources/toylib/target/toy-lib-1.0-SNAPSHOT.jar";
-
-		LibraryApi toyApi = new LibraryApi(0);
+	public static void main(String[] args) throws IOException, SQLException {
+		String pathToJar = "/home/nharrand/Downloads/snakeyaml-1.7.jar";
+		MariaDBWrapper dbWrapper = new MariaDBWrapper();
+		API toyApi = new API(53, dbWrapper.getConnection());
 
 		JarFile jarFile = new JarFile(new File(pathToJar));
 		Enumeration<JarEntry> entries = jarFile.entries();
@@ -83,6 +102,7 @@ public class ClassAPIVisitor extends ClassVisitor implements Opcodes {
 				}
 			}
 		}
+		toyApi.pushToDB(dbWrapper.getConnection());
 		System.out.println("Done");
 	}
 }

@@ -186,11 +186,14 @@ public class UsageResolverApp {
 				@Override
 				public void  handleShutdownSignal(String consumerTag, ShutdownSignalException sig) {
 					try {
+						System.out.println("Received shutdown signal");
 						insertBuffer.pushToDB();
+						System.out.println("Done pushing remaining data");
 					} catch (SQLException e) {
 						LOGGER.error("Handle delivery Error {}", e.getMessage());
 						e.printStackTrace();
 					}
+					System.out.println("Done (" + insertBuffer.inserts.size() + " remaining)");
 				}
 			});
 		} catch (IOException ioe) {

@@ -54,6 +54,7 @@ public class DependencyUsageProcessor extends CollectArtifactProcessor {
 	private MariaDBWrapper db;
 
 	private boolean publishResultOnQueue;
+	private boolean debug = false;
 	private Channel channel;
 
 	private SimpleDateFormat formatter;
@@ -66,6 +67,13 @@ public class DependencyUsageProcessor extends CollectArtifactProcessor {
 		this.db = db;
 		formatter = new SimpleDateFormat("dd/MM/yyyy HH:mm:ss");
 		publishResultOnQueue = false;
+	}
+	public DependencyUsageProcessor(MariaDBWrapper db, boolean debug) {
+		super();
+		this.db = db;
+		formatter = new SimpleDateFormat("dd/MM/yyyy HH:mm:ss");
+		publishResultOnQueue = false;
+		this.debug = debug;
 	}
 	public DependencyUsageProcessor(MariaDBWrapper db, Channel channel) {
 		super();
@@ -193,10 +201,12 @@ public class DependencyUsageProcessor extends CollectArtifactProcessor {
 		FileUtils.write(timeLog, formatter.format(new Date()) + " | " + gav + " | Push data\n",true);
 
 		boolean notEmpty = false;
-		if(publishResultOnQueue) {
-			notEmpty = lu.pushToQueue(db.getConnection(),channel,gav);
-		} else {
-			notEmpty = lu.pushToDB(db.getConnection(), gav);
+		if(!debug) {
+			if (publishResultOnQueue) {
+				notEmpty = lu.pushToQueue(db.getConnection(), channel, gav);
+			} else {
+				notEmpty = lu.pushToDB(db.getConnection(), gav);
+			}
 		}
 		if(!notEmpty) {
 			FileUtils.write(emptyDepUsageArtifact, gav + " | No dep usage\n", true);
