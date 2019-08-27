@@ -1,0 +1,1204 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+```{r}
+library(tidyverse)
+library(circlize)
+slf4j <-read_delim("../data/slf4j-new-new.csv", 
+    ",", escape_double = FALSE, trim_ws = TRUE)
+```
+
+```{r diagram}
+chordDiagram(slf4j[,1:4])
+```
+
+```{r chords}
+dir <- "/home/nharrand/Documents/depviz/chordDiagrams/"
+
+# cli in group * usages / usages total for group
+
+effpath <- paste0(dir, "effectifs.csv")
+eff <-read_delim(effpath, 
+    ",", escape_double = FALSE, trim_ws = TRUE) %>% mutate(From=Group)
+
+createData <- function (libname) {
+  path <- paste0(dir, libname, ".csv")
+  lib <-read_delim(path, 
+      ",", escape_double = FALSE, trim_ws = TRUE)
+  
+  totGroup <- lib %>% group_by(From) %>% summarise(GroupTotal=sum(Usages)) %>% ungroup()
+  
+  total <- as.numeric(eff %>% filter(Library == libname) %>% select(Effectifs) %>% sum)
+  totalCli <- as.numeric(totGroup %>% select(GroupTotal) %>% sum)
+  totalUsages <- as.numeric(lib %>% select(Usages) %>% sum)
+  
+  lib <- merge(x = lib, y = totGroup, by="From") 
+  
+  
+  lib <- merge(x = lib, y = eff, by=c("Library","From")) %>% mutate(TotalEff = total) %>% mutate(Value1 = Effectifs*Usages/GroupTotal, Value2 = total * Usages/totalUsages, To= class) %>% select(From,To,Value1,Value2)
+  return(lib)
+}
+```
+
+```{r colors}
+grid.col = c(CoreOnly = "red", Both = "green", NoCore = "blue", Inject = "yellow", Singleton = "yellow", Provider = "purple", Named = "purple", Qualifier = "purple", Scope = "purple")
+grid.col = c(CoreOnly = "red", Both = "orange", NoCore = "blue", 
+             Inject = "red", Singleton = "red", Provider = "blue", Named = "blue", Qualifier = "blue", Scope = "blue",
+             BasicParser = "blue",  GnuParser = "blue",  AlreadySelectedException = "blue",  AmbiguousOptionException = "blue",  "HelpFormatter$OptionComparator" = "blue",  OptionValidator = "blue",  PatternOptionBuilder = "blue",  TypeHandler = "blue",  Util = "blue",  MissingOptionException = "blue",  Parser = "blue",  UnrecognizedOptionException = "blue",  MissingArgumentException = "blue",  OptionBuilder = "blue",  PosixParser = "blue",  OptionGroup = "blue",  "Option$Builder" = "red",  ParseException = "red",  Option = "red",  CommandLineParser = "red",  HelpFormatter = "red",  DefaultParser = "red",  CommandLine = "red",  Options = "red",
+             "LoggerFactoryRegistry" = "blue", "LoggerFactoryRegistry$1" = "blue", "LoggerFactoryRegistry$ActivationRegistration" = "blue", "LoggerFactoryRegistry$Registration" = "blue", "NDC" = "blue", "FinagleMDCInitializer$" = "blue", "MarkerFactoryBinder" = "blue", "LocationAwareLogger" = "blue", "BasicMDCAdapter$1" = "blue", "BasicMarker" = "blue", "MDC$MDCCloseable" = "blue", "NOPMDCAdapter" = "blue", "LoggerFactoryBinder" = "blue", "EventRecodingLogger" = "blue", "SubstituteLoggingEvent" = "blue", "NamedLoggerBase" = "blue", "Util$ClassContextSecurityManager" = "blue", "SubstituteLoggerFactory" = "blue", "NOPLoggerFactory" = "blue", "SubstituteLogger" = "blue", "IMarkerFactory" = "blue", "BasicMarkerFactory" = "blue", "NOPLogger" = "blue", "LoggingEvent" = "blue", "Util" = "blue", "MDCAdapter" = "blue", "BasicMDCAdapter" = "blue", "Level" = "blue", "MarkerIgnoringBase" = "blue", "ILoggerFactory" = "blue", "MarkerFactory" = "blue", "Marker" = "blue", "FormattingTuple" = "blue", "MessageFormatter" = "blue", "MDC" = "blue", "LoggerFactory" = "red", "Logger" = "red")
+
+```
+
+```{r inj}
+inject <- createData("javax.inject:javax.inject:1")
+#chordDiagram(inject[,1:4])
+pdf("/home/nharrand/Documents/maven-miner/r/chordDiagrams/notebook/javax-inject.pdf", height = 10, width = 15)
+chordDiagram(inject[,1:4], grid.col = grid.col, annotationTrack = "grid", 
+    preAllocateTracks = list(track.height = max(strwidth(unlist(dimnames(inject[,1:4]))))))
+# we go back to the first track and customize sector labels
+circos.track(track.index = 1, panel.fun = function(x, y) {
+    circos.text(CELL_META$xcenter, CELL_META$ylim[1], CELL_META$sector.index, 
+        facing = "clockwise", niceFacing = TRUE, adj = c(0, 0.5))
+}, bg.border = NA)
+dev.off()
+
+```
+
+```{r inj2}
+cli <- createData("commons-cli:commons-cli:1.3.1")
+
+pdf("/home/nharrand/Documents/maven-miner/r/chordDiagrams/notebook/commons-cli.pdf", height = 10, width = 15)
+chordDiagram(cli[,1:4], grid.col = grid.col, annotationTrack = "grid", 
+    preAllocateTracks = list(track.height = max(strwidth(unlist(dimnames(cli[,1:4]))))))
+# we go back to the first track and customize sector labels
+circos.track(track.index = 1, panel.fun = function(x, y) {
+    circos.text(CELL_META$xcenter, CELL_META$ylim[1], CELL_META$sector.index, 
+        facing = "clockwise", niceFacing = TRUE, adj = c(0, 0.5))
+}, bg.border = NA)
+dev.off()
+
+```
+
+```{r inj3}
+slf4japi <- createData("org.slf4j:slf4j-api:1.7.21")
+#chordDiagramFromDataFrame(slf4japi[,1:4])
+pdf("/home/nharrand/Documents/maven-miner/r/chordDiagrams/notebook/slf4j-api.pdf", height = 10, width = 15)
+chordDiagram(slf4japi[,1:4], small.gap = 1, grid.col = grid.col, annotationTrack = "grid", 
+    preAllocateTracks = list(track.height = max(strwidth(unlist(dimnames(slf4japi[,1:4]))))))
+# we go back to the first track and customize sector labels
+circos.track(track.index = 1, panel.fun = function(x, y) {
+    circos.text(CELL_META$xcenter, CELL_META$ylim[1], CELL_META$sector.index, 
+        facing = "clockwise", niceFacing = TRUE, adj = c(0, 0.5))
+}, bg.border = NA)
+dev.off()
+
+slf4jname <- "org.slf4j:slf4j-api:1.7.21"
+  path <- paste0(dir, slf4jname, ".csv")
+  lib <-read_delim(path, 
+      ",", escape_double = FALSE, trim_ws = TRUE)
+  
+  totGroup <- lib %>% group_by(From) %>% summarise(GroupTotal=sum(Usages)) %>% ungroup()
+  
+  total <- as.numeric(eff %>% filter(Library == slf4jname) %>% select(Effectifs) %>% sum)
+  totalCli <- as.numeric(totGroup %>% select(GroupTotal) %>% sum)
+  totalUsages <- as.numeric(lib %>% select(Usages) %>% sum)
+  
+  lib <- merge(x = lib, y = totGroup, by="From") 
+  
+  jcoldf <- as.data.frame(grid.col)
+  jcoldf$key <-names(grid.col)
+  colnames(jcoldf) <- c("color", "To")
+  
+  
+  
+  lib <- merge(x = lib, y = eff, by=c("Library","From")) %>% mutate(TotalEff = total) %>% mutate(Value1 = Effectifs*Usages/GroupTotal, Value2 = total * Usages/totalUsages, To=class)
+  lib <- merge(x=lib, y=jcoldf, by="To")
+  lib <- lib[order(lib$color),]
+  lib <- lib %>% select(From,To,Value1,Value2)
+
+#chordDiagramFromDataFrame(slf4japi[,1:4])
+pdf("/home/nharrand/Documents/maven-miner/r/chordDiagrams/notebook/slf4j2.pdf", height = 10, width = 15)
+chordDiagram(lib[,1:4], grid.col = grid.col, small.gap = 1, annotationTrack = "grid", 
+    preAllocateTracks = list(track.height = max(strwidth(unlist(dimnames(lib[,1:4]))))))
+# we go back to the first track and customize sector labels
+circos.track(track.index = 1, panel.fun = function(x, y) {
+    circos.text(CELL_META$xcenter, CELL_META$ylim[1], CELL_META$sector.index, 
+        facing = "clockwise", niceFacing = TRUE, adj = c(0, 0.5))
+}, bg.border = NA)
+dev.off()
+
+```
+
+```{r injpre4}
+junitlibname <- "junit:junit:4.12"
+  path <- paste0(dir, junitlibname, ".csv")
+  lib <-read_delim(path, 
+      ",", escape_double = FALSE, trim_ws = TRUE) %>% mutate(p=ifelse(startsWith(package, "junit/framework"), "v3.",""))
+  
+  totGroup <- lib %>% group_by(From) %>% summarise(GroupTotal=sum(Usages)) %>% ungroup()
+  
+  total <- as.numeric(eff %>% filter(Library == junitlibname) %>% select(Effectifs) %>% sum)
+  totalCli <- as.numeric(totGroup %>% select(GroupTotal) %>% sum)
+  totalUsages <- as.numeric(lib %>% select(Usages) %>% sum)
+  
+  lib <- merge(x = lib, y = totGroup, by="From") 
+
+junitcol <- c(CoreOnly = "red", Both = "orange", NoCore = "blue","JUnitRequest" = "blue", 
+"SupplierBasedAssert" = "blue", 
+"ComparisonCompactor" = "blue", 
+"ComparisonCompactor$DiffExtractor" = "blue", 
+"JUnitQuickcheckTestClass" = "blue", 
+"AllTests" = "blue", 
+"JUnit4" = "blue", 
+"ClassRule" = "blue", 
+"ArrayComparisonFailure" = "blue", 
+"Classes" = "blue", 
+"ComparisonCriteria" = "blue", 
+"JUnitSystem" = "blue", 
+"MethodSorter$1" = "blue", 
+"MethodSorter$2" = "blue", 
+"RealSystem" = "blue", 
+"AnnotationValidatorFactory" = "blue", 
+"AnnotationsValidator$AnnotatableValidator" = "blue", 
+"AnnotationsValidator$ClassValidator" = "blue", 
+"AnnotationsValidator$FieldValidator" = "blue", 
+"AnnotationsValidator$MethodValidator" = "blue", 
+"junitActiveTestSuite" = "blue", 
+"junitActiveTestSuite$1" = "blue", 
+"junitRepeatedTest" = "blue", 
+"junitTestSetup$1" = "blue", 
+"BlockJUnit4ClassRunner$1" = "blue", 
+"ParentRunner$1" = "blue", 
+"ParentRunner$2" = "blue", 
+"ParentRunner$3" = "blue", 
+"ParentRunner$4" = "blue", 
+"JUnitMatchers" = "blue", 
+"ParallelComputer" = "blue", 
+"ParallelComputer$1" = "blue", 
+"Computer$1" = "blue", 
+"FilterFactories" = "blue", 
+"FilterFactory" = "blue", 
+"FilterFactory$FilterNotCreatedException" = "blue", 
+"FilterFactoryParams" = "blue", 
+"JUnitCommandLineParseResult$CommandLineParserError" = "blue", 
+"Request$1" = "blue", 
+"Result$Listener" = "blue", 
+"Result$SerializedForm" = "blue", 
+"SortingRequest" = "blue", 
+"RuleMemberValidator$Builder" = "blue", 
+"RuleMemberValidator$DeclaringClassMustBePublic" = "blue", 
+"RuleMemberValidator$FieldMustBeARule" = "blue", 
+"RuleMemberValidator$FieldMustBeATestRule" = "blue", 
+"RuleMemberValidator$MemberMustBeNonStaticOrAlsoClassRule" = "blue", 
+"RuleMemberValidator$MemberMustBePublic" = "blue", 
+"RuleMemberValidator$MemberMustBeStatic" = "blue", 
+"RuleMemberValidator$MethodMustBeARule" = "blue", 
+"RuleMemberValidator$MethodMustBeATestRule" = "blue", 
+"RuleMemberValidator$RuleValidator" = "blue", 
+"ValidationError" = "blue", 
+"AllMembersSupplier" = "blue", 
+"AllMembersSupplier$MethodParameterValue" = "blue", 
+"BooleanSupplier" = "blue", 
+"EnumSupplier" = "blue", 
+"v3.ComparisonCompactor" = "blue", 
+"v3.JUnit4TestAdapterCache$1" = "blue", 
+"v3.TestResult$1" = "blue", 
+"v3.TestSuite$1" = "blue", 
+"ComparisonFailure$ComparisonCompactor" = "blue", 
+"ComparisonFailure$ComparisonCompactor$DiffExtractor" = "blue", 
+"TestedOn" = "blue", 
+"FailedBefore" = "blue", 
+"JUnit38ClassRunner$OldTestClassAdaptingListener" = "blue", 
+"JUnit4ClassRunner$1" = "blue", 
+"JUnit4ClassRunner$2" = "blue", 
+"MethodRoadie$1" = "blue", 
+"MethodRoadie$1$1" = "blue", 
+"MethodRoadie$2" = "blue", 
+"SuiteMethod" = "blue", 
+"CouldNotReadCoreException" = "blue", 
+"MaxCore" = "blue", 
+"MaxCore$1" = "blue", 
+"MaxCore$1$1" = "blue", 
+"MaxHistory" = "blue", 
+"MaxHistory$RememberingListener" = "blue", 
+"MaxHistory$TestComparator" = "blue", 
+"Annotatable" = "blue", 
+"FrameworkMember" = "blue", 
+"FrameworkMethod$1" = "blue", 
+"NoGenericTypeParametersValidator" = "blue", 
+"TestClass$FieldComparator" = "blue", 
+"TestClass$MethodComparator" = "blue", 
+"FailureList" = "blue", 
+"PrintableResult" = "blue", 
+"ResultMatchers" = "blue", 
+"ResultMatchers$1" = "blue", 
+"ResultMatchers$2" = "blue", 
+"ResultMatchers$3" = "blue", 
+"RunNotifier$1" = "blue", 
+"RunNotifier$2" = "blue", 
+"RunNotifier$3" = "blue", 
+"RunNotifier$4" = "blue", 
+"RunNotifier$5" = "blue", 
+"RunNotifier$6" = "blue", 
+"RunNotifier$7" = "blue", 
+"RunNotifier$SafeNotifier" = "blue", 
+"SynchronizedRunListener" = "blue", 
+"FromDataPoints" = "blue", 
+"ParameterSupplier" = "blue", 
+"ParametersSuppliedBy" = "blue", 
+"PotentialAssignment$1" = "blue", 
+"Theories$TheoryAnchor$1" = "blue", 
+"Theories$TheoryAnchor$1$1" = "blue", 
+"Theories$TheoryAnchor$2" = "blue", 
+"Filter$1" = "blue", 
+"Filter$2" = "blue", 
+"Filter$3" = "blue", 
+"Sorter$1" = "blue", 
+"ErrorCollector$1" = "blue", 
+"ExpectedException$ExpectedExceptionStatement" = "blue", 
+"ExpectedExceptionMatcherBuilder" = "blue", 
+"ExternalResource$1" = "blue", 
+"Stopwatch" = "blue", 
+"Stopwatch$Clock" = "blue", 
+"Stopwatch$InternalWatcher" = "blue", 
+"TestWatcher$1" = "blue", 
+"TestWatchman$1" = "blue", 
+"Timeout$1" = "blue", 
+"Verifier$1" = "blue", 
+"Categories$CategoryFilter" = "blue", 
+"CategoryFilterFactory" = "blue", 
+"CategoryValidator" = "blue", 
+"ExcludeCategories$ExcludesAny" = "blue", 
+"IncludeCategories$IncludesAny" = "blue", 
+"JUnit3Builder" = "blue", 
+"NullBuilder" = "blue", 
+"SuiteMethodBuilder" = "blue", 
+"StacktracePrintingMatcher" = "blue", 
+"ThrowableCauseMatcher" = "blue", 
+"ThrowableMessageMatcher" = "blue", 
+"TypeSafeMatcher" = "blue", 
+"Throwables" = "blue", 
+"MethodSorters" = "blue", 
+"JUnitCommandLineParseResult" = "blue", 
+"FilterRequest" = "blue", 
+"ParameterizedAssertionError" = "blue", 
+"v3.JUnit4TestCaseFacade" = "blue", 
+"DataPoints" = "blue", 
+"PotentialAssignment$CouldNotGenerateValueException" = "blue", 
+"Categories$IncludeCategory" = "blue", 
+"DataPoint" = "blue", 
+"v3.JUnit4TestAdapterCache" = "blue", 
+"Categories$ExcludeCategory" = "blue", 
+"junitTestSetup" = "blue", 
+"v3.Protectable" = "blue", 
+"junitBaseTestRunner" = "blue", 
+"junitVersion" = "blue", 
+"StoppedByUserException" = "blue", 
+"Enclosed" = "blue", 
+"ErrorCollector" = "blue", 
+"Categories" = "blue", 
+"junitResultPrinter" = "blue", 
+"IgnoredBuilder" = "blue", 
+"IgnoredClassRunner" = "blue", 
+"junitTestDecorator" = "blue", 
+"v3.ComparisonFailure" = "blue", 
+"ClassRoadie" = "blue", 
+"MethodRoadie" = "blue", 
+"MethodValidator" = "blue", 
+"TestMethod" = "blue", 
+"JUnit4ClassRunner" = "blue", 
+"MethodSorter" = "blue", 
+"ParameterSignature" = "blue", 
+"PotentialAssignment" = "blue", 
+"ExactComparisonCriteria" = "blue", 
+"InexactComparisonCriteria" = "blue", 
+"Assignments" = "blue", 
+"RunListener$ThreadSafe" = "blue", 
+"Theories" = "blue", 
+"Theories$TheoryAnchor" = "blue", 
+"AnnotationsValidator" = "blue", 
+"TestClassValidator" = "blue", 
+"v3.TestFailure" = "blue", 
+"JUnit38ClassRunner" = "blue", 
+"PublicClassValidator" = "blue", 
+"DisableOnDebug" = "blue", 
+"Describable" = "blue", 
+"FailOnTimeout$CallableStatement" = "blue", 
+"AnnotationValidator" = "blue", 
+"ValidateWith" = "blue", 
+"Theory" = "blue", 
+"BlockJUnit4ClassRunnerWithParametersFactory" = "blue", 
+"TestWithParameters" = "blue", 
+"Parameterized$UseParametersRunnerFactory" = "blue", 
+"v3.JUnit4TestAdapter" = "blue", 
+"ParametersRunnerFactory" = "blue", 
+"ErrorReportingRunner" = "blue", 
+"Sorter" = "blue", 
+"JUnit4Builder" = "blue", 
+"AnnotatedBuilder" = "blue", 
+"Computer" = "blue", 
+"ClassRequest" = "blue", 
+"TextListener" = "blue", 
+"FixMethodOrder" = "blue", 
+"junitTestRunner" = "blue", 
+"BlockJUnit4ClassRunnerWithParameters" = "blue", 
+"ExpectException" = "blue", 
+"InvokeMethod" = "blue", 
+"FailOnTimeout$Builder" = "blue", 
+"Sortable" = "blue", 
+"Timeout$Builder" = "blue", 
+"FailOnTimeout" = "blue", 
+"TestTimedOutException" = "blue", 
+"TestWatchman" = "blue", 
+"Parameterized" = "blue", 
+"Parameterized$Parameter" = "blue", 
+"RuleChain" = "blue", 
+"RuleMemberValidator" = "blue", 
+"v3.TestListener" = "blue", 
+"Verifier" = "blue", 
+"AllDefaultPossibilitiesBuilder" = "blue", 
+"Suite$SuiteClasses" = "blue", 
+"RunRules" = "blue", 
+"v3.Test" = "blue", 
+"RunBefores" = "blue", 
+"EachTestNotifier" = "blue", 
+"RunAfters" = "blue", 
+"v3.TestResult" = "blue", 
+"ReflectiveCallable" = "blue", 
+"RunnerBuilder" = "blue", 
+"Fail" = "blue", 
+"v3.Assert" = "red", 
+"Request" = "red", 
+"Timeout" = "red", 
+"Category" = "red", 
+"AssumptionViolatedException" = "red", 
+"ParentRunner" = "red", 
+"RunnerScheduler" = "red", 
+"FrameworkField" = "red", 
+"Suite" = "red", 
+"ExpectedException" = "red", 
+"v3.TestSuite" = "red", 
+"NoTestsRemainException" = "red", 
+"Filterable" = "red", 
+"InitializationError" = "red", 
+"MultipleFailureException" = "red", 
+"Parameterized$Parameters" = "red", 
+"JUnitCore" = "red", 
+"TemporaryFolder" = "red", 
+"TestName" = "red", 
+"Filter" = "red", 
+"v3.AssertionFailedError" = "red", 
+"Assume" = "red", 
+"TestWatcher" = "red", 
+"ComparisonFailure" = "red", 
+"MethodRule" = "red", 
+"v3.TestCase" = "red", 
+"Result" = "red", 
+"Ignore" = "red", 
+"AfterClass" = "red", 
+"RunListener" = "red", 
+"Runner" = "red", 
+"BeforeClass" = "red", 
+"TestClass" = "red", 
+"FrameworkMethod" = "red", 
+"ExternalResource" = "red", 
+"Failure" = "red", 
+"BlockJUnit4ClassRunner" = "red", 
+"RunNotifier" = "red", 
+"After" = "red", 
+"Rule" = "red", 
+"TestRule" = "red", 
+"RunWith" = "red", 
+"Before" = "red", 
+"Statement" = "red", 
+"Description" = "red", 
+"Test" = "red", 
+"Assert" = "red")
+  
+  jcoldf <- as.data.frame(junitcol)
+  jcoldf$key <-names(junitcol)
+  colnames(jcoldf) <- c("color", "To")
+  
+  
+  
+  lib <- merge(x = lib, y = eff, by=c("Library","From")) %>% mutate(TotalEff = total) %>% mutate(Value1 = Effectifs*Usages/GroupTotal, Value2 = total * Usages/totalUsages, To= paste0(p, class))
+  lib <- merge(x=lib, y=jcoldf, by="To")
+  lib <- lib[order(lib$color),]
+  lib <- lib %>% select(From,To,Value1,Value2)
+```
+```{r inj4}
+#chordDiagram(junit[,1:4])
+
+#pdf("/home/nharrand/Documents/maven-miner/r/chordDiagrams/notebook/junit.pdf", height = 10, width = 15)
+
+chordDiagram(lib[,1:4], small.gap = 0.05, grid.col = junitcol, annotationTrack = "grid", 
+    preAllocateTracks = list(track.height = max(strwidth(unlist(dimnames(lib[,1:4]))))))
+# we go back to the first track and customize sector labels
+circos.track(track.index = 1, panel.fun = function(x, y) {
+    circos.text(CELL_META$xcenter, CELL_META$ylim[1], CELL_META$sector.index, 
+        facing = "clockwise", niceFacing = TRUE, adj = c(0, 0.5))
+}, bg.border = NA)
+
+#dev.off()
+
+```
+
+
+```{r injpre5}
+hibernatecol <- c(CoreOnly = "red", Both = "orange", NoCore = "blue", 
+"SqlStatementLogger" = "blue", 
+"ResultSetOutput" = "blue", 
+"UpdateCountOutput" = "blue", 
+"DynamicParameterizedType$ParameterType" = "blue", 
+"CascadeStyles" = "blue", 
+"CascadeStyles$BaseCascadeStyle" = "blue", 
+"CascadingAction" = "blue", 
+"CascadingActions" = "blue", 
+"CascadingActions$BaseCascadingAction" = "blue", 
+"LoadQueryInfluencers" = "blue", 
+"NamedQueryDefinition" = "blue", 
+"NamedQueryDefinitionBuilder" = "blue", 
+"NamedSQLQueryDefinition" = "blue", 
+"NamedSQLQueryDefinitionBuilder" = "blue", 
+"SessionBuilderImplementor" = "blue", 
+"SessionOwner" = "blue", 
+"NoSuchParameterException" = "blue", 
+"ParameterBind" = "blue", 
+"ParameterRegistration" = "blue", 
+"ProcedureCall" = "blue", 
+"ProcedureCallMemento" = "blue", 
+"ProcedureOutputs" = "blue", 
+"UnknownSqlResultSetMappingException" = "blue", 
+"MetadataImplementor" = "blue", 
+"XsdException" = "blue", 
+"ClassLoaderServiceImpl$Work" = "blue", 
+"DuplicationStrategy" = "blue", 
+"DuplicationStrategy$Action" = "blue", 
+"NamedEntityGraphDefinition" = "blue", 
+"JoinStatus" = "blue", 
+"TransactionContext" = "blue", 
+"TransactionImplementor" = "blue", 
+"EntityNotFoundDelegate" = "blue", 
+"JPADotNames" = "blue", 
+"JandexHelper" = "blue", 
+"ClassFilter" = "blue", 
+"FieldFilter" = "blue", 
+"ClassLoaderService" = "blue", 
+"NativeSQLQueryConstructorReturn" = "blue", 
+"NativeSQLQueryRootReturn" = "blue", 
+"AnnotationConfiguration" = "blue", 
+"NotYetImplementedException" = "blue", 
+"AttributeNodeImplementor" = "blue", 
+"GraphNodeImplementor" = "blue", 
+"JpaCallbackClass" = "blue", 
+"EntityMetamodel" = "blue", 
+"EntityTuplizer" = "blue", 
+"VersionProperty" = "blue", 
+"JaxbHibernateConfiguration" = "blue", 
+"JaxbHibernateConfiguration$JaxbSecurity" = "blue", 
+"JaxbHibernateConfiguration$JaxbSecurity$JaxbGrant" = "blue", 
+"JaxbHibernateConfiguration$JaxbSessionFactory" = "blue", 
+"JaxbHibernateConfiguration$JaxbSessionFactory$JaxbClassCache" = "blue", 
+"JaxbHibernateConfiguration$JaxbSessionFactory$JaxbCollectionCache" = "blue", 
+"JaxbHibernateConfiguration$JaxbSessionFactory$JaxbMapping" = "blue", 
+"JaxbHibernateConfiguration$JaxbSessionFactory$JaxbProperty" = "blue", 
+"JaxbUsageAttribute" = "blue", 
+"BeanValidationIntegrator" = "blue", 
+"DefaultAutoFlushEventListener" = "blue", 
+"DefaultDeleteEventListener" = "blue", 
+"DefaultFlushEntityEventListener" = "blue", 
+"DefaultMergeEventListener" = "blue", 
+"DefaultPersistEventListener" = "blue", 
+"DefaultSaveEventListener" = "blue", 
+"DefaultSaveOrUpdateEventListener" = "blue", 
+"BlobType" = "blue", 
+"ComponentType" = "blue", 
+"EmbeddedComponentType" = "blue", 
+"EntityType" = "blue", 
+"ConfigLoader" = "blue", 
+"CriteriaSpecification" = "blue", 
+"Expression" = "blue", 
+"Junction" = "blue", 
+"LikeExpression" = "blue", 
+"MoreRestrictions" = "blue", 
+"ResultSetMappingDefinition" = "blue", 
+"StrategySelector" = "blue", 
+"BootstrapServiceRegistry" = "blue", 
+"OptimisticEntityLockException" = "blue", 
+"PessimisticEntityLockException" = "blue", 
+"ReturningWork" = "blue", 
+"EntityBinding" = "blue", 
+"AutoFlushEventListener" = "blue", 
+"DeleteEvent" = "blue", 
+"FlushEventListener" = "blue", 
+"PostCollectionRecreateEvent" = "blue", 
+"PostCollectionRecreateEventListener" = "blue", 
+"PostCollectionRemoveEvent" = "blue", 
+"PostCollectionRemoveEventListener" = "blue", 
+"PostCollectionUpdateEvent" = "blue", 
+"PostCollectionUpdateEventListener" = "blue", 
+"Joinable" = "blue", 
+"NamingStrategyDelegator" = "blue", 
+"ImportSqlCommandExtractor" = "blue", 
+"FieldInterceptionHelper" = "blue", 
+"AfterCompletionAction" = "blue", 
+"ExceptionMapper" = "blue", 
+"ManagedFlushChecker" = "blue", 
+"SynchronizationCallbackCoordinator" = "blue", 
+"FieldInterceptor" = "blue", 
+"LazyPropertyInitializer" = "blue", 
+"MappedSuperclass" = "blue", 
+"SequenceStyleGenerator" = "blue", 
+"TableGenerator" = "blue", 
+"DialectResolutionInfo" = "blue", 
+"DialectResolver" = "blue", 
+"MutableIdentifierGeneratorFactory" = "blue", 
+"GrantedPermission" = "blue", 
+"JaccService" = "blue", 
+"InvalidMappingException" = "blue", 
+"NonUniqueResultException" = "blue", 
+"PessimisticLockException" = "blue", 
+"QueryParameterException" = "blue", 
+"StaleObjectStateException" = "blue", 
+"StaleStateException" = "blue", 
+"TypeMismatchException" = "blue", 
+"Version" = "blue", 
+"LockModeConverter" = "blue", 
+"ValueHolder" = "blue", 
+"ValueHolder$DeferredInitializer" = "blue", 
+"AbstractQueryImpl" = "blue", 
+"NamedQueryRepository" = "blue", 
+"QueryImpl" = "blue", 
+"CollectionPersister" = "blue", 
+"QueryableCollection" = "blue", 
+"QueryTranslator" = "blue", 
+"TableSpecification" = "blue", 
+"BytecodeProvider" = "blue", 
+"ClassTransformer" = "blue", 
+"BasicTransformerAdapter" = "blue", 
+"EntityGraphQueryHint" = "blue", 
+"HQLQueryPlan" = "blue", 
+"NamedParameterDescriptor" = "blue", 
+"OrdinalParameterDescriptor" = "blue", 
+"ParameterMetadata" = "blue", 
+"QueryPlanCache" = "blue", 
+"Entity" = "blue", 
+"SequenceGenerator" = "blue", 
+"JtaStatusHelper" = "blue", 
+"Insert" = "blue", 
+"SqlInterceptor" = "blue", 
+"Update" = "blue", 
+"IdentifierProperty" = "blue", 
+"ComponentTuplizer" = "blue", 
+"PropertyProjection" = "blue", 
+"ObjectNotFoundException" = "blue", 
+"Transformers" = "blue", 
+"ResultSetReturn" = "blue", 
+"SqlExceptionHelper" = "blue", 
+"Mapping" = "blue", 
+"TableBinder" = "blue", 
+"NativeSQLQueryCollectionReturn" = "blue", 
+"NativeSQLQueryJoinReturn" = "blue", 
+"BinderHelper" = "blue", 
+"CollectionSecondPass" = "blue", 
+"JDBCBinder" = "blue", 
+"JDBCBinder$ForeignKeyForColumns" = "blue", 
+"JDBCBinderException" = "blue", 
+"JDBCCollectionSecondPass" = "blue", 
+"JDBCMetaDataConfiguration" = "blue", 
+"JDBCMetaDataConfiguration$1" = "blue", 
+"JDBCReaderFactory" = "blue", 
+"MetaDataDialectFactory" = "blue", 
+"ObjectNameNormalizer" = "blue", 
+"HqlBaseLexer" = "blue", 
+"BasicTypeRegistry" = "blue", 
+"ForeignKeyDirection" = "blue", 
+"NumericBooleanType" = "blue", 
+"PrimitiveType" = "blue", 
+"TimeType" = "blue", 
+"OptimisticLockStyle" = "blue", 
+"IntegratorService" = "blue", 
+"IdentityMap" = "blue", 
+"JoinedIterator" = "blue", 
+"CriteriaJoinWalker" = "blue", 
+"CriteriaQueryTranslator" = "blue", 
+"Array" = "blue", 
+"Bag" = "blue", 
+"IdentifierCollection" = "blue", 
+"IndexedCollection" = "blue", 
+"MetaAttributable" = "blue", 
+"MetaAttribute" = "blue", 
+"PersistentClassVisitor" = "blue", 
+"Selectable" = "blue", 
+"Set" = "blue", 
+"SyntheticProperty" = "blue", 
+"ValueVisitor" = "blue", 
+"SQLiteDialect" = "blue", 
+"SQLiteDialect$1" = "blue", 
+"SQLiteDialect$2" = "blue", 
+"SQLiteDialect$3" = "blue", 
+"SQLiteDialect$SQLiteLimitHandler" = "blue", 
+"SQLiteDialect$SQLiteUniqueDelegate" = "blue", 
+"DuplicateMappingException" = "blue", 
+"MappingNotFoundException" = "blue", 
+"SQLExceptionConverter" = "blue", 
+"ConfigHelper" = "blue", 
+"ErrorLogger" = "blue", 
+"InsertGeneratedIdentifierDelegate" = "blue", 
+"SessionFactoryServiceRegistryFactory" = "blue", 
+"CategorizedStatistics" = "blue", 
+"IdentifierGeneratorHelper" = "blue", 
+"IdentityGenerator$BasicDelegate" = "blue", 
+"IdentityGenerator$GetGeneratedKeysDelegate" = "blue", 
+"IdentityGenerator$InsertSelectDelegate" = "blue", 
+"PostInsertIdentityPersister" = "blue", 
+"GenerationTiming" = "blue", 
+"ValueGeneration" = "blue", 
+"JdbcServices" = "blue", 
+"DataException" = "blue", 
+"JDBCConnectionException" = "blue", 
+"LockAcquisitionException" = "blue", 
+"ClobTypeDescriptor" = "blue", 
+"SqlTypeDescriptor" = "blue", 
+"TimestampTypeDescriptor" = "blue", 
+"WrapperOptions" = "blue", 
+"DefaultUniqueDelegate" = "blue", 
+"DataHelper" = "blue", 
+"ImmutableMutabilityPlan" = "blue", 
+"JdbcTimestampTypeDescriptor" = "blue", 
+"LiteralType" = "blue", 
+"VersionType" = "blue", 
+"CollectionHelper" = "blue", 
+"Collection" = "blue", 
+"ForeignKey" = "blue", 
+"Index" = "blue", 
+"Map" = "blue", 
+"SessionBuilder" = "blue", 
+"SQLExceptionConversionDelegate" = "blue", 
+"TemplatedViolatedConstraintNameExtracter" = "blue", 
+"ViolatedConstraintNameExtracter" = "blue", 
+"JdbcExceptionHelper" = "blue", 
+"SerializationHelper" = "blue", 
+"CharacterStreamImpl" = "blue", 
+"SecondLevelCacheStatistics" = "blue", 
+"PersistentIdentifierGenerator" = "blue", 
+"Alias" = "blue", 
+"AbstractAnsiTrimEmulationFunction" = "blue", 
+"VarArgsSQLFunction" = "blue", 
+"CacheException" = "blue", 
+"UniqueDelegate" = "blue", 
+"UniqueKey" = "blue", 
+"Value" = "blue", 
+"H2Dialect" = "blue", 
+"MySQL57InnoDBDialect" = "blue", 
+"MySQL5Dialect" = "blue", 
+"SQLServer2005Dialect" = "blue", 
+"SQLServer2008Dialect" = "blue", 
+"AccessType" = "blue", 
+"CollectionRegionAccessStrategy" = "blue", 
+"EntityRegionAccessStrategy" = "blue", 
+"NaturalIdRegionAccessStrategy" = "blue", 
+"AbstractLimitHandler" = "blue", 
+"LimitHelper" = "blue", 
+"CacheDataDescription" = "blue", 
+"CollectionRegion" = "blue", 
+"EntityRegion" = "blue", 
+"GeneralDataRegion" = "blue", 
+"NaturalIdRegion" = "blue", 
+"QueryResultsRegion" = "blue", 
+"Region" = "blue", 
+"RegionFactory" = "blue", 
+"TimestampsRegion" = "blue", 
+"TransactionalDataRegion" = "blue", 
+"CastFunction" = "blue", 
+"NoArgSQLFunction" = "blue", 
+"ConstraintViolationException" = "blue", 
+"DependantValue" = "blue", 
+"ManyToOne" = "blue", 
+"OneToMany" = "blue", 
+"ToOne" = "blue", 
+"DerbyDialect" = "blue", 
+"Oracle10gDialect" = "blue", 
+"PostgreSQLDialect" = "blue", 
+"CacheMode" = "blue", 
+"ConnectionProviderInitiator" = "blue", 
+"AvailableSettings" = "blue", 
+"MultipleBagFetchException" = "blue", 
+"TimestampType" = "blue", 
+"StandardServiceRegistry" = "blue", 
+"AbstractEvent" = "blue", 
+"PreDeleteEvent" = "blue", 
+"PreDeleteEventListener" = "blue", 
+"PreLoadEvent" = "blue", 
+"PreLoadEventListener" = "blue", 
+"PreUpdateEvent" = "blue", 
+"PreUpdateEventListener" = "blue", 
+"SaveOrUpdateEvent" = "blue", 
+"SaveOrUpdateEventListener" = "blue", 
+"DatabaseMetadata" = "blue", 
+"Component" = "blue", 
+"SimpleValue" = "blue", 
+"MySQL5InnoDBDialect" = "blue", 
+"ReplicationMode" = "blue", 
+"SessionFactory$SessionFactoryOptions" = "blue", 
+"Stoppable" = "blue", 
+"ManagedSessionContext" = "blue", 
+"ActionQueue" = "blue", 
+"FilterDefinition" = "blue", 
+"BasicBinder" = "blue", 
+"BasicExtractor" = "blue", 
+"TransactionFactory" = "blue", 
+"ProxyFactory" = "blue", 
+"StrategySelectorImpl" = "blue", 
+"JdbcIsolationDelegate" = "blue", 
+"JdbcTransaction" = "blue", 
+"DialectFactoryImpl" = "blue", 
+"EntityTuplizerFactory" = "blue", 
+"PojoEntityTuplizer" = "blue", 
+"CurrentSessionContext" = "blue", 
+"AbstractTypeDescriptor" = "blue", 
+"JavaTypeDescriptor" = "blue", 
+"CharacterType" = "blue", 
+"DateType" = "blue", 
+"CriteriaQuery" = "blue", 
+"PostDeleteEvent" = "blue", 
+"PostDeleteEventListener" = "blue", 
+"PostLoadEvent" = "blue", 
+"PostLoadEventListener" = "blue", 
+"PostUpdateEvent" = "blue", 
+"PostUpdateEventListener" = "blue", 
+"JoinedSubclassEntityPersister" = "blue", 
+"SingleTableEntityPersister" = "blue", 
+"JoinedSubclass" = "blue", 
+"PrimaryKey" = "blue", 
+"SerializableProxy" = "blue", 
+"ConnectionReleaseMode" = "blue", 
+"EntityMode" = "blue", 
+"SharedSessionContract" = "blue", 
+"StatelessSession" = "blue", 
+"CriteriaImpl$CriterionEntry" = "blue", 
+"ServiceBinding" = "blue", 
+"Wrapped" = "blue", 
+"ResultTransformer" = "blue", 
+"Setter" = "blue", 
+"BasicLazyInitializer" = "blue", 
+"DefaultIdentifierGeneratorFactory" = "blue", 
+"SQLFunction" = "blue", 
+"JdbcConnectionAccess" = "blue", 
+"EntityEntry" = "blue", 
+"PersistenceContext" = "blue", 
+"Status" = "blue", 
+"ClassLoaderServiceImpl" = "blue", 
+"EventListenerGroup" = "blue", 
+"PersistentCollection" = "blue", 
+"DefaultFlushEventListener" = "blue", 
+"AssociationType" = "blue", 
+"CompositeType" = "blue", 
+"UnknownUnwrapTypeException" = "blue", 
+"BootstrapServiceRegistryBuilder" = "blue", 
+"JtaPlatform" = "blue", 
+"EventSource" = "blue", 
+"DialectFactory" = "blue", 
+"DialectResolutionInfoSource" = "blue", 
+"Session$LockRequest" = "blue", 
+"SessionFactoryObserver" = "blue", 
+"Formatter" = "blue", 
+"SessionFactoryServiceRegistry" = "blue", 
+"Getter" = "blue", 
+"LockOptions" = "blue", 
+"DDLFormatterImpl" = "blue", 
+"SQLFunctionTemplate" = "blue", 
+"JdbcCoordinator" = "blue", 
+"JndiService" = "blue", 
+"BinaryTypeDescriptor" = "blue", 
+"VarcharTypeDescriptor" = "blue", 
+"BitronixJtaPlatform" = "blue", 
+"PrimitiveByteArrayTypeDescriptor" = "blue", 
+"StringTypeDescriptor" = "blue", 
+"BigDecimalType" = "blue", 
+"BigIntegerType" = "blue", 
+"ByteType" = "blue", 
+"FloatType" = "blue", 
+"ShortType" = "blue", 
+"Target" = "blue", 
+"OneToOne" = "blue", 
+"SQLServer2012Dialect" = "blue", 
+"Filter" = "blue", 
+"JDBCException" = "blue", 
+"CriteriaImpl$Subcriteria" = "blue", 
+"JoinType" = "blue", 
+"TransactionCoordinator" = "blue", 
+"HibernateProxyHelper" = "blue", 
+"ImprovedNamingStrategy" = "blue", 
+"AbstractJtaPlatform" = "blue", 
+"Integrator" = "blue", 
+"KeyValue" = "blue", 
+"PostgreSQL9Dialect" = "blue", 
+"Example" = "red", 
+"Interceptor" = "red", 
+"CriteriaImpl" = "red", 
+"Mappings" = "red", 
+"Settings" = "red", 
+"ImmutableType" = "red", 
+"ProjectionList" = "red", 
+"EntityPersister" = "red", 
+"RootClass" = "red", 
+"DatasourceConnectionProviderImpl" = "red", 
+"SessionImplementor" = "red", 
+"MySQLDialect" = "red", 
+"FetchMode" = "red", 
+"Fetch" = "red", 
+"OrderBy" = "red", 
+"Where" = "red", 
+"Disjunction" = "red", 
+"Property" = "red", 
+"LobHelper" = "red", 
+"Work" = "red", 
+"ScrollableResults" = "red", 
+"EJB3NamingStrategy" = "red", 
+"Subqueries" = "red", 
+"Constraint" = "red", 
+"SessionImpl" = "red", 
+"CompositeUserType" = "red", 
+"SessionFactoryImplementor" = "red", 
+"Immutable" = "red", 
+"ScrollMode" = "red", 
+"TypeDefs" = "red", 
+"LockMode" = "red", 
+"ConnectionProvider" = "red", 
+"BinaryType" = "red", 
+"LongType" = "red", 
+"ServiceRegistry" = "red", 
+"SchemaUpdate" = "red", 
+"SimpleExpression" = "red", 
+"StandardDialectResolver" = "red", 
+"Conjunction" = "red", 
+"PreInsertEvent" = "red", 
+"PreInsertEventListener" = "red", 
+"HSQLDialect" = "red", 
+"MappingException" = "red", 
+"StandardSQLFunction" = "red", 
+"JndiServiceImpl" = "red", 
+"ExternalSessionFactoryConfig" = "red", 
+"ServiceRegistryBuilder" = "red", 
+"JndiHelper" = "red", 
+"PostInsertEvent" = "red", 
+"PostInsertEventListener" = "red", 
+"DatabaseMetaDataDialectResolutionInfoAdapter" = "red", 
+"SessionFactoryRegistry" = "red", 
+"ConcurrentStatisticsImpl" = "red", 
+"AssertionFailure" = "red", 
+"ServiceRegistryImplementor" = "red", 
+"UUIDGenerator" = "red", 
+"Environment" = "red", 
+"BooleanType" = "red", 
+"GenericJDBCException" = "red", 
+"Criterion" = "red", 
+"LobCreator" = "red", 
+"CoreMessageLogger" = "red", 
+"ReflectHelper" = "red", 
+"DoubleType" = "red", 
+"EnhancedUserType" = "red", 
+"StringHelper" = "red", 
+"ClassMetadata" = "red", 
+"EventListenerRegistry" = "red", 
+"EventType" = "red", 
+"DetachedCriteria" = "red", 
+"Column" = "red", 
+"Table" = "red", 
+"FlushMode" = "red", 
+"BulkInsertionCapableIdentifierGenerator" = "red", 
+"PostInsertIdentifierGenerator" = "red", 
+"SequenceIdentityGenerator" = "red", 
+"SessionFactoryImpl" = "red", 
+"Configurable" = "red", 
+"StringType" = "red", 
+"Statistics" = "red", 
+"IdentityGenerator" = "red", 
+"IntegerType" = "red", 
+"IdentifierGenerator" = "red", 
+"NamingStrategy" = "red", 
+"Cache" = "red", 
+"Dialect" = "red", 
+"AbstractStandardBasicType" = "red", 
+"StandardBasicTypes" = "red", 
+"TypeResolver" = "red", 
+"ConfigurationHelper" = "red", 
+"EmptyInterceptor" = "red", 
+"StandardServiceRegistryBuilder" = "red", 
+"GenericGenerator" = "red", 
+"AbstractSingleColumnStandardBasicType" = "red", 
+"Type" = "red", 
+"Projections" = "red", 
+"SchemaExport" = "red", 
+"HibernateProxy" = "red", 
+"LazyInitializer" = "red", 
+"PersistentClass" = "red", 
+"Order" = "red", 
+"Transaction" = "red", 
+"ParameterizedType" = "red", 
+"SQLQuery" = "red", 
+"UserType" = "red", 
+"MatchMode" = "red", 
+"Configuration" = "red", 
+"Hibernate" = "red", 
+"HibernateException" = "red", 
+"Restrictions" = "red", 
+"Query" = "red", 
+"Criteria" = "red", 
+"SessionFactory" = "red", 
+"Session" = "red"
+)
+
+```
+
+```{r inj5}
+
+hibernatename <- "org.hibernate:hibernate-core:4.3.11.Final"
+  path <- paste0(dir, hibernatename, ".csv")
+  lib <-read_delim(path, 
+      ",", escape_double = FALSE, trim_ws = TRUE) %>% mutate(p=ifelse(startsWith(package, "junit/framework"), "v3.",""))
+  
+  totGroup <- lib %>% group_by(From) %>% summarise(GroupTotal=sum(Usages)) %>% ungroup()
+  
+  total <- as.numeric(eff %>% filter(Library == hibernatename) %>% select(Effectifs) %>% sum)
+  totalCli <- as.numeric(totGroup %>% select(GroupTotal) %>% sum)
+  totalUsages <- as.numeric(lib %>% select(Usages) %>% sum)
+  
+  lib <- merge(x = lib, y = totGroup, by="From") 
+  
+  jcoldf <- as.data.frame(hibernatecol)
+  jcoldf$key <-names(hibernatecol)
+  colnames(jcoldf) <- c("color", "To")
+  
+  
+  
+  lib <- merge(x = lib, y = eff, by=c("Library","From")) %>% mutate(TotalEff = total) %>% mutate(Value1 = Effectifs*Usages/GroupTotal, Value2 = total * Usages/totalUsages, To= paste0(p, class))
+  lib <- merge(x=lib, y=jcoldf, by="To")
+  lib <- lib[order(lib$color),]
+  lib <- lib %>% select(From,To,Value1,Value2)
+
+#chordDiagramFromDataFrame(slf4japi[,1:4])
+pdf("/home/nharrand/Documents/maven-miner/r/chordDiagrams/notebook/hibernate.pdf", height = 10, width = 15)
+chordDiagram(lib[,1:4], small.gap = 0.05, grid.col = hibernatecol, annotationTrack = "grid", 
+    preAllocateTracks = list(track.height = max(strwidth(unlist(dimnames(lib[,1:4]))))))
+# we go back to the first track and customize sector labels
+circos.track(track.index = 1, panel.fun = function(x, y) {
+    circos.text(CELL_META$xcenter, CELL_META$ylim[1], CELL_META$sector.index, 
+        facing = "clockwise", niceFacing = TRUE, adj = c(0, 0.5))
+}, bg.border = NA)
+dev.off()
+
+```
+
+```{r inj6}
+
+scalaname <- "org.scala-lang:scala-compiler:2.11.8"
+  path <- paste0(dir, scalaname, ".csv")
+  lib <-read_delim(path, 
+      ",", escape_double = FALSE, trim_ws = TRUE) %>% mutate(p=ifelse(startsWith(package, "junit/framework"), "v3.",""))
+  
+  totGroup <- lib %>% group_by(From) %>% summarise(GroupTotal=sum(Usages)) %>% ungroup()
+  
+  total <- as.numeric(eff %>% filter(Library == scalaname) %>% select(Effectifs) %>% sum)
+  totalCli <- as.numeric(totGroup %>% select(GroupTotal) %>% sum)
+  totalUsages <- as.numeric(lib %>% select(Usages) %>% sum)
+  
+  lib <- merge(x = lib, y = totGroup, by="From") 
+ 
+path <- "/home/nharrand/Documents/depviz/chordDiagrams2/scala-col2.csv"
+ tmpScala <-read_delim(path, 
+      ",", escape_double = FALSE, trim_ws = TRUE) %>% filter(!is.na(element)) %>% select(element,color)
+scalacol <- as.vector(tmpScala$color)
+names(scalacol) <- tmpScala$element 
+  jcoldf <- as.data.frame(scalacol)
+  jcoldf$key <-names(scalacol)
+  colnames(jcoldf) <- c("color", "To")
+  
+  
+  
+  lib <- merge(x = lib, y = eff, by=c("Library","From")) %>% mutate(TotalEff = total) %>% mutate(Value1 = Effectifs*Usages/GroupTotal, Value2 = total * Usages/totalUsages, To= paste0(p, class))
+  lib <- merge(x=lib, y=jcoldf, by="To")
+  lib <- lib[order(lib$color),]
+  lib <- lib %>% select(From,To,Value1,Value2,color) %>% group_by(From,color) %>% summarize(n1 = sum(Value1), n2 = sum(Value2))
+  #lib <- lib %>% select(From,To,Value1,Value2)
+  lib <- lib %>% select(From,color,n1,n2)
+  lib$color <- as.character(lib$color)
+  lib[lib$color == "red",]$color <- "Core"
+  lib[lib$color == "blue",]$color <- "Other"
+  lib$color <- as.factor(lib$color)
+  scalacol <- c(scalacol, "Core" = "red", "Other" = "blue")
+
+#chordDiagramFromDataFrame(slf4japi[,1:4])
+pdf("/home/nharrand/Documents/maven-miner/r/chordDiagrams/notebook/scala.pdf", height = 10, width = 15)
+#chordDiagram(lib[,1:4], small.gap = 0, grid.col = scalacol, annotationTrack = "grid")
+chordDiagram(lib[,1:4], small.gap = 0, grid.col = scalacol, annotationTrack = "grid", 
+    preAllocateTracks = list(track.height = max(strwidth(unlist(dimnames(lib[,1:4]))))))
+# we go back to the first track and customize sector labels
+circos.track(track.index = 1, panel.fun = function(x, y) {
+    circos.text(CELL_META$xcenter, CELL_META$ylim[1], CELL_META$sector.index, 
+        facing = "clockwise", niceFacing = TRUE, adj = c(0, 0.5))
+}, bg.border = NA)
+dev.off()
+
+```
+
+
+```{r injn}
+
+ 
+
+
+```
+
+
+```{r gnagnagna}
+library(circlize)
+
+mat = matrix(sample(1:100, 18, replace = TRUE), 3, 6)
+rownames(mat) = letters[1:3]
+colnames(mat) = LETTERS[1:6]
+rn = rownames(mat)
+cn = colnames(mat)
+
+circos.par(gap.after = c(rep(2, nrow(mat)-1), 10, rep(2, ncol(mat)-1), 10))
+chordDiagram(mat, annotationTrack = "grid", transparency = 0.5,
+    preAllocateTracks = list(track.height = 0.1))
+for(si in get.all.sector.index()) {
+    circos.axis(h = "top", labels.cex = 0.3, sector.index = si, track.index = 2)
+}
+circos.trackPlotRegion(track.index = 1, panel.fun = function(x, y) {
+    xlim = get.cell.meta.data("xlim")
+    ylim = get.cell.meta.data("ylim")
+    sector.name = get.cell.meta.data("sector.index")
+    
+    circos.lines(xlim, c(mean(ylim), mean(ylim)), lty = 3)
+    for(p in seq(0, 1, by = 0.25)) {
+        circos.text(p*(xlim[2] - xlim[1]) + xlim[1], mean(ylim), p, cex = 0.4, adj = c(0.5, -0.2), niceFacing = TRUE)
+    }
+    circos.text(mean(xlim), 1.4, sector.name, niceFacing = TRUE)
+}, bg.border = NA)
+circos.clear()
+```
+
+```{r diagram2}
+sl4j$V2 <- gsub("^.*/", "", sl4j$V2)
+sl4j$V1 <- as.character(sl4j$V1)
+
+a <- sl4j %>%
+  rename(Node = V1) %>%
+  group_by(Node) %>%
+  summarise(all = n()) 
+
+b <- sl4j %>%
+  rename(Node = V1) %>%
+  group_by(Node) %>%
+  summarise(core = sum("Logger" == V2 | "LoggerFactory" == V2) )
+
+c <- inner_join(a, b, by = "Node")
+
+c <- c %>% mutate(UseOnlyCoreTypes = ifelse(all == core, "UseCore", ifelse(core == 0, "NoUseCore", "UseBoth"))) %>% select(Node, UseOnlyCoreTypes)
+
+x <- sl4j %>% 
+  group_by(V1, V2) %>%
+  count() %>% rename(Node = V1)  
+
+d <- inner_join(c, x, by = "Node") %>% select(UseOnlyCoreTypes, V2)
+
+x <- d %>% 
+  group_by(V2, UseOnlyCoreTypes) %>% 
+  count() 
+
+# doing the plot ---------------------------------------------
+
+df <- data.frame(from = as.character(x$UseOnlyCoreTypes), 
+    to = as.character(x$V2), 
+    value = as.vector(x$n),
+    stringsAsFactors = FALSE)
+
+grid.col = c(UseCore = "red", NoUseCore = "black", UseBoth = "blue", Logger = "red", LoggerFactory = "red")
+
+chordDiagram(df, annotationTrack = "grid",  transparency = 0.5, grid.col = grid.col,
+    preAllocateTracks = list(track.height = max(strwidth(unlist(dimnames(df))))))
+
+# we go back to the first track and customize sector labels
+circos.track(track.index = 1, panel.fun = function(x, y) {
+    circos.text(CELL_META$xcenter, CELL_META$ylim[1], CELL_META$sector.index, 
+        facing = "clockwise", niceFacing = TRUE, adj = c(0, 0.5))
+}, bg.border = NA) # here set bg.border to NA is important
+
+circos.clear()
+
+View(df)
+```
+
+
+```{r}
+
+jsr <- read.csv("Data/jsr305-edges.csv", header = F)
+jsr$V2 <- gsub("^.*/", "", jsr$V2)
+jsr$V1 <- as.character(jsr$V1)
+
+a <- jsr %>%
+  rename(Node = V1) %>%
+  group_by(Node) %>%
+  summarise(all = n()) 
+
+b <- jsr %>%
+  rename(Node = V1) %>%
+  group_by(Node) %>%
+  summarise(core = sum("Nullable" == V2 | "Nonnull" == V2 | "Immutable" == V2 | "CheckForNull" == V2 | "ParametersAreNonnullByDefaul" == V2 | "CheckReturnValue" == V2 | "GuardedBy" == V2 | "NotThreadSafe" == V2 | "ThreadSafe" == V2) )
+
+c <- inner_join(a, b, by = "Node")
+
+c <- c %>% mutate(UseOnlyCoreTypes = ifelse(all == core, "UseCore", ifelse(core == 0, "NoUseCore", "UseBoth"))) %>% select(Node, UseOnlyCoreTypes)
+
+x <- jsr %>% 
+  group_by(V1, V2) %>%
+  count() %>% rename(Node = V1)  
+
+d <- inner_join(c, x, by = "Node") %>% select(UseOnlyCoreTypes, V2)
+
+x <- d %>% 
+  group_by(V2, UseOnlyCoreTypes) %>% 
+  count() 
+
+# doing the plot ---------------------------------------------
+
+df <- data.frame(from = as.character(x$UseOnlyCoreTypes), 
+    to = as.character(x$V2), 
+    value = as.vector(x$n),
+    stringsAsFactors = FALSE)
+
+grid.col = c(
+  UseCore = "red",
+  NoUseCore = "black",
+  UseBoth = "blue",
+  Nullable  = "red",
+  Nonnull  = "red",
+  Immutable  = "red",
+  CheckForNull  = "red",
+  ParametersAreNonnullByDefaul  = "red",
+  CheckReturnValue  = "red",
+  GuardedBy  = "red",
+  NotThreadSafe  = "red",
+  ThreadSafe = "red"
+)
+
+chordDiagram(df, annotationTrack = "grid",  transparency = 0.5, grid.col = grid.col,
+    preAllocateTracks = list(track.height = max(strwidth(unlist(dimnames(df))))))
+
+# we go back to the first track and customize sector labels
+circos.track(track.index = 1, panel.fun = function(x, y) {
+    circos.text(CELL_META$xcenter, CELL_META$ylim[1], CELL_META$sector.index, 
+        facing = "clockwise", niceFacing = TRUE, adj = c(0, 0.5))
+}, bg.border = NA) # here set bg.border to NA is important
+
+circos.clear()
+
+View(df)
+```
+
+

@@ -13,6 +13,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import fr.inria.diverse.maven.resolver.MetaResolver;
 import org.apache.commons.io.FileUtils;
 
 import org.neo4j.graphdb.Direction;
@@ -157,6 +158,8 @@ public class Neo4jGraphDBWrapperEmbedded extends Neo4jGraphDBWrapper {
 					result.setProperty(Properties.GROUP, artifact.getGroupId());
 					result.setProperty(Properties.CLASSIFIER, artifact.getClassifier());
 					result.setProperty(Properties.VERSION, artifact.getVersion());
+					result.setProperty(Properties.REPO, MetaResolver.deriveRepo(artifact));
+					result.setProperty(Properties.LICENSE, MetaResolver.deriveLicense(artifact));
 					result.setProperty(Properties.PACKAGING, MavenMinerUtil.derivePackaging(artifact).toString());
 					result.setProperty(Properties.ARTIFACT, artifact.getArtifactId());
 					
@@ -396,7 +399,7 @@ public class Neo4jGraphDBWrapperEmbedded extends Neo4jGraphDBWrapper {
 	protected void createExceptionRelationship(Node node, ExceptionType type, int value) {		
 		Node exceptionNode = getOrcreateExceptionNode(type);
 		Relationship rel= node.createRelationshipTo(exceptionNode, DependencyRelation.RAISES);
-		rel.setProperty(Properties.EXCEPTION_OCCURENCE, value);
+		rel.setProperty(Properties.EXCEPTION_OCCURRENCE, value);
 	}
 	
 	protected Node getOrcreateExceptionNode(ExceptionType type) {

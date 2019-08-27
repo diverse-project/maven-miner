@@ -1,5 +1,6 @@
 package fr.inria.diverse.maven.resolver.db;
 
+import fr.inria.diverse.maven.resolver.MetaResolver;
 import org.neo4j.driver.v1.AccessMode;
 import org.neo4j.driver.v1.Driver;
 import org.neo4j.driver.v1.GraphDatabase;
@@ -106,8 +107,10 @@ public class Neo4jGraphDBWrapperServer extends Neo4jGraphDBWrapper implements Au
 	@Override
 //	public @NotNull(message = "The returned node should not be null") 
 	public void createNodeFromArtifactCoordinate(Artifact artifact) {
-		
-		ZonedDateTime javaDate =getReleaseDateFromArtifact(artifact);
+		ZonedDateTime javaDate = getReleaseDateFromArtifact(artifact);
+
+
+
 		for (int i = 0; i < RETRIES; i++) {
 			 try ( Session session = driver.session() )
 		        {
@@ -119,6 +122,8 @@ public class Neo4jGraphDBWrapperServer extends Neo4jGraphDBWrapper implements Au
 								+ "%s : $groupValue, "
 								+ "%s : $versionValue, "
 								+ "%s : $packagingValue, "
+					            + "%s : $repoValue, "
+					            + "%s : $licenseValue, "
 								+ "%s : $classifierValue, "
 								+ "%s : $releaseValue } "
 								+ "RETURN a.%s",
@@ -129,6 +134,8 @@ public class Neo4jGraphDBWrapperServer extends Neo4jGraphDBWrapper implements Au
 								Properties.GROUP, 
 								Properties.VERSION,
 								Properties.PACKAGING,
+					            Properties.REPO,
+					            Properties.LICENSE,
 								Properties.CLASSIFIER,
 								Properties.LAST_MODIFIED,
 								Properties.COORDINATES);	
@@ -139,6 +146,8 @@ public class Neo4jGraphDBWrapperServer extends Neo4jGraphDBWrapper implements Au
 							                            	"coordinatesValue", MavenMinerUtil.artifactToCoordinate(artifact),
 							                            	"versionValue", artifact.getVersion(),
 							                            	"packagingValue", MavenMinerUtil.derivePackaging(artifact).toString(),
+							                                "repoValue", MetaResolver.deriveRepo(artifact),
+							                                "licenseValue", MetaResolver.deriveLicense(artifact),
 							                            	"classifierValue", artifact.getClassifier(),
 							                            	"releaseID", Properties.LAST_MODIFIED,
 							                            	"releaseValue",javaDate.toString()
@@ -156,7 +165,7 @@ public class Neo4jGraphDBWrapperServer extends Neo4jGraphDBWrapper implements Au
 					     try {
 					            Thread.sleep( BACKOFF );
 					     } catch ( InterruptedException e ) {
-					            throw new TransactionFailureException( "Trasaction failed due to thread interuption", e );
+					            throw new TransactionFailureException( "Transaction failed due to thread interruption", e );
 					     }
 				     }
 		        }
@@ -270,7 +279,7 @@ public class Neo4jGraphDBWrapperServer extends Neo4jGraphDBWrapper implements Au
 			 				));
 					query.append(System.getProperty("line.separator"));
 					query.append(String.format("CREATE UNIQUE (a)-[r : RAISES {%s:$value}]->(e)", 
-								Properties.EXCEPTION_OCCURENCE
+								Properties.EXCEPTION_OCCURRENCE
 				 				));
 					query.append(System.getProperty("line.separator"));
 					query.append(String.format("RETURN e.%s",Properties.EXCEPTION_NAME));
@@ -490,8 +499,9 @@ public class Neo4jGraphDBWrapperServer extends Neo4jGraphDBWrapper implements Au
 	public void registerShutdownHook() {
 		throw new UnsupportedOperationException();
 	}
+
 	/**
-	 * @see Neo4jGraphDBWrapper#close()
+	 *
 	 */
 	@Override
 	public void close() throws Exception {
