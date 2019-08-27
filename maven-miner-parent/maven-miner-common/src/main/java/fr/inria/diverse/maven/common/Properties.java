@@ -19,11 +19,15 @@ public class Properties {
 	public static final String REPO = "repo";
 	public static final String LICENSE = "license";
 	
+	public static final String PAGERANK = "pagerank";
+	public static final String HOPES = "hopes";
+	
 	public static final String EXCEPTION_LABEL = "Exception";
 	public static final String EXCEPTION_OCCURRENCE = "occurence";
 	public static final String EXCEPTION_NAME = "name";
 	public static final String ARTIFACT_LABEL = "Artifact";
 	public static final String CALENDAR_LABEL = "Calendar";
+	public static final String LIBRARY_LABEL = "Library";
 	
 	public static final String MONTH = "month";
 	public static final String YEAR = "year";

@@ -7,6 +7,7 @@ import org.neo4j.graphdb.Label;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.logging.Log;
 import org.neo4j.procedure.Context;
+import org.neo4j.procedure.TerminationGuard;
 
 import fr.inria.diverse.maven.common.Properties;
 
@@ -22,6 +23,13 @@ public class AbstractProcedureEnv {
 	 */
 	@Context 
 	public Log log;
+	
+	/**
+	 * Termination Guard
+	 */
+	@Context
+	public TerminationGuard terminationGuard;
+
 	/**
 	 * The calendar Label
 	 */
@@ -42,7 +50,8 @@ public class AbstractProcedureEnv {
 			 allLabels = graphDB.getAllLabelsInUse().stream()
 					.filter( label -> ! label.name().equals(Properties.EXCEPTION_LABEL) &&
 									  ! label.name().equals(Properties.ARTIFACT_LABEL)  &&
-									  ! label.name().equals(Properties.CALENDAR_LABEL))	
+									  ! label.name().equals(Properties.CALENDAR_LABEL)	&&
+									  ! label.name().equals(Properties.LIBRARY_LABEL))
 					.map(Label::toString);
 			tx.success();
 			

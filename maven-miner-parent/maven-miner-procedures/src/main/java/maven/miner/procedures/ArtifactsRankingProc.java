@@ -23,7 +23,6 @@ public class ArtifactsRankingProc extends AbstractProcedureEnv {
 		return getTopArtifacts(Properties.ARTIFACT_LABEL, top, scope);
 	}
 	
-	
 	@Procedure(value="maven.miner.artifacts.group.top", mode = Mode.READ)
 	@Description("top X most used artifacts of a group")
 	public Stream<OutputNode> getTopArtifacts(
@@ -37,10 +36,10 @@ public class ArtifactsRankingProc extends AbstractProcedureEnv {
 				|| scope.equals("Compile")
 				|| scope.equals("Test")
 				|| scope.equals("Provided")) {
-			scopeS = String.format("{scope : '%s' }",scope);
+				   scopeS = String.format("{scope : '%s' }",scope);
 		} else if (!scope.equalsIgnoreCase("any")) {
 			throw new RuntimeException("Supported scopes are: Runtime, Compile, Provided, "
-										+ "and Test. To refer  to all scopes use 'any'!");
+										+ "and Test. To refer to all scopes use 'any'!");
 		}
 		try (Transaction tx = graphDB.beginTx()) {
 			String query = String.format("match (n:`%s`) " + 
@@ -61,5 +60,4 @@ public class ArtifactsRankingProc extends AbstractProcedureEnv {
 		}
 		return result;
 	}
-
 }

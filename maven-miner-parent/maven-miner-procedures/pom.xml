@@ -34,6 +34,11 @@
       <artifactId>neo4j</artifactId>
       <scope>provided</scope>
     </dependency>
+		<dependency>
+		    <groupId>org.apache.commons</groupId>
+		    <artifactId>commons-csv</artifactId>
+		    <version>1.6</version>
+		</dependency>    
 	<dependency>
 	  <groupId>org.apache.maven</groupId>
       <artifactId>maven-core</artifactId>
@@ -61,12 +66,6 @@
       <artifactId>junit</artifactId>
       <scope>test</scope>
     </dependency>
-    <dependency>
-	    <groupId>org.neo4j.procedure</groupId>
-	    <artifactId>apoc</artifactId>
-	    <version>3.4.0.3</version>
-    	<scope>test</scope>
-	</dependency>
 	<dependency>
 	    <groupId>org.hamcrest</groupId>
 	    <artifactId>hamcrest-all</artifactId>

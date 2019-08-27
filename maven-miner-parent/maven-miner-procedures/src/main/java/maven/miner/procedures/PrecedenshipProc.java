@@ -30,7 +30,9 @@ public class PrecedenshipProc extends AbstractProcedureEnv {
 	 * This procedure returns all latest artifacts
 	 */
 	@Procedure(value="maven.miner.artifacts.latest", mode = Mode.READ)
-	@Description("retrieve all latest artifacts")
+	@Description("maven.miner.artifacts.latest(['groupName']) "
+			+ "- Retrieves all latest artifacts of a given group name."
+			+ " By defaultit returns all the latests artifacts in the graph" )
 	public Stream<OutputNode> getLatestArtifacts(@Name(value = "group name", defaultValue = Properties.ARTIFACT_LABEL) String groupName) {
 		Stream<OutputNode> result = null;
 		try (Transaction tx = graphDB.beginTx()) {
@@ -50,7 +52,7 @@ public class PrecedenshipProc extends AbstractProcedureEnv {
 	 * This procedure is responsible for creating  
 	 */
 	@Procedure(value = "maven.miner.precedenceship", mode = Mode.WRITE)
-	@Description("Creating per-version precedence relationship of all artifacts node ")
+	@Description("Creating per-version precedence relationship of all artifacts node. ")
 	public Stream<BooleanOutput> createPrecedenceship() {
 		
 		log.info("Creating plugins version's evolution ");

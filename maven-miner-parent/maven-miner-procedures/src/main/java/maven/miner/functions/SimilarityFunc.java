@@ -16,7 +16,9 @@ import info.debatty.java.stringsimilarity.interfaces.StringSimilarity;
 public class SimilarityFunc {
 	 
 	 @UserFunction(name = "maven.miner.similarity.cosine")
-	 @Description("maven.miner.similarity.cosine(['d1','d2',...], ['d1','d2',...]) - Computes the similarity matrix.")
+	 @Description("maven.miner.similarity.cosine(['d1','d2',...], ['d1','d2',...]) - Computes the cosine similarity matrix of two given lists."
+	 		+ "Mainly intended to compute syntactic similarities between two dependecies' list."
+	 		+ "Preferably, the artifacts coordinates of the dependencies should be passed in arguments")
 	 public Map<String, Map<String,Number>> cosineSimilarity(@Name("oldDependencies") List<String> removedDependencies, 
 			 									@Name("newDependencies") List<String> newDependencies) {
 		 Cosine similarity = new Cosine();
@@ -25,7 +27,8 @@ public class SimilarityFunc {
 	 
 	 
 	 @UserFunction(name = "maven.miner.similarity.cosine.single")
-	 @Description("maven.miner.similarity.cosine.single(['d1','d2',...], ['d1','d2',...]) - Computes the similarity matrix.")
+	 @Description("maven.miner.similarity.cosine.single('d1', 'd2') - Computes the cosine similarity value between two strings."
+	 		   +  " Preferably, the artifacts coordinates of the dependencies should be passed in argument")
 	 public Number cosineSimilarity(@Name("first") String  first, 
 			 									@Name("second") String  second) {
 		 Cosine similarity = new Cosine();
@@ -34,7 +37,12 @@ public class SimilarityFunc {
 	 
 	 
 	 @UserFunction(name = "maven.miner.similarity.cosine.custom")
-	 @Description("maven.miner.similarity.cosine.custom(['d1','d2',...], ['d1','d2',...]) - Computes the similarity matrix.")
+	 @Description("maven.miner.similarity.cosine.custom(['d1','d2',...], ['d1','d2',...]) - Computes a custom cosine similarity matrix of two given lists."
+			 	+ " The custom method removes versions, and compare only artifactId if the group is the same."
+			 	+ " Otherwise, it compares the group and artifact combined of each coordinates."
+			 	+ " Mainly intended to compute syntactic similarities between two dependecies' list."
+		 		+ " Preferably, the artifacts coordinates of the dependencies should be passed in arguments"
+	 			 	)
 	 public Map<String, Map<String,Number>> cosineCustomSimilarity(@Name("oldDependencies")List<String> removedDependencies, 
 			 										@Name("newDependencies") List<String> newDependencies) {
 		 CustomSimilarity similarity = new CustomSimilarity( new Cosine());
@@ -43,7 +51,11 @@ public class SimilarityFunc {
 	 
 	 
 	 @UserFunction(name = "maven.miner.similarity.cosine.custom.single")
-	 @Description("maven.miner.similarity.cosine.custom.single(['d1','d2',...], ['d1','d2',...]) - Computes the similarity matrix.")
+	 @Description("maven.miner.similarity.cosine.custom.single(['d1','d2',...], ['d1','d2',...]) - Computes a custom cosine similarity value between two strings."
+			    + " The custom method removes versions, and compare only artifactId if the group is the same."
+			 	+ " Otherwise, it compares the group and artifact combined of each coordinates."
+			 	+ " Mainly intended to compute syntactic similarities between two dependecies' list."
+		 		+ " Preferably, the artifacts coordinates of the dependencies should be passed in arguments")
 	 public Number cosineCustomSimilarity(@Name("oldDependencies")String first, 
 			 										@Name("newDependencies") String  second) {
 		 CustomSimilarity similarity = new CustomSimilarity( new Cosine());
@@ -52,7 +64,9 @@ public class SimilarityFunc {
 	 
 	 
 	 @UserFunction(name = "maven.miner.similarity.jaroWinkler")
-	 @Description("maven.miner.similarity.jaroWinkler(['d1','d2',...], ['d1','d2',...]) - Computes the similarity matrix.")
+	 @Description("maven.miner.similarity.jaroWinkler(['d1','d2',...], ['d1','d2',...]) - Computes the jaroWinkler similarity matrix of two given lists."
+			    + " Mainly intended to compute syntactic similarities between two dependecies' list."
+		 		+ " Preferably, the artifacts coordinates of the dependencies should be passed in arguments")
 	 public Map<String, Map<String,Number>> jaroWinklerSimilarity(@Name("oldDependencies")List<String> removedDependencies, 
 			 										@Name("newDependencies")	List<String> newDependencies) {
 		 JaroWinkler similarity = new JaroWinkler();
@@ -61,7 +75,11 @@ public class SimilarityFunc {
 	 
 	 
 	 @UserFunction(name = "maven.miner.similarity.jaroWinkler.custom")
-	 @Description("maven.miner.similarity.jaroWinkler.custom(['d1','d2',...], ['d1','d2',...]) - Computes the similarity matrix.")
+	 @Description("maven.miner.similarity.jaroWinkler.custom(['d1','d2',...], ['d1','d2',...]) - Computes the jaroWinkler similarity matrix of two given artifact coordinates."
+			 		+ " The custom method removes versions, and compare only artifactId if the group is the same."
+			 		+ " Otherwise, it compares the group and artifact combined of each coordinates."
+				    + " Mainly intended to compute syntactic similarities between two dependecies' list."
+			 	    + " Preferably, the artifacts coordinates of the dependencies should be passed in argument")
 	 public Map<String, Map<String,Number>> jaroWinklerCustomSimilarity(@Name("oldDependencies")List<String> removedDependencies, 
 			 											@Name("newDependencies") List<String> newDependencies) {
 		 CustomSimilarity similarity = new CustomSimilarity( new JaroWinkler());
@@ -70,7 +88,7 @@ public class SimilarityFunc {
 
 	 
 	 @UserFunction(name = "maven.miner.similarity.jaroWinkler.single")
-	 @Description("maven.miner.similarity.jaroWinkler.custom(['d1','d2',...], ['d1','d2',...]) - Computes the similarity matrix.")
+	 @Description("maven.miner.similarity.jaroWinkler.custom(['d1','d2',...], ['d1','d2',...]) - Computes the jaroWinkler similarity matrix of two given lists of artifact coordinates.")
 	 public Number jaroWinklerSimilarity(@Name("first")String  first, 
 			 											@Name("second") String  second) {
 		 JaroWinkler similarity = new JaroWinkler();
@@ -80,7 +98,10 @@ public class SimilarityFunc {
 	 
 	 
 	 @UserFunction(name = "maven.miner.similarity.jaroWinkler.custom.single")
-	 @Description("maven.miner.similarity.jaroWinkler.custom(['d1','d2',...], ['d1','d2',...]) - Computes the similarity matrix.")
+	 @Description("maven.miner.similarity.jaroWinkler.custom(['d1','d2',...], ['d1','d2',...]) - Computes the cosine similarity matrix of two given lists of atifact coordinates."
+					 + "The custom method removes versions, and compare only artifactId if the group is the same."
+					 + " Otherwise, it compares the group and artifact combined of each coordinates."
+					 + " Preferably, the artifacts coordinates of the dependencies should be passed in arguments")
 	 public Number jaroWinklerCustomSimilarity(@Name("first")String first, 
 			 											@Name("second") String second) {
 		 CustomSimilarity similarity = new CustomSimilarity( new JaroWinkler());
@@ -142,7 +163,7 @@ public class SimilarityFunc {
 			 this.similarity = similarity;
 		 }
 		 /**
-		  * 
+		  * This method returns the syntactic similarity value of only 
 		  * @param first {@link String}
 		  * @param second {@link String}
 		  * @return {@link Double} the similarity score

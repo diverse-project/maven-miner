@@ -31,8 +31,9 @@ public class ArtifactInRangeProc extends AbstractProcedureEnv {
 	 * @return
 	 */
 	@Procedure (value = "maven.miner.version.between", mode = Mode.READ)
-	@Description ("Retrieving all artifacts with version belong to the provided range")
-	public Stream<OutputNode>  getArtifactsInVersionRange (@Name(value = "group name or artifact and group name in the form G:A") String coordinates,
+	@Description ("maven.miner.version.between('g:a', version-low, version-high[, inclusive=true]?) "
+			+ "- Retrieving all artifacts with version belong to the provided range")
+	public Stream<OutputNode>  getArtifactsInVersionRange (@Name(value = "Group name and artifact name in the form 'G:A'") String coordinates,
 														   @Name(value = "Start version") String start,
 														   @Name(value = "End version", defaultValue = "None") String end, 
 														   @Name(value = "Are interval bound inclusive", defaultValue = "true") Boolean isInclusive) {
@@ -81,7 +82,9 @@ public class ArtifactInRangeProc extends AbstractProcedureEnv {
 	 * @return 
 	 */
 	@Procedure(value="maven.miner.time.during", mode = Mode.READ)
-	@Description("retrieve all latest artifacts in a particular range")
+	@Description ("maven.miner.version.between('g:a', 'version-low', 'version-high'[, inclusive=true]?) "
+			+ "- Retrieving all artifacts with version belong to the provided range")
+	
 	public Stream<OutputNode> getArtifactsInTimeRange(@Name("Deployment year") Long year, 
 			  									  @Name(value= "Deployment month", defaultValue = "0") Long month) 
 	{		
@@ -95,7 +98,9 @@ public class ArtifactInRangeProc extends AbstractProcedureEnv {
 	 * @return
 	 */
 	@Procedure(value="maven.miner.time.group.during", mode = Mode.READ)
-	@Description("retrieve all latest artifacts in a particular range")
+	@Description ("maven.miner.time.group.during('g', year[, month=0]?) "
+		+ "- Retrieving all artifacts duringn a period of time. This periood is characterized using the the Long values, year and month")
+	
 	public Stream<OutputNode> getArtifactsInTimeRange(@Name( value = "Group name") String groupName,
 													  @Name( value = "Deployment year") Long year, 
 													  @Name( value = "Deployment month", defaultValue = "0") Long month) 
@@ -146,8 +151,9 @@ public class ArtifactInRangeProc extends AbstractProcedureEnv {
 	 * @return
 	 */
 	@Procedure(value="maven.miner.time.between", mode = Mode.READ)
-	@Description("retrieve all latest artifacts in a particular range")
-	public Stream<OutputNode> getArtifactsInPeriod(
+	@Description ("maven.miner.time.between('start='YYYY-MM-DD',[,end = '9999-12-31']?) "
+			+ "- Retrieving all artifacts during a period of time. This periood is charactezed using the the date values in the form YYYY-MM-DD")
+			public Stream<OutputNode> getArtifactsInPeriod(
 			@Name("start date") String startDate, 
 			@Name(value= "end date", defaultValue = "9999-12-31") String endDate) 
 	{
@@ -162,8 +168,9 @@ public class ArtifactInRangeProc extends AbstractProcedureEnv {
 	 * @return
 	 */
 	@Procedure(value="maven.miner.time.group.between", mode = Mode.READ)
-	@Description("Retrieve all latest artifacts in a particular range")
-	public Stream<OutputNode> getArtifactsInPeriod(@Name(value = "Group name") String groupName,
+	@Description ("maven.miner.time.group.between('groupName','start (YYYY-MM-DD)'[,end = '9999-12-31']?) "
+			+ "- Retrieving all artifacts  of the given groupName during a period of time. This periood is charactezed using the the date values in the form YYYY-MM-DD")
+			public Stream<OutputNode> getArtifactsInPeriod(@Name(value = "Group name") String groupName,
 												   @Name("start date with the format YYYY-MM-DD") String start, 
 												   @Name(value= "end date with the format YYYY-MM-DD", defaultValue = "9999-12-31") String end) 
 	{	
@@ -211,6 +218,65 @@ public class ArtifactInRangeProc extends AbstractProcedureEnv {
 		}
 		return result;
 	}
+	
+//	/**
+//	 * 
+//	 * @param groupName
+//	 * @param start
+//	 * @param end
+//	 * @return
+//	 */
+//	@Procedure(value="maven.miner.time.group.between", mode = Mode.READ)
+//	@Description ("maven.miner.time.group.between('groupName','start (YYYY-MM-DD)'[,end = '9999-12-31']?) "
+//			+ "- Retrieving all artifacts  of the given groupName during a period of time. This periood is charactezed using the the date values in the form YYYY-MM-DD")
+//			public Stream<OutputNode> getArtifactsInPeriod(@Name(value = "Group name") String groupName,
+//												   @Name("start date with the format YYYY-MM-DD") String start, 
+//												   @Name(value= "end date with the format YYYY-MM-DD", defaultValue = "9999-12-31") String end) 
+//	{	
+//		LocalDate startDate = null;
+//		LocalDate endDate = null;
+//		
+//		try {
+//			startDate = LocalDate.parse(start);
+//			endDate = LocalDate.parse(end);
+//		} catch (Throwable th) {
+//			log.error("Couldn't parse date values");
+//			throw new RuntimeException(th);
+//		}
+//		
+//		int startYear = startDate.getYear();
+//		int startMonth = startDate.getMonthValue();
+//		
+//		int endYear = endDate.getYear();
+//		int endMonth = endDate.getMonthValue();
+//		
+//		Stream<OutputNode> result = null;
+//		try (Transaction tx = graphDB.beginTx()) {
+//			String query = String.format("match (m)<-[:MONTH]-(n:`%s`)-[:YEAR]->(y) \n" + 
+//											"where (y.year = %d and m.month > %d) \n" + 
+//											"or y.year> %d\n" + 
+//											"or y.year< %d \n" + 
+//											"or (y.year = %d and m.month < %d)\n" + 
+//											"return n",
+//											groupName,
+//											startYear,
+//											startMonth,
+//											startYear,
+//											endYear,
+//											endYear,
+//											endMonth);
+//			
+//			Result queryResult = graphDB.execute(query);
+//			result = queryResult.columnAs("n")
+//								.stream()
+//								.map(node -> new OutputNode((Node)node));
+//			tx.success();
+//		} catch (Exception e) {
+//			log.error(e.getMessage());
+//			throw new RuntimeException(e);	
+//		}
+//		return result;
+//	}
 	
 	/**
 	 * 

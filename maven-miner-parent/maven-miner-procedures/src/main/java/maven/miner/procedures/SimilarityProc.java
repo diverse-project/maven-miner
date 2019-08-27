@@ -18,8 +18,9 @@ public class SimilarityProc extends AbstractProcedureEnv {
 	/**
 	 * This procedure returns all latest artifacts
 	 */
-	@Procedure(value="maven.miner.artifacts.dependencySwap", mode = Mode.READ)
-	@Description("retrieve all latest artifacts") 
+	@Procedure(value="maven.miner.artifacts.dependencyUpgrade", mode = Mode.READ)
+	@Description("maven.miner.artifacts.dependencyUpgrade()"
+			+ " - Retrieves all the dependency changes due to upgrades") 
 	public Stream<MapResult> dependecySwap () {
 		
 		Stream<MapResult> result = null;
@@ -34,8 +35,9 @@ public class SimilarityProc extends AbstractProcedureEnv {
 	 * 
 	 * This procedure returns all latest artifacts
 	 */
-	@Procedure(value="maven.miner.artifacts.group.dependencySwap", mode = Mode.READ)
-	@Description("retrieve all latest artifacts") 
+	@Procedure(value="maven.miner.artifacts.group.dependencyUpgrade", mode = Mode.READ)
+	@Description("maven.miner.artifacts.group.dependencyUpgrade('groupName')"
+			+ " - Retrieves all the dependency changes due to upgrades for a given group") 
 	public Stream<MapResult> dependecySwapGroup (
 						@Name(value = "The group name")String labelName) {
 		Stream<MapResult> result = null;

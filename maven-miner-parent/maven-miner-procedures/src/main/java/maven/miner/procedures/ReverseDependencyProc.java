@@ -22,10 +22,11 @@ public class ReverseDependencyProc extends AbstractProcedureEnv{
 	 * @param isInclusive
 	 * @return
 	 */
-	@Procedure (value = "maven.miner.dependent.ofRange", mode = Mode.READ)
-	@Description ("Retrieving all artifacts depending on an artifact in a particular version range")
-	public Stream<OutputNode>  getDependentsInVersionRange ( @Name(value = "group name or artifact and group name in the form G:A") String coordinates,
-			 												 @Name(value = "Are interval bound inclusive") Boolean inclusive,
+	@Procedure (value = "maven.miner.dependent.onRange", mode = Mode.READ)
+	@Description ("maven.miner.dependent.onRange('g:a',true|false, 'startVersion'[, 'endVersion', true|false])"
+			+ " - Retrieving all artifacts depending on an artifact in a particular version range")
+	public Stream<OutputNode>  getDependentsInVersionRange ( @Name(value = "Group name and artifact and in the form 'G:A'") String coordinates,
+			 												 @Name(value = "if interval bounds inclusive") Boolean inclusive,
 															 @Name(value = "Start version") String start,
 															 @Name(value = "End version", defaultValue = "None") String end, 
 															 @Name(value = "Transitive dependencies", defaultValue = "false") Boolean transitive) {
@@ -70,8 +71,9 @@ public class ReverseDependencyProc extends AbstractProcedureEnv{
 	 * @param isInclusive
 	 * @return
 	 */
-	@Procedure (value = "maven.miner.dependent.ofSingle", mode = Mode.READ)
-	@Description ("Retrieving all artifacts depending on an artifact in a particular version range")
+	@Procedure (value = "maven.miner.dependent.onSingle", mode = Mode.READ)
+	@Description ("maven.miner.dependent.onSingle('g:a',true|false, 'startVersion'[, 'endVersion', true|false])"
+			+ " - Retrieving all artifacts depending on a specific artifact identified by its cooodrinates 'g:a:v' ")
 	public Stream<OutputNode>  getDependentsOfGAV ( @Name(value = "The precise artifact coordinates in the form G:A:V") String coordinates,
 												   	@Name(value = "Transitive dependencies", defaultValue = "false") Boolean transitive) {
 		String [] ga = coordinates.split(":");
