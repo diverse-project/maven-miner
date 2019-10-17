@@ -141,7 +141,7 @@ public class MetaResolver {
 				Model model = pomReader.read(reader);
 				for (License l :model.getLicenses()) {
 					license += (l.getName() == null ? "" : l.getName()) + "|" +
-							(l.getUrl() == null ? "" : l.getUrl());
+							(l.getUrl() == null ? "" : l.getUrl()) + "|";
 				}
 				return license;
 
@@ -154,6 +154,29 @@ public class MetaResolver {
 			}
 		} catch (Exception e) {}
 		return "";
+	}
+
+	public static String deriveParent(Artifact artifact) {
+		String parent;
+		try {
+			File pom = resolvePom(artifact);
+
+			MavenXpp3Reader pomReader = new MavenXpp3Reader();
+			try (FileReader reader = new FileReader(pom)) {
+				Model model = pomReader.read(reader);
+				Parent parentO = model.getParent();
+				parent = parentO.getGroupId() + ":" + parentO.getArtifactId() + ":" + parentO.getVersion();
+				return parent;
+
+			} catch (FileNotFoundException e) {
+				e.printStackTrace();
+			} catch (IOException e) {
+				e.printStackTrace();
+			} catch (XmlPullParserException e) {
+				e.printStackTrace();
+			}
+		} catch (Exception e) {}
+		return null;
 	}
 
 	public static String deriveRepo(Artifact artifact) {

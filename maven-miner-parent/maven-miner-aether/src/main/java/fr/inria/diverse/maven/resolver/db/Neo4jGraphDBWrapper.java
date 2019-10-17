@@ -114,7 +114,7 @@ public abstract class Neo4jGraphDBWrapper {
 	/**
 	 * Returns {@link Node} given a {@link Artifact}
 	 * If the node is not in the database, it is created and returned
-	 * @param dependency
+	 * @param artifact
 	 * @return {@link Node} result
 	 */
 	abstract public void createNodeFromArtifactCoordinate(@NotNull Artifact artifact);
@@ -126,6 +126,13 @@ public abstract class Neo4jGraphDBWrapper {
 	 * @param scope {@link Scope}
 	 */
  	abstract public void addDependency(Artifact sourceArtifact, Artifact targetArtifact, Scope scope);
+
+	/**
+	 * Creates An outgoing relationship of type {@link DependencyRelation#PARENT} from @param sourceArtifact to @param targetArtifact
+	 * @param sourceArtifact {@link Artifact}
+	 * @param targetArtifact {@link Artifact}
+	 */
+	abstract public void createParenthood(Artifact sourceArtifact, Artifact targetArtifact);
  	
 	/**
 	 * create the precedence relationship between nodes
@@ -155,7 +162,7 @@ public abstract class Neo4jGraphDBWrapper {
 	abstract public void updateDependencyCounts(Artifact artifact, JarCounter jarCounter);
 	/**
 	 * 
-	 * @param coordinates
+	 * @param artifact
 	 * @param jarCounter
 	 */
 	abstract public void updateDependencyCounts(Artifact artifact, JarCounter jarCounter, ExceptionCounter exCounter);

@@ -2,7 +2,6 @@ package fr.inria.diverse.maven.resolver.processor;
 
 import fr.inria.diverse.maven.model.Edge;
 import fr.inria.diverse.maven.resolver.db.Neo4jGraphDBWrapper;
-import fr.inria.diverse.maven.resolver.tasks.Neo4jGraphDependencyVisitorTask;
 import fr.inria.diverse.maven.util.MavenMinerUtil;
 import org.sonatype.aether.artifact.Artifact;
 import org.sonatype.aether.graph.Dependency;
@@ -10,9 +9,10 @@ import org.sonatype.aether.resolution.ArtifactDescriptorException;
 import org.sonatype.aether.resolution.ArtifactDescriptorRequest;
 import org.sonatype.aether.resolution.ArtifactDescriptorResult;
 
-import javax.validation.constraints.NotNull;
 
 public class GraphBuilderProcessor extends AbstractArtifactProcessor {
+	static boolean doubleCheckLeaves = true;
+
 	protected Neo4jGraphDBWrapper dbWrapper;
 
 
@@ -35,6 +35,7 @@ public class GraphBuilderProcessor extends AbstractArtifactProcessor {
 		try {
 			ArtifactDescriptorResult result = system.readArtifactDescriptor(session,r);
 
+			if(doubleCheckLeaves && result.getDependencies().size() == 0) return result.getArtifact();
 
 
 			dbWrapper.createNodeFromArtifactCoordinate( result.getArtifact());

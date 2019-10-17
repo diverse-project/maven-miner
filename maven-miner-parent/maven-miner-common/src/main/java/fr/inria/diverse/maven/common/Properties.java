@@ -18,7 +18,7 @@ public class Properties {
 
 	public static final String REPO = "repo";
 	public static final String LICENSE = "license";
-	
+
 	public static final String PAGERANK = "pagerank";
 	public static final String HOPES = "hopes";
 	

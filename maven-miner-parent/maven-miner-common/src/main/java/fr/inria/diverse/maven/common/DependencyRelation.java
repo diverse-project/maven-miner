@@ -8,5 +8,6 @@ public enum DependencyRelation implements RelationshipType {
 	MONTH,
 	YEAR,
 	DAY,
-	RAISES;
+	RAISES,
+	PARENT;
 }

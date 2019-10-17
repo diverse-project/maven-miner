@@ -134,7 +134,7 @@ public class Neo4jGraphDBWrapperEmbedded extends Neo4jGraphDBWrapper {
 	/**
 	 * Returns {@link Node} given a {@link Artifact}
 	 * If the node is not in the database, it is created and returned
-	 * @param dependency
+	 * @param artifact
 	 * @return {@link Node} result
 	 */
 	protected Node getNodeFromArtifactCoordinate(Artifact artifact) {
@@ -247,6 +247,14 @@ public class Neo4jGraphDBWrapperEmbedded extends Neo4jGraphDBWrapper {
 		// THEN
 	    wrapException(txEx);
 	}
+	/**
+	 * Creates An outgoing relationship of type {@link DependencyRelation#DEPENDS_ON} from @param sourceArtifact to @param targetArtifact
+	 * @param sourceArtifact {@link Artifact}
+	 * @param targetArtifact {@link Artifact}
+	 */
+	public void createParenthood(Artifact sourceArtifact, Artifact targetArtifact) {
+		throw new UnsupportedOperationException();
+	}
  	
 	/**
 	 * create the precedence relationship between nodes
@@ -350,7 +358,7 @@ public class Neo4jGraphDBWrapperEmbedded extends Neo4jGraphDBWrapper {
 	}
 	/**
 	 * 
-	 * @param coordinates
+	 * @param artifact
 	 * @param jarCounter
 	 */
 	public void updateDependencyCounts(Artifact artifact, JarCounter jarCounter, ExceptionCounter exCounter) {
@@ -414,7 +422,7 @@ public class Neo4jGraphDBWrapperEmbedded extends Neo4jGraphDBWrapper {
 	}
 	/**
 	 * Updating the Number of classes property of a given artifact
-	 * @param  coordinates {@link String}
+	 * @param  artifact {@link Artifact}
 	 * @param classCount {@link Integer}
 	 */
 	public void updateClassCount(Artifact artifact, int classCount) {
