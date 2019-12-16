@@ -51,6 +51,7 @@ public  class MavenMinerUtil {
 	public static Scope deriveScope(@NotNull Dependency dependency) {
 	        return Scope.parseFromString(dependency.getScope());
 	}
+
 	/**
 	 * Returns a {@link Packaging} enum type of a giving {@link Artifact}
 	 * @param artifact
@@ -59,6 +60,7 @@ public  class MavenMinerUtil {
 	public static Packaging derivePackaging(@NotNull Artifact artifact) {
         return Packaging.parseFromString(artifact.getExtension());
     }
+
 	/**
 	 * Creates artifacts coordinates out of an {@link Artifact} object
 	 * @param dependency
@@ -67,6 +69,7 @@ public  class MavenMinerUtil {
 	public static String dependencyToCoordinate(@NotNull Dependency dependency) {
 		return artifactToCoordinate(dependency.getArtifact());
 	}
+
 	/**
 	 * Creates artifacts coordinates out of an {@link Artifact} object
 	 * @param artifact
@@ -80,6 +83,7 @@ public  class MavenMinerUtil {
 				//.concat(artifact.getExtension()!=null ? artifact.getExtension()+":" : "")
 				.concat(artifact.getVersion());
 	}
+
 	/**
 	 * a dummy method 
 	 * @return null
@@ -113,6 +117,4 @@ public  class MavenMinerUtil {
 		result = ZonedDateTime.parse(time);
 		return result;
 	}
-
-	
 }

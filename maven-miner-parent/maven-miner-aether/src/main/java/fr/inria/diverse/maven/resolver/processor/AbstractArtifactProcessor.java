@@ -22,6 +22,9 @@ public abstract class AbstractArtifactProcessor {
     protected static final RepositorySystem system = Booter.newRepositorySystem();
     protected static final RemoteRepository repo = Booter.newCentralRepository();
     protected static final RepositorySystemSession session = Booter.newRepositorySystemSession(system);
+
+
+
     
 	/**
 	 * Processing the Artifact

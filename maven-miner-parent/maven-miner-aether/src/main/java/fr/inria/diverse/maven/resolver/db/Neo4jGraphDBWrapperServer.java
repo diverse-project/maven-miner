@@ -1,5 +1,6 @@
 package fr.inria.diverse.maven.resolver.db;
 
+import fr.inria.diverse.maven.resolver.MetaResolver;
 import org.neo4j.driver.v1.AccessMode;
 import org.neo4j.driver.v1.Driver;
 import org.neo4j.driver.v1.GraphDatabase;
@@ -51,12 +52,15 @@ public class Neo4jGraphDBWrapperServer extends Neo4jGraphDBWrapper implements Au
             													+ "ASSERT artf.%s IS UNIQUE",
 																Properties.ARTIFACT_LABEL, 
 																Properties.COORDINATES);
-            	query+="\n";
-            	query+= String.format("CREATE CONSTRAINT ON (artf:%s) "
+
+	            tx.run(query);
+            	//query+="\n";
+	            //query+= String.format("CREATE CONSTRAINT ON (artf:%s) "
+            	/*query= String.format("CREATE CONSTRAINT ON (artf:%s) "
 						+ "ASSERT EXISTS(artf.%s)",
 						Properties.ARTIFACT_LABEL, 
 						Properties.COORDINATES);
-            	tx.run(query);
+            	tx.run(query);*/
             	
             	LOGGER.info("Schema was succesfully created");
                 return null;
@@ -106,8 +110,10 @@ public class Neo4jGraphDBWrapperServer extends Neo4jGraphDBWrapper implements Au
 	@Override
 //	public @NotNull(message = "The returned node should not be null") 
 	public void createNodeFromArtifactCoordinate(Artifact artifact) {
-		
-		ZonedDateTime javaDate =getReleaseDateFromArtifact(artifact);
+		ZonedDateTime javaDate = getReleaseDateFromArtifact(artifact);
+
+
+
 		for (int i = 0; i < RETRIES; i++) {
 			 try ( Session session = driver.session() )
 		        {
@@ -119,6 +125,8 @@ public class Neo4jGraphDBWrapperServer extends Neo4jGraphDBWrapper implements Au
 								+ "%s : $groupValue, "
 								+ "%s : $versionValue, "
 								+ "%s : $packagingValue, "
+					            + "%s : $repoValue, "
+					            + "%s : $licenseValue, "
 								+ "%s : $classifierValue, "
 								+ "%s : $releaseValue } "
 								+ "RETURN a.%s",
@@ -129,6 +137,8 @@ public class Neo4jGraphDBWrapperServer extends Neo4jGraphDBWrapper implements Au
 								Properties.GROUP, 
 								Properties.VERSION,
 								Properties.PACKAGING,
+					            Properties.REPO,
+					            Properties.LICENSE,
 								Properties.CLASSIFIER,
 								Properties.LAST_MODIFIED,
 								Properties.COORDINATES);	
@@ -139,14 +149,21 @@ public class Neo4jGraphDBWrapperServer extends Neo4jGraphDBWrapper implements Au
 							                            	"coordinatesValue", MavenMinerUtil.artifactToCoordinate(artifact),
 							                            	"versionValue", artifact.getVersion(),
 							                            	"packagingValue", MavenMinerUtil.derivePackaging(artifact).toString(),
+							                                "repoValue", MetaResolver.deriveRepo(artifact),
+							                                "licenseValue", MetaResolver.deriveLicense(artifact),
 							                            	"classifierValue", artifact.getClassifier(),
 							                            	"releaseID", Properties.LAST_MODIFIED,
 							                            	"releaseValue",javaDate.toString()
 							                              ));
-		                result.single().get(0).asString();
+			            result.single().get(0).asString();
+			            //System.out.println("what happened: " + result.single().get(0).asString());
+
 		                
 		                return null;
 		            } );
+
+			        //System.out.println("Transaction done?");
+			        return;
 		        }  catch  (Throwable ex)  {
 					 txEx = ex;
 				     if (!(ex instanceof DeadlockDetectedException)) {
@@ -156,14 +173,16 @@ public class Neo4jGraphDBWrapperServer extends Neo4jGraphDBWrapper implements Au
 					     try {
 					            Thread.sleep( BACKOFF );
 					     } catch ( InterruptedException e ) {
-					            throw new TransactionFailureException( "Trasaction failed due to thread interuption", e );
+					            throw new TransactionFailureException( "Transaction failed due to thread interruption", e );
 					     }
 				     }
 		        }
+			//System.out.println("OK?");
 			}
 		// THEN
 	    wrapException(txEx);
 	}
+
 	@Override
 	public void addDependency(Artifact sourceArtifact, Artifact targetArtifact, Scope scope) {
 		for (int i = 0; i < RETRIES; i++) {
@@ -189,6 +208,7 @@ public class Neo4jGraphDBWrapperServer extends Neo4jGraphDBWrapper implements Au
 	                result.single().get(0).asString();
 	                return null;
 	            } );
+	            return;
 	        } catch  (Throwable ex)  {
 				 txEx = ex;
 			     if (!(ex instanceof DeadlockDetectedException)) {
@@ -198,7 +218,7 @@ public class Neo4jGraphDBWrapperServer extends Neo4jGraphDBWrapper implements Au
 				     try {
 				            Thread.sleep( BACKOFF );
 				     } catch ( InterruptedException e ) {
-				            throw new TransactionFailureException( "Trasaction failed due to thread interuption", e );
+				            throw new TransactionFailureException( "Transaction failed due to thread interuption", e );
 				     }
 			     }
 	        }
@@ -206,6 +226,51 @@ public class Neo4jGraphDBWrapperServer extends Neo4jGraphDBWrapper implements Au
 		// THEN
 	    wrapException(txEx);
 	}
+
+	@Override
+	public void createParenthood(Artifact sourceArtifact, Artifact targetArtifact) {
+		for (int i = 0; i < RETRIES; i++) {
+			try ( Session session = driver.session() )
+			{
+				session.writeTransaction( tx ->  {
+					String query =  String.format("MATCH (source : `%s` { "
+									+ "%s : $coordinatesValue1 }), "
+									+ "(target : `%s` { %s : $coordinatesValue2 }) "
+									+ "MERGE (source)-[r : PARENT ]->(target)"
+									+ "RETURN source.%s",
+							sourceArtifact.getGroupId(),
+							Properties.COORDINATES,
+							targetArtifact.getGroupId(),
+							Properties.COORDINATES,
+							Properties.COORDINATES);
+
+					StatementResult result = tx.run(query, parameters("coordinatesValue1", MavenMinerUtil.artifactToCoordinate(sourceArtifact),
+							"coordinatesValue2", MavenMinerUtil.artifactToCoordinate(targetArtifact),
+							"scopeValue"
+					));
+					result.single().get(0).asString();
+					return null;
+				} );
+				return;
+			} catch  (Throwable ex)  {
+				txEx = ex;
+				if (!(ex instanceof DeadlockDetectedException)) {
+					break;
+				}
+				if ( i < RETRIES-1 ) {
+					try {
+						Thread.sleep( BACKOFF );
+					} catch ( InterruptedException e ) {
+						throw new TransactionFailureException( "Transaction failed due to thread interuption", e );
+					}
+				}
+			}
+		}
+		// THEN
+		wrapException(txEx);
+	}
+
+
 
 	@Override
 	public void updateDependencyCounts(Artifact artifact, JarCounter jarCounter) {
@@ -231,6 +296,7 @@ public class Neo4jGraphDBWrapperServer extends Neo4jGraphDBWrapper implements Au
 	            		result.single().get(0).asString();
 	                    return null;
 	            } );
+		        return;
 	        } catch  (Throwable ex)  {
 				 txEx = ex;
 			     if (!(ex instanceof DeadlockDetectedException)) {
@@ -240,7 +306,7 @@ public class Neo4jGraphDBWrapperServer extends Neo4jGraphDBWrapper implements Au
 				     try {
 				            Thread.sleep( BACKOFF );
 				     } catch ( InterruptedException e ) {
-				            throw new TransactionFailureException( "Trasaction failed due to thread interuption", e );
+				            throw new TransactionFailureException( "Transaction failed due to thread interuption", e );
 				     }
 			     }
 	        }
@@ -270,7 +336,7 @@ public class Neo4jGraphDBWrapperServer extends Neo4jGraphDBWrapper implements Au
 			 				));
 					query.append(System.getProperty("line.separator"));
 					query.append(String.format("CREATE UNIQUE (a)-[r : RAISES {%s:$value}]->(e)", 
-								Properties.EXCEPTION_OCCURENCE
+								Properties.EXCEPTION_OCCURRENCE
 				 				));
 					query.append(System.getProperty("line.separator"));
 					query.append(String.format("RETURN e.%s",Properties.EXCEPTION_NAME));
@@ -283,6 +349,7 @@ public class Neo4jGraphDBWrapperServer extends Neo4jGraphDBWrapper implements Au
 					result.single().get(0).asString();
 			        return null;
 		        } );
+				return;
 			
 			} catch  (Throwable ex)  {
 				 txEx = ex;
@@ -330,6 +397,7 @@ public class Neo4jGraphDBWrapperServer extends Neo4jGraphDBWrapper implements Au
 					result.single().get(0).asString();
 			        return null;
 		        } );
+				return;
 			} catch  (Throwable ex)  {
 				 txEx = ex;
 			     if (!(ex instanceof DeadlockDetectedException)) {
@@ -465,6 +533,7 @@ public class Neo4jGraphDBWrapperServer extends Neo4jGraphDBWrapper implements Au
 					result.single().get(0).asNode();
 					return null;
 					});
+				return;
 			 } catch (Throwable ex) {
 				txEx = ex;
 		        if (!(ex instanceof DeadlockDetectedException)) {
@@ -490,8 +559,9 @@ public class Neo4jGraphDBWrapperServer extends Neo4jGraphDBWrapper implements Au
 	public void registerShutdownHook() {
 		throw new UnsupportedOperationException();
 	}
+
 	/**
-	 * @see Neo4jGraphDBWrapper#close()
+	 *
 	 */
 	@Override
 	public void close() throws Exception {

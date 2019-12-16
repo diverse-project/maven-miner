@@ -1,5 +1,6 @@
 package fr.inria.diverse.maven.resolver.processor.dependencyanalyser;
 
+import fr.inria.diverse.maven.resolver.db.sql.MariaDBWrapper;
 import org.objectweb.asm.AnnotationVisitor;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassVisitor;
@@ -11,8 +12,10 @@ import org.objectweb.asm.TypePath;
 import org.objectweb.asm.signature.SignatureReader;
 import org.objectweb.asm.signature.SignatureVisitor;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.sql.SQLException;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.HashSet;

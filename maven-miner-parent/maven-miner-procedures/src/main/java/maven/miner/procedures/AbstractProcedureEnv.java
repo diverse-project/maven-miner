@@ -1,9 +1,14 @@
 package maven.miner.procedures;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.function.Consumer;
 import java.util.stream.Stream;
 
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Label;
+import org.neo4j.graphdb.Node;
+import org.neo4j.graphdb.ResourceIterator;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.logging.Log;
 import org.neo4j.procedure.Context;
@@ -60,5 +65,28 @@ public class AbstractProcedureEnv {
 			e.printStackTrace();
 		}
 		return allLabels;
+	}
+
+
+	static int maxNodePerBatch = 1000;
+
+	public void batchApply(ResourceIterator<Node> it, Consumer<List<Node>> apply) {
+		batchApply(it, apply,maxNodePerBatch);
+	}
+
+	public void batchApply(ResourceIterator<Node> it, Consumer<List<Node>> apply, int batchSize) {
+		List<Node> nodes = new ArrayList<>();
+		for (; it.hasNext(); ) {
+			nodes.add(it.next());
+
+			if(nodes.size() >= batchSize) {
+				apply.accept(nodes);
+				nodes.clear();
+			}
+		}
+		if(!nodes.isEmpty()) {
+			apply.accept(nodes);
+			nodes.clear();
+		}
 	}
 }

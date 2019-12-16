@@ -13,6 +13,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import fr.inria.diverse.maven.resolver.MetaResolver;
 import org.apache.commons.io.FileUtils;
 
 import org.neo4j.graphdb.Direction;
@@ -133,7 +134,7 @@ public class Neo4jGraphDBWrapperEmbedded extends Neo4jGraphDBWrapper {
 	/**
 	 * Returns {@link Node} given a {@link Artifact}
 	 * If the node is not in the database, it is created and returned
-	 * @param dependency
+	 * @param artifact
 	 * @return {@link Node} result
 	 */
 	protected Node getNodeFromArtifactCoordinate(Artifact artifact) {
@@ -157,6 +158,8 @@ public class Neo4jGraphDBWrapperEmbedded extends Neo4jGraphDBWrapper {
 					result.setProperty(Properties.GROUP, artifact.getGroupId());
 					result.setProperty(Properties.CLASSIFIER, artifact.getClassifier());
 					result.setProperty(Properties.VERSION, artifact.getVersion());
+					result.setProperty(Properties.REPO, MetaResolver.deriveRepo(artifact));
+					result.setProperty(Properties.LICENSE, MetaResolver.deriveLicense(artifact));
 					result.setProperty(Properties.PACKAGING, MavenMinerUtil.derivePackaging(artifact).toString());
 					result.setProperty(Properties.ARTIFACT, artifact.getArtifactId());
 					
@@ -243,6 +246,14 @@ public class Neo4jGraphDBWrapperEmbedded extends Neo4jGraphDBWrapper {
 		}
 		// THEN
 	    wrapException(txEx);
+	}
+	/**
+	 * Creates An outgoing relationship of type {@link DependencyRelation#DEPENDS_ON} from @param sourceArtifact to @param targetArtifact
+	 * @param sourceArtifact {@link Artifact}
+	 * @param targetArtifact {@link Artifact}
+	 */
+	public void createParenthood(Artifact sourceArtifact, Artifact targetArtifact) {
+		throw new UnsupportedOperationException();
 	}
  	
 	/**
@@ -347,7 +358,7 @@ public class Neo4jGraphDBWrapperEmbedded extends Neo4jGraphDBWrapper {
 	}
 	/**
 	 * 
-	 * @param coordinates
+	 * @param artifact
 	 * @param jarCounter
 	 */
 	public void updateDependencyCounts(Artifact artifact, JarCounter jarCounter, ExceptionCounter exCounter) {
@@ -396,7 +407,7 @@ public class Neo4jGraphDBWrapperEmbedded extends Neo4jGraphDBWrapper {
 	protected void createExceptionRelationship(Node node, ExceptionType type, int value) {		
 		Node exceptionNode = getOrcreateExceptionNode(type);
 		Relationship rel= node.createRelationshipTo(exceptionNode, DependencyRelation.RAISES);
-		rel.setProperty(Properties.EXCEPTION_OCCURENCE, value);
+		rel.setProperty(Properties.EXCEPTION_OCCURRENCE, value);
 	}
 	
 	protected Node getOrcreateExceptionNode(ExceptionType type) {
@@ -411,7 +422,7 @@ public class Neo4jGraphDBWrapperEmbedded extends Neo4jGraphDBWrapper {
 	}
 	/**
 	 * Updating the Number of classes property of a given artifact
-	 * @param  coordinates {@link String}
+	 * @param  artifact {@link Artifact}
 	 * @param classCount {@link Integer}
 	 */
 	public void updateClassCount(Artifact artifact, int classCount) {

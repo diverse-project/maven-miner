@@ -20,6 +20,7 @@
   	<neo4j.driver.version>1.6.2</neo4j.driver.version>
   	<string.sim.version>RELEASE</string.sim.version>
   </properties>
+
   <dependencyManagement>
     <dependencies>
 	    <dependency>

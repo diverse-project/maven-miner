@@ -1,16 +1,21 @@
 package maven.miner.procedures;
 
 import java.time.ZonedDateTime;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
+import java.util.function.Consumer;
 import java.util.stream.Stream;
 
 import org.neo4j.graphdb.Label;
 import org.neo4j.graphdb.Node;
+import org.neo4j.graphdb.ResourceIterator;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.procedure.Description;
 import org.neo4j.procedure.Mode;
 import org.neo4j.procedure.Name;
 import org.neo4j.procedure.Procedure;
+import org.neo4j.graphdb.Result;
 
 import fr.inria.diverse.maven.common.DependencyRelation;
 import fr.inria.diverse.maven.common.Properties;
@@ -41,11 +46,14 @@ public class TemporalIndexProc extends AbstractProcedureEnv {
 	public Stream<BooleanOutput> createTemporalIndex() {	
 		log.info("Creating plugins version's evolution ");
 		Stream<String> allLabels = allLabelsInUse();
-		allLabels.forEach(labelname -> createPerGroupTemporalIndex(labelname));//end foreach	
+		//allLabels.filter(l -> !l.equals("com.google.apis") && !l.equals("software.amazon.awssdk")).forEach(labelname -> createPerGroupTemporalIndex(labelname));//end foreach
+		allLabels.forEach(labelname -> createPerGroupTemporalIndex(labelname));//end foreach
 		BooleanOutput result = new BooleanOutput();
 		result.output = true;
 		return Stream.of(result);
 	}
+
+
 	/**
 	 * 
 	 * @param groupName
@@ -54,9 +62,34 @@ public class TemporalIndexProc extends AbstractProcedureEnv {
 	@Description("Creating per-GAV temporal index")
 	public Stream<BooleanOutput> createPerGroupTemporalIndex(@Name("The group name") String groupName) {
 		log.info(String.format("Creating temporal Index for artifacts of the group %s ",groupName));
-		Label label = Label.label(groupName);	
+		Label label = Label.label(groupName);
+
+		//Result r = graphDB.execute("");
+		//hack
+		ResourceIterator<Node> it = graphDB.findNodes(label);
+		log.info(String.format("Reiceived data for %s ", groupName));
+
+		batchApply(it, (nodes) -> {
+			log.info(String.format("Batch %s ", groupName));
+			try (Transaction tx = graphDB.beginTx()) {
+				nodes.stream().forEach(node ->
+				{
+					String date = (String) node.getProperty(Properties.LAST_MODIFIED);
+					ZonedDateTime zonedTime = MavenMinerUtil.fromZonedTime(date);
+					createTemporalNodes (node, zonedTime);
+				});
+
+				tx.success();
+			} catch (Exception e) {
+				e.printStackTrace();
+				if (e.getMessage() != null)
+					log.error(e.getMessage());
+				throw e;
+			}
+		});
+		//End hack
 		
-		try (Transaction tx = graphDB.beginTx()) {
+		/*try (Transaction tx = graphDB.beginTx()) {
 			graphDB.findNodes(label).stream().forEach(node -> 
 			{
 				String date = (String) node.getProperty(Properties.LAST_MODIFIED);
@@ -68,7 +101,8 @@ public class TemporalIndexProc extends AbstractProcedureEnv {
 			if (e.getMessage() != null)
 				log.error(e.getMessage());
 			throw e;
-		}
+		}*/
+
 		BooleanOutput result = new BooleanOutput();
 		result.output = true;
 		return Stream.of(result);
@@ -113,7 +147,7 @@ public class TemporalIndexProc extends AbstractProcedureEnv {
 	
 	/**
 	 * 
-	 * @param month
+	 * @param monthP
 	 * @return
 	 */
 	private Node getOrCreateMonthNode(int monthP) {

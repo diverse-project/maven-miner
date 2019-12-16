@@ -70,15 +70,17 @@ public class Neo4jGraphDependencyVisitorTask extends  AbstractGraphBuilderVisito
 	public void init() {
 		dbWrapper.registerShutdownHook();
 	}
+
+
 	/**
 	 * @see Neo4jGraphDependencyVisitorTask#shutdown()
 	 */
 	@Override
-	public void shutdown() {	
+	public void shutdown() {
 		//creating release precedence
-		dbWrapper.createPrecedenceShip();	
+		dbWrapper.createPrecedenceShip();
 		//creating indexes
-		dbWrapper.createIndexes();	
+		dbWrapper.createIndexes();
 	}
 	
 

@@ -5,7 +5,12 @@ import org.sonatype.aether.collection.CollectRequest;
 import org.sonatype.aether.collection.CollectResult;
 import org.sonatype.aether.collection.DependencyCollectionException;
 import org.sonatype.aether.graph.Dependency;
+import org.sonatype.aether.graph.DependencyNode;
+import org.sonatype.aether.resolution.ArtifactDescriptorException;
+import org.sonatype.aether.resolution.ArtifactDescriptorRequest;
+import org.sonatype.aether.resolution.ArtifactDescriptorResult;
 import org.sonatype.aether.resolution.ArtifactResolutionException;
+import org.sonatype.aether.util.graph.DefaultDependencyNode;
 
 public class CollectArtifactProcessor extends AbstractArtifactProcessor {
 
@@ -31,7 +36,8 @@ public class CollectArtifactProcessor extends AbstractArtifactProcessor {
 	@Override
 	public Artifact process(Artifact artifact) {
 		LOGGER.info("Collecting dependencies for artifact: " + artifact);
-        CollectRequest collectRequest = new CollectRequest();
+
+		CollectRequest collectRequest = new CollectRequest();
         collectRequest.setRoot(new Dependency(artifact, "")); 
         collectRequest.addRepository(repo);
         CollectResult collectResult;

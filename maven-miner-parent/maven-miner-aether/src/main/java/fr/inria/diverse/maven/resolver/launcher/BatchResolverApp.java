@@ -111,7 +111,7 @@ public class BatchResolverApp {
 		   }
 		   
 		  } catch (ParseException e) {
-		   LOGGER.error("Failed to parse comand line properties", e);
+		   LOGGER.error("Failed to parse command line properties", e);
 		   help();
 		  }
 		  //open database 

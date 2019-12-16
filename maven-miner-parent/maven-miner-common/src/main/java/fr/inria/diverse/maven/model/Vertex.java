@@ -22,6 +22,7 @@ public class Vertex {
 			this.classifier = classifier;
 			this.packaging = packaging;
 		}
+
 		public String getVersion() {
 			return version;
 		}
@@ -49,6 +50,7 @@ public class Vertex {
 		public String getArtifactId() {
 			return artifactId;
 		}
+
 		public Vertex( String groupId, String artifactId, String version,String classifier) {
 			super();
 			this.id = UUID.randomUUID();
@@ -58,6 +60,7 @@ public class Vertex {
 			this.classifier = classifier;
 			this.packaging = Packaging.Jar;
 		}
+
 		public Vertex(String groupId, String artifactId,  String version, String classifier, Packaging packaging) {
 			super();
 			this.id = UUID.randomUUID();
@@ -66,6 +69,7 @@ public class Vertex {
 			this.version = version;
 			this.classifier = classifier;
 		}
+
 		public enum Packaging {
 		    Jar, War, Ear, Pom;
 
