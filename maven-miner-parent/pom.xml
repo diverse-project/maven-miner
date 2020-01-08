@@ -15,7 +15,7 @@
   	<aether.version>1.13.1</aether.version>
   	<wagon.version>2.10</wagon.version>
   	<codehaus.version>3.0.22</codehaus.version>
-  	<validator.hibernate.version>6.0.2.Final</validator.hibernate.version>
+  	<validator.hibernate.version>6.1.0.Final</validator.hibernate.version>
   	<neo4j.version>3.4.0</neo4j.version>
   	<neo4j.driver.version>1.6.2</neo4j.driver.version>
   	<string.sim.version>RELEASE</string.sim.version>
